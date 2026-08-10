@@ -11,13 +11,18 @@ import {
   Typography
 } from "@mui/material";
 import LockOutlined from "@mui/icons-material/LockOutlined";
-import { api, setAuthToken, type AuthUser } from "../../api/client";
+import { api, setAuthToken, type ApplicationConfig, type AuthUser } from "../../api/client";
 
 type Props = {
+  config: ApplicationConfig;
   onAuthenticated: (user: AuthUser) => void;
 };
 
-export function LoginPage({ onAuthenticated }: Props) {
+function brandInitial(config: ApplicationConfig) {
+  return config.shortName.trim().charAt(0).toUpperCase() || "A";
+}
+
+export function LoginPage({ config, onAuthenticated }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,10 +48,12 @@ export function LoginPage({ onAuthenticated }: Props) {
       <Paper elevation={0} sx={{ width: "100%", maxWidth: 420, p: { xs: 3, sm: 4 }, border: "1px solid", borderColor: "divider", borderRadius: 4 }}>
         <Stack spacing={3} component="form" onSubmit={submit}>
           <Stack spacing={1.5} alignItems="center" textAlign="center">
-            <Avatar variant="rounded" sx={{ width: 48, height: 48, bgcolor: "primary.main", fontWeight: 800 }}>A</Avatar>
+            <Avatar variant="rounded" sx={{ width: 48, height: 48, bgcolor: "primary.main", fontWeight: 800 }}>{brandInitial(config)}</Avatar>
             <Box>
-              <Typography variant="h5" fontWeight={800}>Entrar no ATUAS</Typography>
-              <Typography color="text.secondary" variant="body2" sx={{ mt: .75 }}>Atuária Previdenciária</Typography>
+              <Typography variant="h5" fontWeight={800}>Entrar em {config.name}</Typography>
+              <Typography color="text.secondary" variant="body2" sx={{ mt: .75 }}>
+                {config.organizationName ?? "Previdência Complementar"}
+              </Typography>
             </Box>
           </Stack>
 
@@ -77,7 +84,7 @@ export function LoginPage({ onAuthenticated }: Props) {
           </Button>
 
           <Typography variant="caption" color="text.secondary" textAlign="center">
-            O primeiro administrador é criado pelo backend a partir das variáveis ATUAS_BOOTSTRAP_ADMIN_*.
+            O primeiro administrador pode ser provisionado pelo backend com APP_BOOTSTRAP_ADMIN_*.
           </Typography>
         </Stack>
       </Paper>
