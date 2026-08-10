@@ -1,6 +1,6 @@
 import { Dto, Field, t } from "adorn-api";
 
-@Dto({ name: "Plan", description: "Pension plan managed by ATUAS." })
+@Dto({ name: "Plan", description: "Pension plan managed by Atuária Previdenciária." })
 export class PlanDto {
   @Field(t.string({ format: "uuid" })) id!: string;
   @Field(t.string()) code!: string;
