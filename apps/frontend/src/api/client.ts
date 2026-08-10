@@ -27,6 +27,9 @@ export type AuthUser = ApiComponents["schemas"]["AuthUser"];
 export type LoginResponse = ApiComponents["schemas"]["LoginResponse"];
 export type CreateUserInput = ApiComponents["schemas"]["CreateUser"];
 export type UpdateUserInput = ApiComponents["schemas"]["UpdateUser"];
+export type Plan = ApiComponents["schemas"]["Plan"];
+export type CreatePlanInput = ApiComponents["schemas"]["CreatePlan"];
+export type UpdatePlanInput = ApiComponents["schemas"]["UpdatePlan"];
 
 export type ImportMappingRule = {
   sources: string[];
@@ -119,6 +122,10 @@ export const api = {
   users: () => getJson<AuthUser[]>("/api/users/"),
   createUser: (input: CreateUserInput) => postJson<AuthUser>("/api/users/", input),
   updateUser: (id: string, input: UpdateUserInput) => patchJson<AuthUser>(`/api/users/${id}`, input),
+  plans: () => getJson<Plan[]>("/api/plans/"),
+  plan: (id: string) => getJson<Plan>(`/api/plans/${id}`),
+  createPlan: (input: CreatePlanInput) => postJson<Plan>("/api/plans/", input),
+  updatePlan: (id: string, input: UpdatePlanInput) => patchJson<Plan>(`/api/plans/${id}`, input),
   dashboard: () => getJson<DashboardTotals>("/api/dashboard"),
   evaluations: () => getJson<Evaluation[]>("/api/evaluations/"),
   mappingProfiles: () => getJson<MappingProfile[]>("/api/mapping-profiles/"),
