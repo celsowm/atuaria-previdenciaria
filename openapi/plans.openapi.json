@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "ATUAS Plans API fragment",
+    "title": "Plans API fragment",
     "version": "0.0.1"
   },
   "tags": [{ "name": "Plans" }],
