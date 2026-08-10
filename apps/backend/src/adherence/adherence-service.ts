@@ -208,12 +208,15 @@ export async function createAdherenceStudy(input: CreateStudyInput) {
       result.expectedEvents = candidate.metrics.expectedEvents;
       result.chiSquare = candidate.metrics.chiSquare;
       result.chiSquareDf = candidate.metrics.chiSquareDf;
+      result.chiSquareCritical = candidate.metrics.chiSquareCritical;
       result.chiSquareP = candidate.metrics.chiSquareP;
       result.chiSquarePass = candidate.metrics.chiSquarePass ? 1 : 0;
       result.ksD = candidate.metrics.ksD;
+      result.ksCritical = candidate.metrics.ksCritical;
       result.ksP = candidate.metrics.ksP;
       result.ksPass = candidate.metrics.ksPass ? 1 : 0;
       result.zStatistic = candidate.metrics.zStatistic;
+      result.zCritical = candidate.metrics.zCritical;
       result.zP = candidate.metrics.zP;
       result.zPass = candidate.metrics.zPass ? 1 : 0;
       result.fisherP = candidate.metrics.fisherP;
@@ -255,12 +258,15 @@ function summarizeCandidate(result: AdherenceCandidateResult) {
     expectedEvents: Number(result.expectedEvents),
     chiSquare: Number(result.chiSquare),
     chiSquareDf: result.chiSquareDf,
+    chiSquareCritical: Number(result.chiSquareCritical),
     chiSquareP: Number(result.chiSquareP),
     chiSquarePass: result.chiSquarePass === 1,
     ksD: Number(result.ksD),
+    ksCritical: Number(result.ksCritical),
     ksP: Number(result.ksP),
     ksPass: result.ksPass === 1,
     zStatistic: Number(result.zStatistic),
+    zCritical: Number(result.zCritical),
     zP: Number(result.zP),
     zPass: result.zPass === 1,
     fisherP: Number(result.fisherP),
