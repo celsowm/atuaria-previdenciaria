@@ -5,11 +5,7 @@ coverage/
 .env
 .env.*
 !.env.example
-data/*.sqlite
-data/*.sqlite-*
-data/storage/
-data/golden-master/
-data/golden-master-reports/
+data/
 *.golden-master.local.json
 *.golden-master.report.json
 apps/frontend/src/api/generated/
