@@ -1,6 +1,7 @@
 import { createExpressApp } from "adorn-api";
 import { initializeDatabase } from "./db.js";
 import {
+  CritiqueController,
   EvaluationController,
   ImportController,
   LlmProviderController,
@@ -17,6 +18,7 @@ async function start() {
       EvaluationController,
       MappingProfileController,
       ImportController,
+      CritiqueController,
       LlmProviderController
     ],
     inputCoercion: "safe",
