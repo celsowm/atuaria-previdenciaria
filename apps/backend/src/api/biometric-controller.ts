@@ -1,4 +1,5 @@
 import {
+  Auth,
   Body,
   Controller,
   Get,
@@ -26,6 +27,7 @@ import {
   DeriveBiometricVersionDto
 } from "./biometric-dtos.js";
 
+@Auth()
 @Controller({ path: "/api/biometric-tables", tags: ["Biometrics"] })
 export class BiometricTableController {
   @Get("/")
@@ -86,6 +88,7 @@ export class BiometricTableController {
   }
 }
 
+@Auth()
 @Controller({ path: "/api/biometric-versions", tags: ["Biometrics"] })
 export class BiometricVersionController {
   @Get("/:id/points")
