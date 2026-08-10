@@ -17,7 +17,7 @@ const allowedRoles = new Set(["admin", "actuary", "reviewer"]);
 const userRef = entityRef(User);
 const userSessionRef = entityRef(UserSession);
 
-export type AtuasAuthUser = AuthUser & {
+export type ApplicationAuthUser = AuthUser & {
   id: string;
   email: string;
   displayName: string;
@@ -96,7 +96,7 @@ function tokenHash(token: string) {
 }
 
 function sessionTtlMs() {
-  const configured = Number(process.env.ATUAS_SESSION_TTL_DAYS ?? 7);
+  const configured = Number(process.env.APP_SESSION_TTL_DAYS ?? 7);
   const days = Number.isFinite(configured) && configured > 0 ? configured : 7;
   return days * 24 * 60 * 60 * 1000;
 }
@@ -114,7 +114,7 @@ function toView(user: User): UserView {
   };
 }
 
-function toAuthUser(user: User): AtuasAuthUser {
+function toAuthUser(user: User): ApplicationAuthUser {
   return {
     id: user.id,
     email: user.email,
@@ -152,27 +152,27 @@ export async function bootstrapAdminFromEnvironment() {
   const users = await allUsers();
   if (users.length > 0) return;
 
-  const email = process.env.ATUAS_BOOTSTRAP_ADMIN_EMAIL?.trim();
-  const password = process.env.ATUAS_BOOTSTRAP_ADMIN_PASSWORD;
+  const email = process.env.APP_BOOTSTRAP_ADMIN_EMAIL?.trim();
+  const password = process.env.APP_BOOTSTRAP_ADMIN_PASSWORD;
   if (!email && !password) {
     console.warn(
-      "ATUAS has no users. Set ATUAS_BOOTSTRAP_ADMIN_EMAIL and ATUAS_BOOTSTRAP_ADMIN_PASSWORD to create the first administrator."
+      "Application has no users. Set APP_BOOTSTRAP_ADMIN_EMAIL and APP_BOOTSTRAP_ADMIN_PASSWORD to create the first administrator."
     );
     return;
   }
   if (!email || !password) {
     throw new Error(
-      "ATUAS_BOOTSTRAP_ADMIN_EMAIL and ATUAS_BOOTSTRAP_ADMIN_PASSWORD must be configured together."
+      "APP_BOOTSTRAP_ADMIN_EMAIL and APP_BOOTSTRAP_ADMIN_PASSWORD must be configured together."
     );
   }
 
   await createUser({
     email,
-    displayName: process.env.ATUAS_BOOTSTRAP_ADMIN_NAME?.trim() || "Administrador ATUAS",
+    displayName: process.env.APP_BOOTSTRAP_ADMIN_NAME?.trim() || "Administrador",
     password,
     role: "admin"
   });
-  console.log(`ATUAS bootstrap administrator created: ${normalizeEmail(email)}`);
+  console.log(`Bootstrap administrator created: ${normalizeEmail(email)}`);
 }
 
 export async function listUsers() {
@@ -298,7 +298,7 @@ export async function login(emailInput: string, password: string) {
   };
 }
 
-export async function verifyBearerToken(token: string): Promise<AtuasAuthUser | null> {
+export async function verifyBearerToken(token: string): Promise<ApplicationAuthUser | null> {
   const sessionRecord = await findSessionByTokenHash(tokenHash(token));
   if (
     !sessionRecord ||
