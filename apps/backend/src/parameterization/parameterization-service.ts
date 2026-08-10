@@ -12,7 +12,6 @@ import {
 const parameterizationRef = entityRef(ActuarialParameterization);
 const valueRef = entityRef(ActuarialParameterValue);
 const selectionRef = entityRef(ActuarialHypothesisSelection);
-const statuses = new Set(["DRAFT", "APPROVED", "SUPERSEDED"]);
 const valueTypes = new Set(["NUMBER", "INTEGER", "TEXT", "BOOLEAN"]);
 
 type Session = ReturnType<typeof createSession>;
@@ -107,18 +106,17 @@ async function requireDraft(session: Session, id: string) {
 }
 
 async function valuesFor(session: Session, parameterizationId: string) {
-  return selectFromEntity(ActuarialParameterValue)
+  const rows = await selectFromEntity(ActuarialParameterValue)
     .where(eq(valueRef.parameterizationId, parameterizationId))
-    .orderBy(valueRef.category, "ASC")
-    .orderBy(valueRef.code, "ASC")
     .execute(session);
+  return rows.sort((a, b) => a.category.localeCompare(b.category, "pt-BR") || a.code.localeCompare(b.code));
 }
 
 async function selectionsFor(session: Session, parameterizationId: string) {
-  return selectFromEntity(ActuarialHypothesisSelection)
+  const rows = await selectFromEntity(ActuarialHypothesisSelection)
     .where(eq(selectionRef.parameterizationId, parameterizationId))
-    .orderBy(selectionRef.hypothesisType, "ASC")
     .execute(session);
+  return rows.sort((a, b) => a.hypothesisType.localeCompare(b.hypothesisType, "pt-BR"));
 }
 
 function summary(row: ActuarialParameterization) {
@@ -197,6 +195,10 @@ export async function createParameterization(
       .where(eq(parameterizationRef.evaluationId, evaluationId))
       .orderBy(parameterizationRef.version, "DESC")
       .execute(session);
+    const openDraft = existing.find((candidate) => candidate.status === "DRAFT");
+    if (openDraft) {
+      throw new Error(`Já existe a parametrização v${openDraft.version} em rascunho. Aprove-a antes de criar outra versão.`);
+    }
     const version = (existing[0]?.version ?? 0) + 1;
 
     let copyFrom: ActuarialParameterization | null = null;
@@ -204,6 +206,9 @@ export async function createParameterization(
       copyFrom = await session.find(ActuarialParameterization, input.copyFromId);
       if (!copyFrom || copyFrom.evaluationId !== evaluationId) {
         throw new Error("A parametrização de origem não pertence a esta avaliação.");
+      }
+      if (copyFrom.status === "DRAFT") {
+        throw new Error("Uma nova versão só pode copiar uma parametrização já consolidada.");
       }
     }
 
@@ -334,8 +339,8 @@ export async function promoteAdherenceCandidate(id: string, candidateResultId: s
     if (!candidate) throw new Error("Resultado candidato de aderência não encontrado.");
     const study = await session.find(AdherenceStudy, candidate.studyId);
     if (!study) throw new Error("Estudo de aderência não encontrado.");
-    if (study.evaluationId !== null && study.evaluationId !== undefined && study.evaluationId !== row.evaluationId) {
-      throw new Error("O estudo de aderência pertence a outra avaliação.");
+    if (study.evaluationId !== row.evaluationId) {
+      throw new Error("O estudo de aderência precisa estar explicitamente vinculado a esta avaliação.");
     }
 
     const current = (await selectionsFor(session, id)).find(
@@ -395,8 +400,4 @@ export async function approveParameterization(id: string) {
     await session.commit();
     return detailInSession(session, row);
   });
-}
-
-export function isParameterizationStatus(value: string) {
-  return statuses.has(value);
 }
