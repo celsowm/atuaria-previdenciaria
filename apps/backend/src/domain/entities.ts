@@ -66,8 +66,26 @@ export class LlmProvider {
   model!: string;
 
   @Column(col.notNull(col.int()))
-  credentialCount!: number;
+  enabled!: number;
+}
+
+@Entity({ tableName: "llm_provider_credentials" })
+export class LlmProviderCredential {
+  @PrimaryKey(col.autoIncrement(col.int()))
+  id!: number;
+
+  @Column(col.notNull(col.int()))
+  providerId!: number;
+
+  @Column(col.notNull(col.text()))
+  label!: string;
+
+  @Column(col.notNull(col.text()))
+  secretRef!: string;
 
   @Column(col.notNull(col.int()))
   enabled!: number;
+
+  @Column(col.notNull(col.int()))
+  priority!: number;
 }
