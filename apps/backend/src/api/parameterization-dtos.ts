@@ -41,7 +41,16 @@ export class ActuarialParameterizationSummaryDto {
 }
 
 @Dto({ name: "ActuarialParameterization", description: "Complete immutable-ready actuarial parameterization snapshot." })
-export class ActuarialParameterizationDto extends ActuarialParameterizationSummaryDto {
+export class ActuarialParameterizationDto {
+  @Field(t.string({ format: "uuid" })) id!: string;
+  @Field(t.integer({ minimum: 1 })) evaluationId!: number;
+  @Field(t.integer({ minimum: 1 })) version!: number;
+  @Field(t.string()) name!: string;
+  @Field(t.enum(["DRAFT", "APPROVED", "SUPERSEDED"])) status!: string;
+  @Field(t.nullable(t.string())) notes!: string | null;
+  @Field(t.string({ format: "date-time" })) createdAt!: string;
+  @Field(t.string({ format: "date-time" })) updatedAt!: string;
+  @Field(t.nullable(t.string({ format: "date-time" }))) approvedAt!: string | null;
   @Field(t.array(t.ref(ActuarialParameterValueDto))) parameters!: ActuarialParameterValueDto[];
   @Field(t.array(t.ref(ActuarialHypothesisSelectionDto))) hypotheses!: ActuarialHypothesisSelectionDto[];
 }
