@@ -2,7 +2,7 @@ import { readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { generateTypes } from "better-openapi-typescript";
 
-const basePath = resolve("../../openapi/atuas.openapi.json");
+const basePath = resolve("../../openapi/core.openapi.json");
 const fragments = [
   resolve("../../openapi/config.openapi.json"),
   resolve("../../openapi/auth.openapi.json"),
@@ -12,10 +12,6 @@ const fragments = [
 const mergedPath = resolve("./.openapi.merged.json");
 
 const base = JSON.parse(await readFile(basePath, "utf8"));
-base.info = {
-  ...(base.info ?? {}),
-  title: "Plataforma Atuarial API"
-};
 for (const fragmentPath of fragments) {
   const fragment = JSON.parse(await readFile(fragmentPath, "utf8"));
   base.tags = [
