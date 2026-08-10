@@ -17,6 +17,11 @@ import {
   MappingRule
 } from "./domain/entities.js";
 import { CritiqueIssue, CritiqueRule, CritiqueRun } from "./domain/critique-entities.js";
+import {
+  BiometricTable,
+  BiometricTablePoint,
+  BiometricTableVersion
+} from "./domain/biometric-entities.js";
 
 const entityTypes = [
   Evaluation,
@@ -28,6 +33,9 @@ const entityTypes = [
   CritiqueRule,
   CritiqueRun,
   CritiqueIssue,
+  BiometricTable,
+  BiometricTableVersion,
+  BiometricTablePoint,
   LlmProvider,
   LlmProviderCredential
 ] as const;
