@@ -123,7 +123,7 @@ export function ParameterizationPage({
   }, [evaluationId, parameterizationId]);
 
   const selectedByHypothesis = useMemo(
-    () => new Map((parameterization?.hypotheses ?? []).map((selection) => [selection.hypothesisType, selection])),
+    () => new Map((parameterization?.hypotheses ?? []).map((selection) => [selection.hypothesisType, selection] as const)),
     [parameterization]
   );
 
@@ -150,7 +150,7 @@ export function ParameterizationPage({
         code: spec.code,
         category: spec.category,
         label: spec.label,
-        valueType: "NUMBER",
+        valueType: "NUMBER" as const,
         valueJson: JSON.stringify(Number(numericValues[spec.code].replace(",", "."))),
         unit: spec.unit,
         source: "MANUAL"
@@ -284,7 +284,7 @@ export function ParameterizationPage({
                 value={numericValues[spec.code] ?? ""}
                 onChange={(event) => setNumericValues((current) => ({ ...current, [spec.code]: event.target.value }))}
                 disabled={parameterization.status !== "DRAFT"}
-                inputProps={{ inputMode: "decimal" }}
+                slotProps={{ htmlInput: { inputMode: "decimal" } }}
                 helperText={spec.unit}
               />)}
               <TextField
