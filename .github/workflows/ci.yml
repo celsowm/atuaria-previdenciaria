@@ -21,7 +21,7 @@ jobs:
         run: npm run typecheck
       - name: Build
         run: npm run build
-      - name: Smoke test API, Data Studio and critique
+      - name: Smoke test API, Data Studio, critique and biometrics
         shell: bash
         run: |
           node apps/backend/dist/server.js > /tmp/atuas-api.log 2>&1 &
@@ -127,3 +127,30 @@ jobs:
             > /tmp/atuas-resolved-issue.json
 
           node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-resolved-issue.json","utf8")); if(x.status!=="RESOLVED"||!x.resolutionNote||!x.resolvedAt) process.exit(1)'
+
+          curl --fail --silent --show-error \
+            -H 'content-type: application/json' \
+            -d '{"code":"CI-TABLE","name":"Tábua CI","kind":"Mortalidade geral","sexScope":"UNISEX","source":"CI","version":"v1","points":[{"age":20,"sex":"UNISEX","qx":0.001},{"age":21,"sex":"UNISEX","qx":0.002},{"age":22,"sex":"UNISEX","qx":0.003}]}' \
+            http://localhost:3001/api/biometric-tables/ \
+            > /tmp/atuas-biometric-table.json
+
+          TABLE_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/atuas-biometric-table.json","utf8")).id')
+          VERSION_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/atuas-biometric-table.json","utf8")).versions[0].id')
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-biometric-table.json","utf8")); if(x.code!=="CI-TABLE"||x.versions.length!==1||x.versions[0].pointCount!==3) process.exit(1)'
+
+          curl --fail --silent --show-error \
+            http://localhost:3001/api/biometric-versions/$VERSION_ID/points \
+            > /tmp/atuas-biometric-points.json
+
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-biometric-points.json","utf8")); if(x.points.length!==3||Math.abs(x.points[1].qx-0.002)>1e-12) process.exit(1)'
+
+          curl --fail --silent --show-error \
+            -H 'content-type: application/json' \
+            -d "{\"parentVersionId\":\"$VERSION_ID\",\"version\":\"v2-90pct\",\"transform\":\"QX_SCALE\",\"factor\":0.9}" \
+            http://localhost:3001/api/biometric-tables/$TABLE_ID/derive \
+            > /tmp/atuas-biometric-derived.json
+
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-biometric-derived.json","utf8")); if(x.version.derivationType!=="QX_SCALE"||x.version.parentVersionId==null||x.points.length!==3||Math.abs(x.points[0].qx-0.0009)>1e-12) process.exit(1)'
+
+          curl --fail --silent --show-error http://localhost:3001/api/biometric-tables/ > /tmp/atuas-biometric-list.json
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-biometric-list.json","utf8")); const t=x.find(i=>i.code==="CI-TABLE"); if(!t||t.versionCount!==2||t.latestVersion!=="v2-90pct") process.exit(1)'
