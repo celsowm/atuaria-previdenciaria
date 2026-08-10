@@ -5,7 +5,11 @@ export class ActuarialParameterization {
   @PrimaryKey(col.text())
   id!: string;
 
-  @Column(col.notNull(col.int()))
+  @Column(col.notNull(col.references(col.int(), {
+    table: "evaluations",
+    column: "id",
+    onDelete: "CASCADE"
+  })))
   evaluationId!: number;
 
   @Column(col.notNull(col.int()))
@@ -35,7 +39,11 @@ export class ActuarialParameterValue {
   @PrimaryKey(col.text())
   id!: string;
 
-  @Column(col.notNull(col.text()))
+  @Column(col.notNull(col.references(col.text(), {
+    table: "actuarial_parameterizations",
+    column: "id",
+    onDelete: "CASCADE"
+  })))
   parameterizationId!: string;
 
   @Column(col.notNull(col.text()))
@@ -68,19 +76,35 @@ export class ActuarialHypothesisSelection {
   @PrimaryKey(col.text())
   id!: string;
 
-  @Column(col.notNull(col.text()))
+  @Column(col.notNull(col.references(col.text(), {
+    table: "actuarial_parameterizations",
+    column: "id",
+    onDelete: "CASCADE"
+  })))
   parameterizationId!: string;
 
   @Column(col.notNull(col.text()))
   hypothesisType!: string;
 
-  @Column(col.notNull(col.text()))
+  @Column(col.notNull(col.references(col.text(), {
+    table: "adherence_studies",
+    column: "id",
+    onDelete: "RESTRICT"
+  })))
   adherenceStudyId!: string;
 
-  @Column(col.notNull(col.text()))
+  @Column(col.notNull(col.references(col.text(), {
+    table: "adherence_candidate_results",
+    column: "id",
+    onDelete: "RESTRICT"
+  })))
   candidateResultId!: string;
 
-  @Column(col.notNull(col.text()))
+  @Column(col.notNull(col.references(col.text(), {
+    table: "biometric_table_versions",
+    column: "id",
+    onDelete: "RESTRICT"
+  })))
   biometricVersionId!: string;
 
   @Column(col.notNull(col.text()))
