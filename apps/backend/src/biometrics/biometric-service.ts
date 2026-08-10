@@ -203,10 +203,14 @@ export async function getBiometricVersionPoints(versionId: string) {
   return withSession(async (session) => {
     const version = await session.find(BiometricTableVersion, versionId);
     if (!version) return null;
-    const points = (await selectFromEntity(BiometricTablePoint).execute(session))
+    const points: BiometricPointInput[] = (await selectFromEntity(BiometricTablePoint).execute(session))
       .filter((point) => point.versionId === version.id)
       .sort((a, b) => a.sex.localeCompare(b.sex) || a.age - b.age)
-      .map((point) => ({ age: point.age, sex: point.sex, qx: Number(point.qx) }));
+      .map((point) => ({
+        age: point.age,
+        sex: point.sex as BiometricPointInput["sex"],
+        qx: Number(point.qx)
+      }));
     return { version: summarizeVersion(version), points };
   });
 }
@@ -237,7 +241,8 @@ export async function deriveBiometricVersion(tableId: string, input: DeriveBiome
       throw new Error("factor deve ser maior que zero e menor ou igual a 5.");
     }
     derived = parentBundle.points.map((point) => ({
-      ...point,
+      age: point.age,
+      sex: point.sex,
       qx: Math.min(1, Math.max(0, point.qx * factor))
     }));
     parameters = { factor };
@@ -249,7 +254,7 @@ export async function deriveBiometricVersion(tableId: string, input: DeriveBiome
     const bySexAge = new Map(parentBundle.points.map((point) => [`${point.sex}:${point.age}`, point]));
     derived = parentBundle.points.flatMap((point) => {
       const source = bySexAge.get(`${point.sex}:${point.age + years}`);
-      return source ? [{ age: point.age, sex: point.sex as BiometricPointInput["sex"], qx: source.qx }] : [];
+      return source ? [{ age: point.age, sex: point.sex, qx: source.qx }] : [];
     });
     parameters = { years };
   }
