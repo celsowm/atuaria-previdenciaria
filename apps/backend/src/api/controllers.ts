@@ -24,6 +24,7 @@ import {
   resolveCritiqueIssue,
   runCritique
 } from "../critique/critique-service.js";
+import { refreshEvaluationAfterIssue } from "../critique/critique-status.js";
 import {
   CreateCritiqueRunDto,
   CreateImportDto,
@@ -261,6 +262,7 @@ export class CritiqueController {
     }
     const issue = await resolveCritiqueIssue(ctx.params.id, status, ctx.body.note);
     if (!issue) throw new HttpError(404, "Ocorrência de crítica não encontrada.");
+    await refreshEvaluationAfterIssue(ctx.params.id);
     return issue;
   }
 }
