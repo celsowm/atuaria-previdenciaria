@@ -74,12 +74,12 @@ export async function initializeDatabase() {
 }
 
 export function getDatabasePath() {
-  if (!databasePath) throw new Error("ATUAS database is not initialized");
+  if (!databasePath) throw new Error("Atuária Previdenciária database is not initialized");
   return databasePath;
 }
 
 export function createSession() {
-  if (!orm) throw new Error("ATUAS database is not initialized");
+  if (!orm) throw new Error("Atuária Previdenciária database is not initialized");
   return orm.createSession();
 }
 
