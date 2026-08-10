@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm install
+      - name: Generate OpenAPI TypeScript contracts
+        run: npm run api:generate
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+      - name: Smoke test API
+        shell: bash
+        run: |
+          node apps/backend/dist/server.js > /tmp/atuas-api.log 2>&1 &
+          API_PID=$!
+          trap 'kill $API_PID || true' EXIT
+          for i in {1..20}; do
+            if curl --fail --silent http://localhost:3001/api/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/atuas-api.log
+          exit 1
