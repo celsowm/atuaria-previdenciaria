@@ -1,4 +1,5 @@
 import { createExpressApp } from "adorn-api";
+import { getApplicationName } from "./application-config.js";
 import { bootstrapAdminFromEnvironment, verifyBearerToken } from "./auth/auth-service.js";
 import { AuthController, UserController } from "./api/auth-controller.js";
 import { PlanController } from "./api/plan-controller.js";
@@ -17,6 +18,7 @@ import { closeDatabase, initializeDatabase } from "./db.js";
 async function start() {
   const databasePath = await initializeDatabase();
   await bootstrapAdminFromEnvironment();
+  const applicationName = getApplicationName();
 
   const app = await createExpressApp({
     controllers: [
@@ -44,7 +46,7 @@ async function start() {
     },
     openApi: {
       info: {
-        title: "ATUAS API",
+        title: `${applicationName} API`,
         version: "0.0.1",
         description: "Actuarial valuation, pension plans, data studio, biometrics, adherence studies, assumptions, drafting and AI orchestration API."
       },
@@ -55,7 +57,7 @@ async function start() {
 
   const port = Number(process.env.PORT ?? 3001);
   const server = app.listen(port, () => {
-    console.log(`ATUAS API: http://localhost:${port}`);
+    console.log(`${applicationName} API: http://localhost:${port}`);
     console.log(`OpenAPI: http://localhost:${port}/openapi.json`);
     console.log(`Swagger: http://localhost:${port}/docs`);
     console.log(`SQLite: ${databasePath}`);
