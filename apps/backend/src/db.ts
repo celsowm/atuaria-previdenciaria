@@ -7,6 +7,7 @@ import {
   createSqliteExecutor,
   type SqliteClientLike
 } from "metal-orm";
+import { synchronizeEntitySchema } from "./schema.js";
 
 let database: sqlite3.Database | null = null;
 let orm: Orm | null = null;
@@ -46,46 +47,8 @@ export async function initializeDatabase() {
   await execSql(database, "PRAGMA foreign_keys = ON");
   await execSql(database, "PRAGMA journal_mode = WAL");
 
-  await execSql(database, `
-    CREATE TABLE IF NOT EXISTS evaluations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      planName TEXT NOT NULL,
-      referenceDate TEXT NOT NULL,
-      status TEXT NOT NULL,
-      stage TEXT NOT NULL,
-      progress INTEGER NOT NULL,
-      blockingIssues INTEGER NOT NULL DEFAULT 0,
-      updatedAt TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS mapping_profiles (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      population TEXT NOT NULL,
-      version TEXT NOT NULL,
-      mappedFields INTEGER NOT NULL,
-      totalFields INTEGER NOT NULL,
-      updatedAt TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS llm_providers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL UNIQUE,
-      baseUrl TEXT NOT NULL,
-      model TEXT NOT NULL,
-      enabled INTEGER NOT NULL DEFAULT 1
-    );
-
-    CREATE TABLE IF NOT EXISTS llm_provider_credentials (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      providerId INTEGER NOT NULL,
-      label TEXT NOT NULL,
-      secretRef TEXT NOT NULL,
-      enabled INTEGER NOT NULL DEFAULT 1,
-      priority INTEGER NOT NULL DEFAULT 100,
-      FOREIGN KEY(providerId) REFERENCES llm_providers(id) ON DELETE CASCADE
-    );
-  `);
+  const executor = createSqliteExecutor(sqliteClient(database));
+  await synchronizeEntitySchema(executor);
 
   const evaluationCount = await getValue<{ count: number }>(database, "SELECT COUNT(*) AS count FROM evaluations");
   if (evaluationCount.count === 0) {
@@ -95,9 +58,11 @@ export async function initializeDatabase() {
         ('Plano Beta', '2025-12-31', 'Em andamento', 'Aderência', 57, 0, '2026-08-10T12:55:00.000Z'),
         ('Plano Gama', '2025-12-31', 'Aguardando correção', 'Crítica cadastral', 23, 47, '2026-08-10T11:20:00.000Z');
 
-      INSERT INTO mapping_profiles (name, population, version, mappedFields, totalFields, updatedAt) VALUES
-        ('PREV-X Ativos', 'Ativos', 'v3', 46, 47, '2026-08-10T10:00:00.000Z'),
-        ('PREV-X Assistidos', 'Assistidos', 'v2', 31, 31, '2026-07-28T10:00:00.000Z');
+      INSERT INTO mapping_profiles
+        (name, population, version, schemaFingerprint, rulesFingerprint, sourceHeadersJson, mappedFields, totalFields, updatedAt)
+      VALUES
+        ('PREV-X Ativos', 'Ativos', 'v3', NULL, NULL, NULL, 46, 47, '2026-08-10T10:00:00.000Z'),
+        ('PREV-X Assistidos', 'Assistidos', 'v2', NULL, NULL, NULL, 31, 31, '2026-07-28T10:00:00.000Z');
     `);
   }
 
@@ -119,7 +84,6 @@ export async function initializeDatabase() {
     `);
   }
 
-  const executor = createSqliteExecutor(sqliteClient(database));
   orm = new Orm({
     dialect: new SqliteDialect(),
     executorFactory: {
