@@ -3,6 +3,7 @@ import { getApplicationName } from "./application-config.js";
 import { bootstrapAdminFromEnvironment, verifyBearerToken } from "./auth/auth-service.js";
 import { AuthController, UserController } from "./api/auth-controller.js";
 import { PlanController } from "./api/plan-controller.js";
+import { ParameterizationController } from "./api/parameterization-controller.js";
 import {
   CritiqueController,
   EvaluationController,
@@ -27,6 +28,7 @@ async function start() {
       SystemController,
       PlanController,
       EvaluationController,
+      ParameterizationController,
       MappingProfileController,
       ImportController,
       CritiqueController,
