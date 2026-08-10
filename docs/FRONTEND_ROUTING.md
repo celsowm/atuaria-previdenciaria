@@ -9,6 +9,8 @@ O frontend usa a URL do navegador como fonte de verdade da navegação. Não exi
 | Login | `/login` |
 | Avaliações | `/avaliacoes` |
 | Avaliação | `/avaliacoes/:id` |
+| Parametrização da avaliação | `/avaliacoes/:id/parametrizacao` |
+| Versão de parametrização | `/avaliacoes/:id/parametrizacao/:parameterizationId` |
 | Planos | `/planos` |
 | Plano | `/planos/:id` |
 | Data Studio | `/data-studio` |
@@ -40,4 +42,4 @@ Exemplo conceitual:
 qualquer outra URL -> index.html
 ```
 
-Sem esse fallback, navegar dentro da SPA funciona, mas abrir diretamente `/planos/<id>` no servidor pode resultar em 404 antes do React ser carregado.
+Sem esse fallback, navegar dentro da SPA funciona, mas abrir diretamente `/avaliacoes/42/parametrizacao/<uuid>` no servidor pode resultar em 404 antes do React ser carregado.
