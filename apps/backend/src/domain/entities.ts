@@ -41,14 +41,14 @@ export class MappingProfile {
   @Column(col.notNull(col.text()))
   version!: string;
 
-  @Column(col.notNull(col.text()))
-  schemaFingerprint!: string;
+  @Column(col.text())
+  schemaFingerprint?: string | null;
 
-  @Column(col.notNull(col.text()))
-  rulesFingerprint!: string;
+  @Column(col.text())
+  rulesFingerprint?: string | null;
 
-  @Column(col.notNull(col.text()))
-  sourceHeadersJson!: string;
+  @Column(col.text())
+  sourceHeadersJson?: string | null;
 
   @Column(col.notNull(col.int()))
   mappedFields!: number;
