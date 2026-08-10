@@ -1,17 +1,22 @@
-# ATUAS
+# Atuária Previdenciária
 
-Plataforma web para conduzir o ciclo de trabalho de avaliações atuariais de previdência complementar, substituindo progressivamente aplicações Delphi, planilhas operacionais, cálculos estatísticos manuais e fluxos documentais dispersos.
+Plataforma web para conduzir o ciclo de avaliações atuariais de previdência complementar, substituindo progressivamente aplicações legadas, planilhas operacionais, cálculos estatísticos manuais e fluxos documentais dispersos.
 
-## v0.0.1
+O projeto é **white-label por deployment**: o core não pressupõe nome de produto nem organização específica. Nome, nome curto e entidade são configurados em runtime.
 
-A base funcional atual já inclui:
+## Fundação atual
+
+A base funcional inclui:
 
 - monorepo TypeScript;
 - backend com `adorn-api`;
 - SQLite com `metal-orm` e entities anotadas;
 - schema sincronizado a partir das entities;
 - frontend React + Material UI;
-- OpenAPI 3.2 + contratos gerados por `better-openapi-typescript`;
+- OpenAPI + contratos gerados por `better-openapi-typescript`;
+- autenticação bearer, usuários e RBAC básico;
+- branding configurável por deployment;
+- cadastro de Planos BD/CD/CV;
 - Dashboard e Workspace de Avaliação;
 - Data Studio com wizard XLSX/XLS/CSV;
 - mapping N:N e transformações;
@@ -24,22 +29,46 @@ A base funcional atual já inclui:
 - ranking persistido das versões biométricas candidatas;
 - fundação para providers LLM OpenAI-compatible.
 
+## White-label
+
+O mesmo build pode ser usado por entidades diferentes sem fork de código:
+
+```env
+APP_NAME=Plataforma Atuarial
+APP_SHORT_NAME=Atuária
+APP_ORGANIZATION_NAME=
+```
+
+O backend expõe a configuração pública em:
+
+```text
+GET /api/config
+```
+
+O frontend usa esse endpoint para nome do login, sidebar e título do navegador. `APP_ORGANIZATION_NAME` pode ser diferente em cada deployment.
+
+White-label não é o mesmo que multi-tenant: hoje a arquitetura suporta deployments independentes por entidade. Uma instalação única atendendo várias entidades deverá ganhar isolamento explícito por tenant em um slice próprio.
+
 ## Arquitetura
 
 ```text
-atuas/
+atuaria-previdenciaria/
 ├── apps/
 │   ├── backend/               # Adorn API + Metal ORM + SQLite
 │   └── frontend/              # React + MUI
 ├── docs/
-│   └── HYPOTHESIS_LAB.md
-├── openapi/
-│   ├── atuas.openapi.json     # snapshot base
-│   └── adherence.openapi.json # fragmento do Hypothesis Lab
+├── openapi/                   # snapshot base + fragmentos por domínio
 └── package.json               # npm workspaces
 ```
 
-O domínio é organizado ao redor de uma **Avaliação Atuarial**, não de arquivos isolados:
+Os workspaces são:
+
+```text
+@atuaria-previdenciaria/backend
+@atuaria-previdenciaria/frontend
+```
+
+O domínio é organizado ao redor de uma **Avaliação Atuarial**:
 
 ```text
 Dados
@@ -63,7 +92,7 @@ Regulatório
 
 ## Data Studio
 
-A massa não é importada cegamente. O fluxo é:
+A massa não é importada cegamente:
 
 ```text
 Arquivo → Estrutura → Mapping → Transformações → Preview → Validação → Concluir
@@ -120,9 +149,7 @@ CritiqueRun
 CritiqueIssue
 ```
 
-As regras iniciais cobrem matrícula ausente/duplicada, nascimento inválido, idade fora de faixa, ingresso no plano anterior à admissão, salário não positivo, mudanças entre exercícios, variação salarial, entradas e saídas da massa.
-
-As severidades são `BLOCKING`, `INCONSISTENCY`, `WARNING` e `INFO`. Uma ocorrência nunca é apagada ao ser tratada: ela passa para `RESOLVED`, `JUSTIFIED` ou `IGNORED` e mantém a proveniência `RAW → NORMALIZED → CANONICAL`.
+As severidades são `BLOCKING`, `INCONSISTENCY`, `WARNING` e `INFO`. Uma ocorrência tratada passa para `RESOLVED`, `JUSTIFIED` ou `IGNORED` e mantém a proveniência `RAW → NORMALIZED → CANONICAL`.
 
 ## Biblioteca de Tábuas Biométricas
 
@@ -134,9 +161,7 @@ BiometricTableVersion
 BiometricTablePoint
 ```
 
-Cada ponto possui idade, sexo e `qx`. O qx é validado em `0 <= qx <= 1` e persistido como `decimal(18,12)`.
-
-Versões são imutáveis. Derivações registram a versão-mãe, transformação e parâmetros:
+Cada ponto possui idade, sexo e `qx`. Versões são imutáveis e derivações registram versão-mãe, transformação e parâmetros.
 
 ```text
 QX_SCALE
@@ -146,67 +171,16 @@ AGE_SHIFT
   qx_novo(x) = qx_origem(x + deslocamento)
 ```
 
-A UI importa XLSX/XLS/CSV, permite mapear idade/qx/sexo, revisar os pontos e comparar curvas entre versões. Percentuais como `0,10%` são normalizados para `0,001`.
-
 Nenhuma tábua oficial é inventada por seed: valores atuariais entram apenas por importação ou derivação explícita.
 
 ## Hypothesis Lab
 
-O módulo de Estudos de Aderência já é funcional.
+Os Estudos de Aderência recebem uma base histórica com ano, idade, sexo, exposição e eventos observados. O backend calcula deterministicamente observado × esperado, χ², Kolmogorov-Smirnov, Teste Z, Exato de Fisher e DQM.
 
-O wizard recebe uma base histórica com:
-
-```text
-ano
-idade
-sexo
-exposição
-eventos observados
-```
-
-O usuário seleciona uma ou mais versões imutáveis da Biblioteca Biométrica e o backend calcula deterministicamente:
+O identificador persistido do motor é neutro:
 
 ```text
-observado × esperado
-χ²
-Kolmogorov-Smirnov
-Teste Z
-Exato de Fisher
-DQM
-```
-
-O modelo é:
-
-```text
-AdherenceStudy
-  ├─ AdherenceObservation 1:N
-  └─ AdherenceCandidateResult 1:N
-       └─ AdherenceCandidatePoint 1:N
-```
-
-Cada candidato preserva, por idade/sexo:
-
-- exposição;
-- eventos observados;
-- qx usado;
-- eventos esperados;
-- resíduo.
-
-Também são persistidos:
-
-- estatísticas calculadas;
-- valores críticos de χ², KS e Z;
-- p-values;
-- decisão rejeita/não rejeita por teste;
-- DQM;
-- quantidade de testes rejeitados;
-- ranking;
-- versão do motor estatístico.
-
-A versão atual do motor é:
-
-```text
-atuas-adherence-v1
+adherence-engine-v1
 ```
 
 O ranking inicial usa:
@@ -217,35 +191,15 @@ O ranking inicial usa:
 
 O ranking é auxílio operacional e não aprova automaticamente uma hipótese.
 
-A metodologia detalhada está em `docs/HYPOTHESIS_LAB.md`. O objetivo seguinte é comparar os resultados com as planilhas históricas usadas como **golden master**.
-
 ## OpenAPI e frontend
 
-O contrato base fica em:
-
-```text
-openapi/atuas.openapi.json
-```
-
-Domínios podem adicionar fragmentos, como:
-
-```text
-openapi/adherence.openapi.json
-```
-
-O script `apps/frontend/scripts/generate-api.mjs` mescla os fragmentos antes de executar `better-openapi-typescript`.
+Os contratos ficam em `openapi/`, com um snapshot base e fragmentos independentes por domínio. O script `apps/frontend/scripts/generate-api.mjs` mescla os fragmentos antes de executar `better-openapi-typescript`.
 
 ```bash
 npm run api:generate
 ```
 
-A saída fica em:
-
-```text
-apps/frontend/src/api/generated/
-```
-
-O frontend consome esses schemas gerados em vez de duplicar DTOs manualmente.
+A saída gerada fica em `apps/frontend/src/api/generated/` e não é versionada.
 
 ## Backend
 
@@ -260,10 +214,17 @@ Padrões principais:
 - SQLite WAL;
 - multipart para importações.
 
-Endpoints centrais atuais:
+Endpoints centrais incluem:
 
 ```text
 GET   /api/health
+GET   /api/config
+POST  /api/auth/login
+GET   /api/auth/me
+POST  /api/auth/logout
+GET   /api/users/
+GET   /api/plans/
+POST  /api/plans/
 GET   /api/dashboard
 GET   /api/evaluations/
 POST  /api/imports/
@@ -294,7 +255,7 @@ npm install
 npm run dev
 ```
 
-Serviços:
+Serviços locais:
 
 ```text
 Frontend  http://localhost:5173
@@ -306,42 +267,49 @@ OpenAPI   http://localhost:3001/openapi.json
 Banco e storage padrão:
 
 ```text
-data/atuas.sqlite
+data/actuarial.sqlite
 data/storage/
 ```
 
-Podem ser alterados com `ATUAS_DB_PATH` e `ATUAS_STORAGE_PATH`.
+Podem ser alterados com:
 
-## CI
-
-A CI cobre Data Studio, Crítica Cadastral e Biblioteca Biométrica. Há também um workflow específico do Hypothesis Lab que:
-
-```text
-cria uma tábua biométrica
-  ↓
-deriva uma segunda versão
-  ↓
-executa estudo observado × esperado
-  ↓
-valida ranking e resultados
-  ↓
-abre os pontos persistidos do candidato vencedor
+```env
+APP_DB_PATH=./data/actuarial.sqlite
+APP_STORAGE_PATH=./data/storage
 ```
 
-## Princípio para IA
+Os caminhos relativos são resolvidos a partir da raiz do repositório, não do `cwd` do processo.
 
-A IA nunca é fonte dos resultados atuariais oficiais.
+## Primeiro administrador
+
+Não existe usuário ou senha padrão. Para uma base vazia:
+
+```env
+APP_BOOTSTRAP_ADMIN_EMAIL=admin@example.com
+APP_BOOTSTRAP_ADMIN_PASSWORD=uma-senha-forte
+APP_BOOTSTRAP_ADMIN_NAME=Administrador
+```
+
+A validade das sessões pode ser configurada com `APP_SESSION_TTL_DAYS`.
+
+## Demo e IA
+
+Dados de demonstração são opt-in:
+
+```env
+APP_SEED_DEMO=false
+```
+
+Quando habilitado, o seed de IA usa nomes neutros (`OpenAI-compatible` e `OpenAI`) e referências de secret por ambiente. Nenhuma configuração institucional específica pertence ao core.
+
+A IA nunca é fonte dos resultados atuariais oficiais:
 
 ```text
 motor determinístico → fatos estruturados → LLM → explicação/minuta/revisão
 ```
 
-Providers são OpenAI-compatible e podem possuir múltiplas credenciais referenciadas por secret store/environment, sem persistir API keys em texto puro no SQLite.
+## Persistência
 
-## Próximos slices
+O diretório `/data/` inteiro é ignorado pelo Git. SQLite é adequado enquanto cada deployment operar com uma única instância escritora e volume persistente. Escala horizontal com múltiplos writers deve migrar a persistência operacional para PostgreSQL, sem contaminar as regras atuariais.
 
-1. regressão do Hypothesis Lab contra os Excel históricos como golden master;
-2. integração dos estudos às Avaliações e snapshot formal das hipóteses aprovadas;
-3. orquestração do motor Delphi legado como golden master da avaliação;
-4. fechamento estruturado para substituir gradualmente `FECHAMENTO.xlsx`;
-5. Document Studio e IA contextual para relatório/parecer.
+Detalhes adicionais estão em `docs/SAAS_FOUNDATION.md`.
