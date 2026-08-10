@@ -53,12 +53,15 @@ export class AdherenceCandidateResultDto {
   @Field(t.number({ minimum: 0 })) expectedEvents!: number;
   @Field(t.number({ minimum: 0 })) chiSquare!: number;
   @Field(t.integer({ minimum: 1 })) chiSquareDf!: number;
+  @Field(t.number({ minimum: 0 })) chiSquareCritical!: number;
   @Field(t.number({ minimum: 0, maximum: 1 })) chiSquareP!: number;
   @Field(t.boolean()) chiSquarePass!: boolean;
   @Field(t.number({ minimum: 0, maximum: 1 })) ksD!: number;
+  @Field(t.number({ minimum: 0, maximum: 1 })) ksCritical!: number;
   @Field(t.number({ minimum: 0, maximum: 1 })) ksP!: number;
   @Field(t.boolean()) ksPass!: boolean;
   @Field(t.number()) zStatistic!: number;
+  @Field(t.number({ minimum: 0 })) zCritical!: number;
   @Field(t.number({ minimum: 0, maximum: 1 })) zP!: number;
   @Field(t.boolean()) zPass!: boolean;
   @Field(t.number({ minimum: 0, maximum: 1 })) fisherP!: number;
