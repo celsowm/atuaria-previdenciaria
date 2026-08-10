@@ -8,6 +8,10 @@ coverage/
 data/*.sqlite
 data/*.sqlite-*
 data/storage/
+data/golden-master/
+data/golden-master-reports/
+*.golden-master.local.json
+*.golden-master.report.json
 apps/frontend/src/api/generated/
 .DS_Store
 Thumbs.db
