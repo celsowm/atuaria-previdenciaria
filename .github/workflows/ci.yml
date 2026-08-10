@@ -24,6 +24,9 @@ jobs:
       - name: Smoke test API, Data Studio, critique and biometrics
         shell: bash
         run: |
+          ATUAS_BOOTSTRAP_ADMIN_EMAIL=ci@atuas.local \
+          ATUAS_BOOTSTRAP_ADMIN_PASSWORD='ci-password-1234' \
+          ATUAS_BOOTSTRAP_ADMIN_NAME='CI Administrator' \
           node apps/backend/dist/server.js > /tmp/atuas-api.log 2>&1 &
           API_PID=$!
           trap 'kill $API_PID || true' EXIT
@@ -40,6 +43,18 @@ jobs:
             cat /tmp/atuas-api.log
             exit 1
           fi
+
+          curl --fail --silent --show-error \
+            -H 'content-type: application/json' \
+            -d '{"email":"ci@atuas.local","password":"ci-password-1234"}' \
+            http://localhost:3001/api/auth/login \
+            > /tmp/atuas-login.json
+          TOKEN=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/atuas-login.json","utf8")).token')
+          test -n "$TOKEN"
+          printf 'header = "Authorization: Bearer %s"\n' "$TOKEN" > "$HOME/.curlrc"
+
+          curl --fail --silent --show-error http://localhost:3001/api/auth/me > /tmp/atuas-me.json
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-me.json","utf8")); if(x.email!=="ci@atuas.local"||x.role!=="admin"||!x.active) process.exit(1)'
 
           cat > /tmp/atuas-import.csv <<'CSV'
           MATRIC,DT_NASC,SEXO,SAL_PART
@@ -105,7 +120,10 @@ jobs:
 
           node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-bad-critique.json","utf8")); if(x.status!=="COMPLETED"||x.totalIssues<4||x.blockingCount<2) process.exit(1)'
 
-          BAD_RUN_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/atuas-bad-critique.json","utf8")).id')
+          BAD_RUN_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/atuas-bad-critique.json","utf8"))[0].id' 2>/dev/null || true)
+          if [ -z "$BAD_RUN_ID" ]; then
+            BAD_RUN_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/atuas-bad-critique.json","utf8")).id')
+          fi
           curl --fail --silent --show-error \
             http://localhost:3001/api/critique/runs/$BAD_RUN_ID/issues \
             > /tmp/atuas-bad-issues.json
