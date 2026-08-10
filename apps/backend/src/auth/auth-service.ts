@@ -7,13 +7,15 @@ import {
 } from "node:crypto";
 import { promisify } from "node:util";
 import type { AuthUser } from "adorn-api";
-import { getTableDefFromEntity, selectFromEntity } from "metal-orm";
+import { entityRef, eq, getTableDefFromEntity, selectFromEntity } from "metal-orm";
 import { createSession } from "../db.js";
 import { User, UserSession } from "../domain/auth-entities.js";
 
 const scrypt = promisify(scryptCallback);
 const passwordVersion = "scrypt-v1";
 const allowedRoles = new Set(["admin", "actuary", "reviewer"]);
+const userRef = entityRef(User);
+const userSessionRef = entityRef(UserSession);
 
 export type AtuasAuthUser = AuthUser & {
   id: string;
@@ -126,8 +128,24 @@ async function allUsers() {
   return withSession((session) => selectFromEntity(User).execute(session));
 }
 
-async function allSessions() {
-  return withSession((session) => selectFromEntity(UserSession).execute(session));
+async function findUserByEmail(email: string) {
+  return withSession(async (session) => {
+    const [user] = await selectFromEntity(User)
+      .where(eq(userRef.email, email))
+      .limit(1)
+      .execute(session);
+    return user ?? null;
+  });
+}
+
+async function findSessionByTokenHash(hash: string) {
+  return withSession(async (session) => {
+    const [record] = await selectFromEntity(UserSession)
+      .where(eq(userSessionRef.tokenHash, hash))
+      .limit(1)
+      .execute(session);
+    return record ?? null;
+  });
 }
 
 export async function bootstrapAdminFromEnvironment() {
@@ -176,8 +194,7 @@ export async function createUser(input: {
   const displayName = input.displayName.trim();
   if (!displayName) throw new Error("Nome do usuário é obrigatório.");
 
-  const users = await allUsers();
-  if (users.some((user) => user.email === email)) {
+  if (await findUserByEmail(email)) {
     throw new Error("Já existe um usuário com este e-mail.");
   }
 
@@ -209,7 +226,8 @@ export async function updateUser(
     password?: string;
   }
 ) {
-  return withSession(async (session) => {
+  const shouldRevokeSessions = input.password !== undefined || input.active === false;
+  const updated = await withSession(async (session) => {
     const user = await session.find(User, id);
     if (!user) return null;
 
@@ -221,7 +239,7 @@ export async function updateUser(
     const removesAdmin =
       user.role === "admin" &&
       user.active === 1 &&
-      (input.role !== undefined && input.role !== "admin" || input.active === false);
+      ((input.role !== undefined && input.role !== "admin") || input.active === false);
     if (removesAdmin) {
       const users = await selectFromEntity(User).execute(session);
       const activeAdmins = users.filter((candidate) => candidate.role === "admin" && candidate.active === 1);
@@ -237,18 +255,18 @@ export async function updateUser(
     user.updatedAt = new Date().toISOString();
     session.markDirty(user);
     await session.commit();
-
-    if (input.password !== undefined || input.active === false) {
-      await revokeUserSessions(id);
-    }
     return toView(user);
   });
+
+  if (updated && shouldRevokeSessions) {
+    await revokeUserSessions(id);
+  }
+  return updated;
 }
 
 export async function login(emailInput: string, password: string) {
   const email = normalizeEmail(emailInput);
-  const users = await allUsers();
-  const user = users.find((candidate) => candidate.email === email);
+  const user = await findUserByEmail(email);
   if (!user || user.active !== 1 || !(await verifyPassword(password, user.passwordHash))) {
     return null;
   }
@@ -281,9 +299,7 @@ export async function login(emailInput: string, password: string) {
 }
 
 export async function verifyBearerToken(token: string): Promise<AtuasAuthUser | null> {
-  const hash = tokenHash(token);
-  const sessions = await allSessions();
-  const sessionRecord = sessions.find((candidate) => candidate.tokenHash === hash);
+  const sessionRecord = await findSessionByTokenHash(tokenHash(token));
   if (
     !sessionRecord ||
     sessionRecord.revokedAt ||
@@ -300,24 +316,27 @@ export async function verifyBearerToken(token: string): Promise<AtuasAuthUser | 
 }
 
 export async function logout(token: string) {
-  const hash = tokenHash(token);
+  const sessionRecord = await findSessionByTokenHash(tokenHash(token));
+  if (!sessionRecord || sessionRecord.revokedAt) return;
+
   return withSession(async (session) => {
-    const sessions = await selectFromEntity(UserSession).execute(session);
-    const sessionRecord = sessions.find((candidate) => candidate.tokenHash === hash);
-    if (!sessionRecord || sessionRecord.revokedAt) return;
-    sessionRecord.revokedAt = new Date().toISOString();
-    session.markDirty(sessionRecord);
+    const stored = await session.find(UserSession, sessionRecord.id);
+    if (!stored || stored.revokedAt) return;
+    stored.revokedAt = new Date().toISOString();
+    session.markDirty(stored);
     await session.commit();
   });
 }
 
 export async function revokeUserSessions(userId: string) {
   return withSession(async (session) => {
-    const sessions = await selectFromEntity(UserSession).execute(session);
+    const sessions = await selectFromEntity(UserSession)
+      .where(eq(userSessionRef.userId, userId))
+      .execute(session);
     const now = new Date().toISOString();
     let changed = false;
     for (const sessionRecord of sessions) {
-      if (sessionRecord.userId !== userId || sessionRecord.revokedAt) continue;
+      if (sessionRecord.revokedAt) continue;
       sessionRecord.revokedAt = now;
       session.markDirty(sessionRecord);
       changed = true;
