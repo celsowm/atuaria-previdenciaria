@@ -5,6 +5,7 @@ import { generateTypes } from "better-openapi-typescript";
 const basePath = resolve("../../openapi/atuas.openapi.json");
 const fragments = [
   resolve("../../openapi/auth.openapi.json"),
+  resolve("../../openapi/plans.openapi.json"),
   resolve("../../openapi/adherence.openapi.json")
 ];
 const mergedPath = resolve("./.atuas.openapi.merged.json");
