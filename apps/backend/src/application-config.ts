@@ -1,12 +1,10 @@
-function textEnv(name: string, fallback: string) {
-  const value = process.env[name]?.trim();
-  return value || fallback;
-}
-
 function optionalTextEnv(name: string) {
   const value = process.env[name]?.trim();
   return value || null;
 }
+
+export const APPLICATION_NAME = "Atuária Previdenciária";
+export const APPLICATION_SLUG = "atuaria-previdenciaria";
 
 export type PublicApplicationConfig = {
   name: string;
@@ -16,12 +14,12 @@ export type PublicApplicationConfig = {
 
 export function getPublicApplicationConfig(): PublicApplicationConfig {
   return {
-    name: textEnv("APP_NAME", "Plataforma Atuarial"),
-    shortName: textEnv("APP_SHORT_NAME", "Atuária"),
+    name: APPLICATION_NAME,
+    shortName: APPLICATION_NAME,
     organizationName: optionalTextEnv("APP_ORGANIZATION_NAME")
   };
 }
 
 export function getApplicationName() {
-  return getPublicApplicationConfig().name;
+  return APPLICATION_NAME;
 }
