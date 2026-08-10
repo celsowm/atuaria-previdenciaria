@@ -14,7 +14,7 @@ import {
 } from "../domain/biometric-entities.js";
 import { evaluateCandidate, type AdherenceCell } from "./statistics.js";
 
-export const ADHERENCE_ENGINE_VERSION = "atuas-adherence-v1";
+export const ADHERENCE_ENGINE_VERSION = "adherence-engine-v1";
 
 type Sex = "MALE" | "FEMALE" | "UNISEX";
 
