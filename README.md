@@ -23,6 +23,9 @@ A primeira versão estabelece o fluxo e a arquitetura do produto:
 - armazenamento imutável do arquivo-fonte com SHA-256;
 - Mapping Profiles e Mapping Rules versionados;
 - detecção de compatibilidade e diff do layout recebido contra perfis anteriores;
+- Crítica Cadastral determinística com severidade e workflow de resolução;
+- comparação automática com a massa do exercício anterior quando a importação pertence a uma Avaliação;
+- drill-down de cada crítica até RAW, NORMALIZED, CANONICAL e CANONICAL anterior;
 - fundação para providers LLM OpenAI-compatible.
 
 ## Arquitetura
@@ -111,7 +114,7 @@ arquivo original
 Para cada importação o ATUAS mantém:
 
 - `ImportFile`: nome original, MIME type, tamanho, SHA-256 e localização no storage;
-- `ImportJob`: população, aba, cabeçalho, fingerprint do schema, perfil aplicado, status e contagens;
+- `ImportJob`: avaliação opcional, população, aba, cabeçalho, fingerprint do schema, perfil aplicado, status e contagens;
 - `ImportRow`: número da linha, JSON RAW, NORMALIZED e CANONICAL, status e erros de validação;
 - `MappingProfile`: família/versionamento do mapping e fingerprints;
 - `MappingRule`: origens, destinos, transformação e ordem da regra.
@@ -135,6 +138,66 @@ layout alterado
 
 Se schema ou regras mudarem, o ATUAS cria uma nova versão do perfil em vez de sobrescrever o histórico.
 
+## Crítica Cadastral
+
+Depois de persistir a massa, o usuário pode abrir a Crítica Cadastral diretamente do último passo do wizard.
+
+O motor é determinístico e trabalha exclusivamente sobre o CANONICAL persistido. Os achados ficam separados da validação estrutural da importação e são armazenados como entidades próprias:
+
+```text
+CritiqueRule
+    ↓
+CritiqueRun
+    ↓
+CritiqueIssue
+```
+
+As regras iniciais cobrem:
+
+- falha estrutural herdada da importação;
+- matrícula ausente;
+- matrícula duplicada;
+- nascimento inválido;
+- idade fora da faixa esperada;
+- ingresso no plano anterior à admissão;
+- salário de contribuição não positivo;
+- mudança de sexo entre exercícios;
+- mudança de data de nascimento entre exercícios;
+- variação salarial acima do limite configurado;
+- novos participantes;
+- saídas da massa.
+
+As severidades são:
+
+```text
+BLOCKING       → impede avanço enquanto estiver OPEN
+INCONSISTENCY  → exige análise atuarial/cadastral
+WARNING        → variação relevante
+INFO           → movimentação ou informação contextual
+```
+
+Quando a importação está vinculada a uma Avaliação, o ATUAS procura automaticamente a avaliação anterior do mesmo plano e a importação da mesma população. A comparação histórica então passa a fazer parte da mesma execução de crítica.
+
+Cada ocorrência mantém:
+
+```text
+regra
+severidade
+matrícula
+campo criticado
+valor atual
+valor anterior
+mensagem
+status
+justificativa
+RAW
+NORMALIZED
+CANONICAL
+CANONICAL anterior
+```
+
+O workflow de resolução não apaga o achado. A ocorrência muda de `OPEN` para `RESOLVED`, `JUSTIFIED` ou `IGNORED`, mantendo a trilha de auditoria. Ao resolver ou justificar bloqueios, a quantidade de bloqueios abertos da Avaliação é recalculada automaticamente; quando chega a zero, ela deixa de ficar presa em `Aguardando correção`.
+
 ## Backend
 
 O backend usa os padrões atuais do Adorn API e Metal ORM:
@@ -151,13 +214,18 @@ O backend usa os padrões atuais do Adorn API e Metal ORM:
 Endpoints atuais:
 
 ```text
-GET  /api/health
-GET  /api/dashboard
-GET  /api/evaluations/
-GET  /api/mapping-profiles/
-POST /api/mapping-profiles/match
-POST /api/imports/
-GET  /api/llm/providers/
+GET   /api/health
+GET   /api/dashboard
+GET   /api/evaluations/
+GET   /api/mapping-profiles/
+POST  /api/mapping-profiles/match
+POST  /api/imports/
+POST  /api/critique/runs
+GET   /api/critique/runs/:id
+GET   /api/critique/runs/:id/issues
+GET   /api/critique/issues/:id
+PATCH /api/critique/issues/:id
+GET   /api/llm/providers/
 ```
 
 ## Frontend e OpenAPI
@@ -238,11 +306,19 @@ build
   ↓
 health smoke test
   ↓
-importação CSV real via multipart
+importação de uma massa válida
   ↓
-validação das contagens
+crítica sem falsos positivos
   ↓
 reconhecimento do Mapping Profile em 100%
+  ↓
+importação de uma massa propositalmente inconsistente
+  ↓
+persistência e listagem das ocorrências
+  ↓
+verificação RAW → NORMALIZED → CANONICAL
+  ↓
+resolução de uma ocorrência via API
 ```
 
 ## Princípio para IA
@@ -257,9 +333,8 @@ Providers são OpenAI-compatible e podem possuir múltiplas credenciais referenc
 
 ## Próximos slices
 
-1. Crítica cadastral e comparação automática com o exercício anterior.
-2. Biblioteca versionada de tábuas biométricas.
-3. Hypothesis Lab: exposição, observados/esperados, Qui-Quadrado, KS, Z, Fisher e DQM.
-4. Orquestração do motor Delphi legado como golden master.
-5. Fechamento estruturado para substituir gradualmente a planilha de fechamento.
-6. Document Studio e providers LLM OpenAI-compatible com múltiplas API keys.
+1. Biblioteca versionada de tábuas biométricas.
+2. Hypothesis Lab: exposição, observados/esperados, Qui-Quadrado, KS, Z, Fisher e DQM.
+3. Orquestração do motor Delphi legado como golden master.
+4. Fechamento estruturado para substituir gradualmente a planilha de fechamento.
+5. Document Studio e providers LLM OpenAI-compatible com múltiplas API keys.
