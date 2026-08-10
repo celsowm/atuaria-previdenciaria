@@ -1,6 +1,6 @@
 # Hypothesis Lab
 
-O Hypothesis Lab do ATUAS executa estudos de aderência de hipóteses biométricas de forma determinística, versionada e auditável.
+O Hypothesis Lab executa estudos de aderência de hipóteses biométricas de forma determinística, versionada e auditável.
 
 ## Fluxo
 
@@ -46,7 +46,7 @@ A versão biométrica é referenciada pelo ID imutável usado no cálculo. Alter
 A primeira implementação é identificada por:
 
 ```text
-atuas-adherence-v1
+adherence-engine-v1
 ```
 
 Todo estudo persiste essa versão. Mudanças futuras de metodologia devem incrementar o identificador em vez de alterar silenciosamente resultados históricos.
@@ -133,7 +133,7 @@ O ranking é um auxílio operacional. Ele não transforma automaticamente a prim
 As planilhas históricas de aderência permanecem a referência para regressão. O objetivo dos próximos ciclos é alimentar o mesmo conjunto de exposições/eventos e comparar:
 
 ```text
-ATUAS vs Excel legado
+motor atual vs Excel legado
 ```
 
 para cada valor calculado, crítico, p-value, esperado e ranking. Diferenças metodológicas deverão ser documentadas e nunca mascaradas com ajustes ad hoc.
