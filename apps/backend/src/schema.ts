@@ -22,6 +22,12 @@ import {
   BiometricTablePoint,
   BiometricTableVersion
 } from "./domain/biometric-entities.js";
+import {
+  AdherenceCandidatePoint,
+  AdherenceCandidateResult,
+  AdherenceObservation,
+  AdherenceStudy
+} from "./domain/adherence-entities.js";
 
 const entityTypes = [
   Evaluation,
@@ -36,6 +42,10 @@ const entityTypes = [
   BiometricTable,
   BiometricTableVersion,
   BiometricTablePoint,
+  AdherenceStudy,
+  AdherenceObservation,
+  AdherenceCandidateResult,
+  AdherenceCandidatePoint,
   LlmProvider,
   LlmProviderCredential
 ] as const;
