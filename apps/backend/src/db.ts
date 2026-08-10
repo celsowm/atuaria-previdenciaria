@@ -70,16 +70,25 @@ export async function initializeDatabase() {
 
     CREATE TABLE IF NOT EXISTS llm_providers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
+      name TEXT NOT NULL UNIQUE,
       baseUrl TEXT NOT NULL,
       model TEXT NOT NULL,
-      credentialCount INTEGER NOT NULL DEFAULT 0,
       enabled INTEGER NOT NULL DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS llm_provider_credentials (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      providerId INTEGER NOT NULL,
+      label TEXT NOT NULL,
+      secretRef TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      priority INTEGER NOT NULL DEFAULT 100,
+      FOREIGN KEY(providerId) REFERENCES llm_providers(id) ON DELETE CASCADE
     );
   `);
 
-  const row = await getValue<{ count: number }>(database, "SELECT COUNT(*) AS count FROM evaluations");
-  if (row.count === 0) {
+  const evaluationCount = await getValue<{ count: number }>(database, "SELECT COUNT(*) AS count FROM evaluations");
+  if (evaluationCount.count === 0) {
     await execSql(database, `
       INSERT INTO evaluations (planName, referenceDate, status, stage, progress, blockingIssues, updatedAt) VALUES
         ('Plano Previdenciário Alfa', '2025-12-31', 'Em andamento', 'Fechamento', 82, 3, '2026-08-10T13:40:00.000Z'),
@@ -89,10 +98,24 @@ export async function initializeDatabase() {
       INSERT INTO mapping_profiles (name, population, version, mappedFields, totalFields, updatedAt) VALUES
         ('PREV-X Ativos', 'Ativos', 'v3', 46, 47, '2026-08-10T10:00:00.000Z'),
         ('PREV-X Assistidos', 'Assistidos', 'v2', 31, 31, '2026-07-28T10:00:00.000Z');
+    `);
+  }
 
-      INSERT INTO llm_providers (name, baseUrl, model, credentialCount, enabled) VALUES
-        ('PGE LLM', 'https://llm.interno/v1', 'modelo-principal', 3, 1),
-        ('OpenAI', 'https://api.openai.com/v1', 'modelo-redacao', 1, 1);
+  const providerCount = await getValue<{ count: number }>(database, "SELECT COUNT(*) AS count FROM llm_providers");
+  if (providerCount.count === 0) {
+    await execSql(database, `
+      INSERT INTO llm_providers (name, baseUrl, model, enabled) VALUES
+        ('PGE LLM', 'https://llm.interno/v1', 'modelo-principal', 1),
+        ('OpenAI', 'https://api.openai.com/v1', 'modelo-redacao', 1);
+
+      INSERT INTO llm_provider_credentials (providerId, label, secretRef, enabled, priority)
+        SELECT id, 'Produção 01', 'env://ATUAS_PGE_LLM_KEY_1', 1, 10 FROM llm_providers WHERE name = 'PGE LLM';
+      INSERT INTO llm_provider_credentials (providerId, label, secretRef, enabled, priority)
+        SELECT id, 'Produção 02', 'env://ATUAS_PGE_LLM_KEY_2', 1, 20 FROM llm_providers WHERE name = 'PGE LLM';
+      INSERT INTO llm_provider_credentials (providerId, label, secretRef, enabled, priority)
+        SELECT id, 'Produção 03', 'env://ATUAS_PGE_LLM_KEY_3', 1, 30 FROM llm_providers WHERE name = 'PGE LLM';
+      INSERT INTO llm_provider_credentials (providerId, label, secretRef, enabled, priority)
+        SELECT id, 'Produção 01', 'env://ATUAS_OPENAI_KEY_1', 1, 10 FROM llm_providers WHERE name = 'OpenAI';
     `);
   }
 
