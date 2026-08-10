@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 export type AppRoute =
   | { name: "login" }
   | { name: "evaluations"; evaluationId?: number }
+  | { name: "parameterization"; evaluationId: number; parameterizationId?: string }
   | { name: "plans"; planId?: string }
   | { name: "data-studio" }
   | { name: "critique"; importJobId: string }
@@ -24,7 +25,12 @@ export function parseRoute(pathname: string): AppRoute {
   if (path === "/login") return { name: "login" };
   if (path === "/" || path === "/avaliacoes") return { name: "evaluations" };
 
-  let match = /^\/avaliacoes\/(\d+)$/.exec(path);
+  let match = /^\/avaliacoes\/(\d+)\/parametrizacao$/.exec(path);
+  if (match) return { name: "parameterization", evaluationId: Number(match[1]) };
+  match = /^\/avaliacoes\/(\d+)\/parametrizacao\/([0-9a-f-]+)$/i.exec(path);
+  if (match) return { name: "parameterization", evaluationId: Number(match[1]), parameterizationId: match[2] };
+
+  match = /^\/avaliacoes\/(\d+)$/.exec(path);
   if (match) return { name: "evaluations", evaluationId: Number(match[1]) };
 
   if (path === "/planos") return { name: "plans" };
