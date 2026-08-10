@@ -339,8 +339,11 @@ export async function promoteAdherenceCandidate(id: string, candidateResultId: s
     if (!candidate) throw new Error("Resultado candidato de aderência não encontrado.");
     const study = await session.find(AdherenceStudy, candidate.studyId);
     if (!study) throw new Error("Estudo de aderência não encontrado.");
-    if (study.evaluationId !== row.evaluationId) {
-      throw new Error("O estudo de aderência precisa estar explicitamente vinculado a esta avaliação.");
+    if (study.evaluationId === null || study.evaluationId === undefined) {
+      study.evaluationId = row.evaluationId;
+      session.markDirty(study);
+    } else if (study.evaluationId !== row.evaluationId) {
+      throw new Error("O estudo de aderência pertence a outra avaliação.");
     }
 
     const current = (await selectionsFor(session, id)).find(
