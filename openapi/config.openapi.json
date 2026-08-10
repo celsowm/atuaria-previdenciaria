@@ -1,0 +1,39 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Application Configuration API fragment",
+    "version": "0.0.1"
+  },
+  "tags": [{ "name": "System" }],
+  "paths": {
+    "/api/config": {
+      "get": {
+        "tags": ["System"],
+        "operationId": "getApplicationConfig",
+        "responses": {
+          "200": {
+            "description": "Public runtime branding and deployment configuration",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApplicationConfig" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApplicationConfig": {
+        "type": "object",
+        "required": ["name", "shortName", "organizationName"],
+        "properties": {
+          "name": { "type": "string" },
+          "shortName": { "type": "string" },
+          "organizationName": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}
