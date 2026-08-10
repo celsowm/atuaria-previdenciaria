@@ -1,0 +1,138 @@
+{
+  "openapi": "3.2.0",
+  "info": {
+    "title": "ATUAS API",
+    "version": "0.0.1",
+    "description": "Snapshot used by better-openapi-typescript. The running Adorn API exposes the canonical document at /openapi.json."
+  },
+  "tags": [
+    { "name": "System" },
+    { "name": "Evaluations" },
+    { "name": "Data Studio" },
+    { "name": "AI" }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": ["System"],
+        "operationId": "systemHealth",
+        "responses": {
+          "200": {
+            "description": "Service health",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Health" } } }
+          }
+        }
+      }
+    },
+    "/api/dashboard": {
+      "get": {
+        "tags": ["System"],
+        "operationId": "getDashboard",
+        "responses": {
+          "200": {
+            "description": "Dashboard totals",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Dashboard" } } }
+          }
+        }
+      }
+    },
+    "/api/evaluations/": {
+      "get": {
+        "tags": ["Evaluations"],
+        "operationId": "listEvaluations",
+        "responses": {
+          "200": {
+            "description": "Evaluation workspaces",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Evaluation" } } } }
+          }
+        }
+      }
+    },
+    "/api/mapping-profiles/": {
+      "get": {
+        "tags": ["Data Studio"],
+        "operationId": "listMappingProfiles",
+        "responses": {
+          "200": {
+            "description": "Reusable mapping profiles",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/MappingProfile" } } } }
+          }
+        }
+      }
+    },
+    "/api/llm/providers/": {
+      "get": {
+        "tags": ["AI"],
+        "operationId": "listLlmProviders",
+        "responses": {
+          "200": {
+            "description": "OpenAI-compatible providers",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/LlmProvider" } } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "required": ["status", "service", "version"],
+        "properties": {
+          "status": { "type": "string" },
+          "service": { "type": "string" },
+          "version": { "type": "string" }
+        }
+      },
+      "Dashboard": {
+        "type": "object",
+        "required": ["inProgress", "awaitingCorrections", "pendingStudies", "draftsAwaitingReview"],
+        "properties": {
+          "inProgress": { "type": "integer" },
+          "awaitingCorrections": { "type": "integer" },
+          "pendingStudies": { "type": "integer" },
+          "draftsAwaitingReview": { "type": "integer" }
+        }
+      },
+      "Evaluation": {
+        "type": "object",
+        "required": ["id", "planName", "referenceDate", "status", "stage", "progress", "blockingIssues", "updatedAt"],
+        "properties": {
+          "id": { "type": "integer" },
+          "planName": { "type": "string" },
+          "referenceDate": { "type": "string", "format": "date" },
+          "status": { "type": "string" },
+          "stage": { "type": "string" },
+          "progress": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "blockingIssues": { "type": "integer", "minimum": 0 },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "MappingProfile": {
+        "type": "object",
+        "required": ["id", "name", "population", "version", "mappedFields", "totalFields", "updatedAt"],
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "population": { "type": "string" },
+          "version": { "type": "string" },
+          "mappedFields": { "type": "integer" },
+          "totalFields": { "type": "integer" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "LlmProvider": {
+        "type": "object",
+        "required": ["id", "name", "baseUrl", "model", "credentialCount", "enabled"],
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "baseUrl": { "type": "string", "format": "uri" },
+          "model": { "type": "string" },
+          "credentialCount": { "type": "integer", "minimum": 0 },
+          "enabled": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}
