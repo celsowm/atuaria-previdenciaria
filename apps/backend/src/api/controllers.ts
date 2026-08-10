@@ -1,4 +1,5 @@
 import {
+  Auth,
   Body,
   Controller,
   Get,
@@ -6,6 +7,7 @@ import {
   Params,
   Patch,
   Post,
+  Public,
   Returns,
   UploadedFile,
   t,
@@ -98,9 +100,11 @@ function parseMappingRules(value: string): MappingRuleInput[] {
   });
 }
 
+@Auth()
 @Controller({ path: "/api", tags: ["System"] })
 export class SystemController {
   @Get("/health")
+  @Public()
   @Returns(t.object({ status: t.string(), service: t.string(), version: t.string() }))
   health() {
     return { status: "ok", service: "atuas-backend", version: "0.0.1" };
@@ -121,6 +125,7 @@ export class SystemController {
   }
 }
 
+@Auth()
 @Controller({ path: "/api/evaluations", tags: ["Evaluations"] })
 export class EvaluationController {
   @Get("/")
@@ -144,6 +149,7 @@ export class EvaluationController {
   }
 }
 
+@Auth()
 @Controller({ path: "/api/mapping-profiles", tags: ["Data Studio"] })
 export class MappingProfileController {
   @Get("/")
@@ -173,6 +179,7 @@ export class MappingProfileController {
   }
 }
 
+@Auth()
 @Controller({ path: "/api/imports", tags: ["Data Studio"] })
 export class ImportController {
   @Post("/")
@@ -208,6 +215,7 @@ export class ImportController {
   }
 }
 
+@Auth()
 @Controller({ path: "/api/critique", tags: ["Critique"] })
 export class CritiqueController {
   @Post("/runs")
@@ -267,6 +275,7 @@ export class CritiqueController {
   }
 }
 
+@Auth()
 @Controller({ path: "/api/llm/providers", tags: ["AI"] })
 export class LlmProviderController {
   @Get("/")
