@@ -67,6 +67,9 @@ export class ActuarialParameterValue {
   @Column(col.notNull(col.text()))
   source!: string;
 
+  @Column(col.int())
+  active?: number | null;
+
   @Column(col.notNull(col.text()))
   updatedAt!: string;
 }
