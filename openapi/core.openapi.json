@@ -1,0 +1,205 @@
+{
+  "openapi": "3.2.0",
+  "info": {
+    "title": "Plataforma Atuarial API",
+    "version": "0.0.1",
+    "description": "Snapshot used by better-openapi-typescript. The running Adorn API exposes the canonical document at /openapi.json."
+  },
+  "tags": [
+    { "name": "System" },
+    { "name": "Evaluations" },
+    { "name": "Data Studio" },
+    { "name": "Critique" },
+    { "name": "Biometrics" },
+    { "name": "AI" }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": { "tags": ["System"], "operationId": "systemHealth", "responses": { "200": { "description": "Service health", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Health" } } } } } }
+    },
+    "/api/dashboard": {
+      "get": { "tags": ["System"], "operationId": "getDashboard", "responses": { "200": { "description": "Dashboard totals", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Dashboard" } } } } } }
+    },
+    "/api/evaluations/": {
+      "get": { "tags": ["Evaluations"], "operationId": "listEvaluations", "responses": { "200": { "description": "Evaluation workspaces", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Evaluation" } } } } } } }
+    },
+    "/api/mapping-profiles/": {
+      "get": { "tags": ["Data Studio"], "operationId": "listMappingProfiles", "responses": { "200": { "description": "Reusable mapping profiles", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/MappingProfile" } } } } } } }
+    },
+    "/api/mapping-profiles/match": {
+      "post": {
+        "tags": ["Data Studio"], "operationId": "matchMappingProfile",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MappingProfileMatchRequest" } } } },
+        "responses": { "200": { "description": "Best compatible mapping profile", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MappingProfileMatch" } } } } }
+      }
+    },
+    "/api/imports/": {
+      "post": {
+        "tags": ["Data Studio"], "operationId": "createImport",
+        "requestBody": { "required": true, "content": { "multipart/form-data": { "schema": {
+          "type": "object", "required": ["file", "population", "headerRow", "rulesJson"],
+          "properties": {
+            "file": { "type": "string", "format": "binary" }, "population": { "type": "string" },
+            "evaluationId": { "type": "integer", "minimum": 1 }, "profileId": { "type": "integer", "minimum": 1 },
+            "profileName": { "type": "string" }, "saveProfile": { "type": "boolean" }, "sheetName": { "type": "string" },
+            "headerRow": { "type": "integer", "minimum": 1 }, "rulesJson": { "type": "string" }
+          }
+        } } } },
+        "responses": { "201": { "description": "Persisted import", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ImportResult" } } } } }
+      }
+    },
+    "/api/critique/runs": {
+      "post": {
+        "tags": ["Critique"], "operationId": "createCritiqueRun",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateCritiqueRun" } } } },
+        "responses": { "201": { "description": "Critique run created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CritiqueRun" } } } } }
+      }
+    },
+    "/api/critique/runs/{id}": {
+      "get": {
+        "tags": ["Critique"], "operationId": "getCritiqueRun",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Critique run", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CritiqueRun" } } } } }
+      }
+    },
+    "/api/critique/runs/{id}/issues": {
+      "get": {
+        "tags": ["Critique"], "operationId": "listCritiqueIssues",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Critique issues", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/CritiqueIssue" } } } } } }
+      }
+    },
+    "/api/critique/issues/{id}": {
+      "get": {
+        "tags": ["Critique"], "operationId": "getCritiqueIssue",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Critique issue detail", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CritiqueIssueDetail" } } } } }
+      },
+      "patch": {
+        "tags": ["Critique"], "operationId": "resolveCritiqueIssue",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ResolveCritiqueIssue" } } } },
+        "responses": { "200": { "description": "Updated critique issue", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CritiqueIssueDetail" } } } } }
+      }
+    },
+    "/api/biometric-tables/": {
+      "get": {
+        "tags": ["Biometrics"], "operationId": "listBiometricTables",
+        "responses": { "200": { "description": "Biometric table library", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/BiometricTableSummary" } } } } } }
+      },
+      "post": {
+        "tags": ["Biometrics"], "operationId": "createBiometricTable",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateBiometricTable" } } } },
+        "responses": { "201": { "description": "Created biometric table", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BiometricTableDetail" } } } } }
+      }
+    },
+    "/api/biometric-tables/{id}": {
+      "get": {
+        "tags": ["Biometrics"], "operationId": "getBiometricTable",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Biometric table detail", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BiometricTableDetail" } } } } }
+      }
+    },
+    "/api/biometric-tables/{id}/derive": {
+      "post": {
+        "tags": ["Biometrics"], "operationId": "deriveBiometricVersion",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeriveBiometricVersion" } } } },
+        "responses": { "201": { "description": "Derived biometric version", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BiometricVersionPoints" } } } } }
+      }
+    },
+    "/api/biometric-versions/{id}/points": {
+      "get": {
+        "tags": ["Biometrics"], "operationId": "getBiometricVersionPoints",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Biometric qx points", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BiometricVersionPoints" } } } } }
+      }
+    },
+    "/api/llm/providers/": {
+      "get": { "tags": ["AI"], "operationId": "listLlmProviders", "responses": { "200": { "description": "OpenAI-compatible providers", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/LlmProvider" } } } } } } }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Health": { "type": "object", "required": ["status", "service", "version"], "properties": { "status": { "type": "string" }, "service": { "type": "string" }, "version": { "type": "string" } } },
+      "Dashboard": { "type": "object", "required": ["inProgress", "awaitingCorrections", "pendingStudies", "draftsAwaitingReview"], "properties": { "inProgress": { "type": "integer" }, "awaitingCorrections": { "type": "integer" }, "pendingStudies": { "type": "integer" }, "draftsAwaitingReview": { "type": "integer" } } },
+      "Evaluation": {
+        "type": "object", "required": ["id", "planName", "referenceDate", "status", "stage", "progress", "blockingIssues", "updatedAt"],
+        "properties": { "id": { "type": "integer" }, "planName": { "type": "string" }, "referenceDate": { "type": "string", "format": "date" }, "status": { "type": "string" }, "stage": { "type": "string" }, "progress": { "type": "integer", "minimum": 0, "maximum": 100 }, "blockingIssues": { "type": "integer", "minimum": 0 }, "updatedAt": { "type": "string", "format": "date-time" } }
+      },
+      "MappingProfile": { "type": "object", "required": ["id", "name", "population", "version", "mappedFields", "totalFields", "updatedAt"], "properties": { "id": { "type": "integer" }, "name": { "type": "string" }, "population": { "type": "string" }, "version": { "type": "string" }, "mappedFields": { "type": "integer" }, "totalFields": { "type": "integer" }, "updatedAt": { "type": "string", "format": "date-time" } } },
+      "MappingProfileMatchRequest": { "type": "object", "required": ["population", "headers"], "properties": { "population": { "type": "string", "minLength": 1 }, "headers": { "type": "array", "items": { "type": "string", "minLength": 1 } } } },
+      "MappingProfileMatch": { "type": "object", "required": ["matched", "compatibility", "exact", "missingColumns", "newColumns", "rulesJson"], "properties": { "matched": { "type": "boolean" }, "profileId": { "type": "integer" }, "profileName": { "type": "string" }, "version": { "type": "string" }, "compatibility": { "type": "integer", "minimum": 0, "maximum": 100 }, "exact": { "type": "boolean" }, "missingColumns": { "type": "array", "items": { "type": "string" } }, "newColumns": { "type": "array", "items": { "type": "string" } }, "rulesJson": { "type": "string" } } },
+      "ImportResult": {
+        "type": "object", "required": ["id", "fileId", "mappingProfileId", "mappingProfileVersion", "fileName", "fileSha256", "population", "sheetName", "rowCount", "validRows", "invalidRows", "status"],
+        "properties": { "id": { "type": "string", "format": "uuid" }, "fileId": { "type": "string", "format": "uuid" }, "mappingProfileId": { "type": ["integer", "null"] }, "mappingProfileVersion": { "type": ["string", "null"] }, "fileName": { "type": "string" }, "fileSha256": { "type": "string" }, "population": { "type": "string" }, "sheetName": { "type": "string" }, "rowCount": { "type": "integer", "minimum": 0 }, "validRows": { "type": "integer", "minimum": 0 }, "invalidRows": { "type": "integer", "minimum": 0 }, "status": { "type": "string" } }
+      },
+      "CreateCritiqueRun": { "type": "object", "required": ["importJobId"], "properties": { "importJobId": { "type": "string", "format": "uuid" }, "previousImportJobId": { "type": "string", "format": "uuid" } } },
+      "CritiqueRun": {
+        "type": "object", "required": ["id", "importJobId", "previousImportJobId", "status", "blockingCount", "inconsistencyCount", "warningCount", "infoCount", "totalIssues", "comparedWithPrevious", "createdAt", "completedAt"],
+        "properties": { "id": { "type": "string", "format": "uuid" }, "importJobId": { "type": "string", "format": "uuid" }, "previousImportJobId": { "type": ["string", "null"], "format": "uuid" }, "status": { "type": "string" }, "blockingCount": { "type": "integer" }, "inconsistencyCount": { "type": "integer" }, "warningCount": { "type": "integer" }, "infoCount": { "type": "integer" }, "totalIssues": { "type": "integer" }, "comparedWithPrevious": { "type": "boolean" }, "createdAt": { "type": "string", "format": "date-time" }, "completedAt": { "type": ["string", "null"], "format": "date-time" } }
+      },
+      "CritiqueIssue": {
+        "type": "object", "required": ["id", "ruleCode", "severity", "category", "status", "participantRegistration", "fieldPath", "currentValueJson", "previousValueJson", "message", "createdAt"],
+        "properties": { "id": { "type": "string", "format": "uuid" }, "ruleCode": { "type": "string" }, "severity": { "type": "string" }, "category": { "type": "string" }, "status": { "type": "string" }, "participantRegistration": { "type": ["string", "null"] }, "fieldPath": { "type": ["string", "null"] }, "currentValueJson": { "type": ["string", "null"] }, "previousValueJson": { "type": ["string", "null"] }, "message": { "type": "string" }, "createdAt": { "type": "string", "format": "date-time" } }
+      },
+      "CritiqueIssueDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/CritiqueIssue" },
+          { "type": "object", "required": ["detailsJson", "rawJson", "normalizedJson", "canonicalJson", "previousCanonicalJson", "resolutionNote", "resolvedAt"], "properties": { "detailsJson": { "type": "string" }, "rawJson": { "type": ["string", "null"] }, "normalizedJson": { "type": ["string", "null"] }, "canonicalJson": { "type": ["string", "null"] }, "previousCanonicalJson": { "type": ["string", "null"] }, "resolutionNote": { "type": ["string", "null"] }, "resolvedAt": { "type": ["string", "null"], "format": "date-time" } } }
+        ]
+      },
+      "ResolveCritiqueIssue": { "type": "object", "required": ["status", "note"], "properties": { "status": { "type": "string", "enum": ["JUSTIFIED", "RESOLVED", "IGNORED"] }, "note": { "type": "string", "minLength": 1 } } },
+      "BiometricPoint": {
+        "type": "object", "required": ["age", "sex", "qx"],
+        "properties": { "age": { "type": "integer", "minimum": 0, "maximum": 130 }, "sex": { "type": "string", "enum": ["MALE", "FEMALE", "UNISEX"] }, "qx": { "type": "number", "minimum": 0, "maximum": 1 } }
+      },
+      "CreateBiometricTable": {
+        "type": "object", "required": ["code", "name", "kind", "sexScope", "points"],
+        "properties": {
+          "code": { "type": "string", "minLength": 1 }, "name": { "type": "string", "minLength": 1 }, "kind": { "type": "string", "minLength": 1 }, "sexScope": { "type": "string", "minLength": 1 },
+          "source": { "type": "string" }, "description": { "type": "string" }, "version": { "type": "string" }, "effectiveFrom": { "type": "string", "format": "date" },
+          "points": { "type": "array", "minItems": 1, "items": { "$ref": "#/components/schemas/BiometricPoint" } }
+        }
+      },
+      "BiometricTableSummary": {
+        "type": "object", "required": ["id", "code", "name", "kind", "sexScope", "source", "description", "versionCount", "latestVersionId", "latestVersion", "pointCount", "minAge", "maxAge", "updatedAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" }, "code": { "type": "string" }, "name": { "type": "string" }, "kind": { "type": "string" }, "sexScope": { "type": "string" },
+          "source": { "type": ["string", "null"] }, "description": { "type": ["string", "null"] }, "versionCount": { "type": "integer" },
+          "latestVersionId": { "type": ["string", "null"], "format": "uuid" }, "latestVersion": { "type": ["string", "null"] }, "pointCount": { "type": "integer" },
+          "minAge": { "type": ["integer", "null"] }, "maxAge": { "type": ["integer", "null"] }, "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "BiometricVersion": {
+        "type": "object", "required": ["id", "version", "status", "effectiveFrom", "effectiveTo", "parentVersionId", "derivationType", "derivationParametersJson", "minAge", "maxAge", "pointCount", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" }, "version": { "type": "string" }, "status": { "type": "string" },
+          "effectiveFrom": { "type": ["string", "null"], "format": "date" }, "effectiveTo": { "type": ["string", "null"], "format": "date" },
+          "parentVersionId": { "type": ["string", "null"], "format": "uuid" }, "derivationType": { "type": ["string", "null"] }, "derivationParametersJson": { "type": "string" },
+          "minAge": { "type": "integer" }, "maxAge": { "type": "integer" }, "pointCount": { "type": "integer" }, "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "BiometricTableDetail": {
+        "type": "object", "required": ["id", "code", "name", "kind", "sexScope", "source", "description", "enabled", "createdAt", "updatedAt", "versions"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" }, "code": { "type": "string" }, "name": { "type": "string" }, "kind": { "type": "string" }, "sexScope": { "type": "string" },
+          "source": { "type": ["string", "null"] }, "description": { "type": ["string", "null"] }, "enabled": { "type": "boolean" }, "createdAt": { "type": "string", "format": "date-time" }, "updatedAt": { "type": "string", "format": "date-time" },
+          "versions": { "type": "array", "items": { "$ref": "#/components/schemas/BiometricVersion" } }
+        }
+      },
+      "BiometricVersionPoints": {
+        "type": "object", "required": ["version", "points"],
+        "properties": { "version": { "$ref": "#/components/schemas/BiometricVersion" }, "points": { "type": "array", "items": { "$ref": "#/components/schemas/BiometricPoint" } } }
+      },
+      "DeriveBiometricVersion": {
+        "type": "object", "required": ["parentVersionId", "version", "transform"],
+        "properties": {
+          "parentVersionId": { "type": "string", "format": "uuid" }, "version": { "type": "string", "minLength": 1 }, "transform": { "type": "string", "enum": ["QX_SCALE", "AGE_SHIFT"] },
+          "factor": { "type": "number", "exclusiveMinimum": 0, "maximum": 5 }, "years": { "type": "integer", "minimum": -20, "maximum": 20 }, "effectiveFrom": { "type": "string", "format": "date" }
+        }
+      },
+      "LlmProvider": { "type": "object", "required": ["id", "name", "baseUrl", "model", "credentialCount", "enabled"], "properties": { "id": { "type": "integer" }, "name": { "type": "string" }, "baseUrl": { "type": "string", "format": "uri" }, "model": { "type": "string" }, "credentialCount": { "type": "integer", "minimum": 0 }, "enabled": { "type": "boolean" } } }
+    }
+  }
+}
