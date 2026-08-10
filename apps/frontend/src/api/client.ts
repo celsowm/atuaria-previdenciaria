@@ -24,6 +24,23 @@ export type AdherenceCandidatePoint = ApiComponents["schemas"]["AdherenceCandida
 export type AdherenceCandidatePoints = ApiComponents["schemas"]["AdherenceCandidatePoints"];
 export type LlmProvider = ApiComponents["schemas"]["LlmProvider"];
 
+export type AuthUser = {
+  id: string;
+  email: string;
+  displayName: string;
+  role: "admin" | "actuary" | "reviewer" | string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt: string | null;
+};
+
+export type LoginResponse = {
+  token: string;
+  expiresAt: string;
+  user: AuthUser;
+};
+
 export type ImportMappingRule = {
   sources: string[];
   targets: string[];
@@ -41,9 +58,32 @@ export type ImportWorkbookOptions = {
   rules: ImportMappingRule[];
 };
 
-async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, init);
+const tokenKey = "atuas.session.token";
+
+export function getAuthToken() {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(tokenKey);
+}
+
+export function setAuthToken(token: string) {
+  window.localStorage.setItem(tokenKey, token);
+}
+
+export function clearAuthToken() {
+  if (typeof window !== "undefined") window.localStorage.removeItem(tokenKey);
+}
+
+async function requestJson<T>(url: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(init.headers);
+  const token = getAuthToken();
+  if (token) headers.set("authorization", `Bearer ${token}`);
+
+  const response = await fetch(url, { ...init, headers });
   if (!response.ok) {
+    if (response.status === 401 && url !== "/api/auth/login") {
+      clearAuthToken();
+      if (typeof window !== "undefined") window.dispatchEvent(new Event("atuas:unauthorized"));
+    }
     const detail = await response.text();
     throw new Error(detail || `ATUAS API ${response.status}: ${response.statusText}`);
   }
@@ -86,6 +126,14 @@ async function importWorkbook(file: File, options: ImportWorkbookOptions): Promi
 }
 
 export const api = {
+  login: (email: string, password: string) => postJson<LoginResponse>("/api/auth/login", { email, password }),
+  me: () => getJson<AuthUser>("/api/auth/me"),
+  logout: () => requestJson<{ ok: boolean }>("/api/auth/logout", { method: "POST" }),
+  users: () => getJson<AuthUser[]>("/api/users/"),
+  createUser: (input: { email: string; displayName: string; password: string; role: string }) =>
+    postJson<AuthUser>("/api/users/", input),
+  updateUser: (id: string, input: { displayName?: string; password?: string; role?: string; active?: boolean }) =>
+    patchJson<AuthUser>(`/api/users/${id}`, input),
   dashboard: () => getJson<DashboardTotals>("/api/dashboard"),
   evaluations: () => getJson<Evaluation[]>("/api/evaluations/"),
   mappingProfiles: () => getJson<MappingProfile[]>("/api/mapping-profiles/"),
