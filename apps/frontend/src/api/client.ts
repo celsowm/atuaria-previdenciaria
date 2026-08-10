@@ -8,85 +8,14 @@ export type ImportResult = ApiComponents["schemas"]["ImportResult"];
 export type CritiqueRun = ApiComponents["schemas"]["CritiqueRun"];
 export type CritiqueIssue = ApiComponents["schemas"]["CritiqueIssue"];
 export type CritiqueIssueDetail = ApiComponents["schemas"]["CritiqueIssueDetail"];
+export type BiometricPoint = ApiComponents["schemas"]["BiometricPoint"];
+export type BiometricVersion = ApiComponents["schemas"]["BiometricVersion"];
+export type BiometricTableSummary = ApiComponents["schemas"]["BiometricTableSummary"];
+export type BiometricTableDetail = ApiComponents["schemas"]["BiometricTableDetail"];
+export type BiometricVersionPoints = ApiComponents["schemas"]["BiometricVersionPoints"];
+export type CreateBiometricTableInput = ApiComponents["schemas"]["CreateBiometricTable"];
+export type DeriveBiometricVersionInput = ApiComponents["schemas"]["DeriveBiometricVersion"];
 export type LlmProvider = ApiComponents["schemas"]["LlmProvider"];
-
-export type BiometricPoint = {
-  age: number;
-  sex: "MALE" | "FEMALE" | "UNISEX";
-  qx: number;
-};
-
-export type BiometricVersion = {
-  id: string;
-  version: string;
-  status: string;
-  effectiveFrom: string | null;
-  effectiveTo: string | null;
-  parentVersionId: string | null;
-  derivationType: string | null;
-  derivationParametersJson: string;
-  minAge: number;
-  maxAge: number;
-  pointCount: number;
-  createdAt: string;
-};
-
-export type BiometricTableSummary = {
-  id: string;
-  code: string;
-  name: string;
-  kind: string;
-  sexScope: string;
-  source: string | null;
-  description: string | null;
-  versionCount: number;
-  latestVersionId: string | null;
-  latestVersion: string | null;
-  pointCount: number;
-  minAge: number | null;
-  maxAge: number | null;
-  updatedAt: string;
-};
-
-export type BiometricTableDetail = {
-  id: string;
-  code: string;
-  name: string;
-  kind: string;
-  sexScope: string;
-  source: string | null;
-  description: string | null;
-  enabled: boolean;
-  createdAt: string;
-  updatedAt: string;
-  versions: BiometricVersion[];
-};
-
-export type BiometricVersionPoints = {
-  version: BiometricVersion;
-  points: BiometricPoint[];
-};
-
-export type CreateBiometricTableInput = {
-  code: string;
-  name: string;
-  kind: string;
-  sexScope: string;
-  source?: string;
-  description?: string;
-  version?: string;
-  effectiveFrom?: string;
-  points: BiometricPoint[];
-};
-
-export type DeriveBiometricVersionInput = {
-  parentVersionId: string;
-  version: string;
-  transform: "QX_SCALE" | "AGE_SHIFT";
-  factor?: number;
-  years?: number;
-  effectiveFrom?: string;
-};
 
 export type ImportMappingRule = {
   sources: string[];
