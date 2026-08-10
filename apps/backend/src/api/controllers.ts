@@ -15,7 +15,7 @@ import {
   type UploadedFileInfo
 } from "adorn-api";
 import { entityRef, selectFromEntity } from "metal-orm";
-import { getPublicApplicationConfig } from "../application-config.js";
+import { APPLICATION_SLUG, getPublicApplicationConfig } from "../application-config.js";
 import { createSession } from "../db.js";
 import { Evaluation, LlmProvider, LlmProviderCredential, MappingProfile } from "../domain/entities.js";
 import { matchMappingProfile, persistImport } from "../data-studio/import-service.js";
@@ -108,7 +108,7 @@ export class SystemController {
   @Public()
   @Returns(t.object({ status: t.string(), service: t.string(), version: t.string() }))
   health() {
-    return { status: "ok", service: "actuarial-platform-backend", version: "0.0.1" };
+    return { status: "ok", service: `${APPLICATION_SLUG}-backend`, version: "0.0.1" };
   }
 
   @Get("/config")
