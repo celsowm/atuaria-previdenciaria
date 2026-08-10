@@ -3,7 +3,7 @@ import { Dto, Field, t } from "adorn-api";
 @Dto({ name: "BiometricPoint", description: "Single qx point of a biometric table version." })
 export class BiometricPointDto {
   @Field(t.integer({ minimum: 0, maximum: 130 })) age!: number;
-  @Field(t.string()) sex!: string;
+  @Field(t.enum(["MALE", "FEMALE", "UNISEX"])) sex!: string;
   @Field(t.number({ minimum: 0, maximum: 1 })) qx!: number;
 }
 
@@ -12,7 +12,7 @@ export class CreateBiometricTableDto {
   @Field(t.string({ minLength: 1 })) code!: string;
   @Field(t.string({ minLength: 1 })) name!: string;
   @Field(t.string({ minLength: 1 })) kind!: string;
-  @Field(t.string({ minLength: 1 })) sexScope!: string;
+  @Field(t.enum(["BOTH", "MALE", "FEMALE", "UNISEX"])) sexScope!: string;
   @Field(t.optional(t.string())) source?: string;
   @Field(t.optional(t.string())) description?: string;
   @Field(t.optional(t.string({ minLength: 1 }))) version?: string;
@@ -89,7 +89,7 @@ export class BiometricVersionParamsDto {
 export class DeriveBiometricVersionDto {
   @Field(t.string({ format: "uuid" })) parentVersionId!: string;
   @Field(t.string({ minLength: 1 })) version!: string;
-  @Field(t.string({ minLength: 1 })) transform!: string;
+  @Field(t.enum(["QX_SCALE", "AGE_SHIFT"])) transform!: string;
   @Field(t.optional(t.number({ exclusiveMinimum: 0, maximum: 5 }))) factor?: number;
   @Field(t.optional(t.integer({ minimum: -20, maximum: 20 }))) years?: number;
   @Field(t.optional(t.string({ format: "date" }))) effectiveFrom?: string;
