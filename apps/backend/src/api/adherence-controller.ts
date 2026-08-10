@@ -1,4 +1,5 @@
 import {
+  Auth,
   Body,
   Controller,
   Get,
@@ -24,6 +25,7 @@ import {
   CreateAdherenceStudyDto
 } from "./adherence-dtos.js";
 
+@Auth()
 @Controller({ path: "/api/adherence-studies", tags: ["Adherence"] })
 export class AdherenceStudyController {
   @Get("/")
@@ -73,6 +75,7 @@ export class AdherenceStudyController {
   }
 }
 
+@Auth()
 @Controller({ path: "/api/adherence-candidates", tags: ["Adherence"] })
 export class AdherenceCandidateController {
   @Get("/:id/points")
