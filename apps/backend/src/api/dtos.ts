@@ -1,6 +1,6 @@
 import { Dto, Field, t } from "adorn-api";
 
-@Dto({ description: "Actuarial valuation workspace summary." })
+@Dto({ name: "Evaluation", description: "Actuarial valuation workspace summary." })
 export class EvaluationDto {
   @Field(t.integer()) id!: number;
   @Field(t.string()) planName!: string;
@@ -12,7 +12,7 @@ export class EvaluationDto {
   @Field(t.string({ format: "date-time" })) updatedAt!: string;
 }
 
-@Dto({ description: "Reusable import mapping profile." })
+@Dto({ name: "MappingProfile", description: "Reusable import mapping profile." })
 export class MappingProfileDto {
   @Field(t.integer()) id!: number;
   @Field(t.string()) name!: string;
@@ -23,13 +23,13 @@ export class MappingProfileDto {
   @Field(t.string({ format: "date-time" })) updatedAt!: string;
 }
 
-@Dto({ description: "Find the best reusable mapping profile for a workbook schema." })
+@Dto({ name: "MappingProfileMatchRequest", description: "Find the best reusable mapping profile for a workbook schema." })
 export class MappingProfileMatchRequestDto {
   @Field(t.string({ minLength: 1 })) population!: string;
   @Field(t.array(t.string({ minLength: 1 }))) headers!: string[];
 }
 
-@Dto({ description: "Compatibility result against a previous mapping profile." })
+@Dto({ name: "MappingProfileMatch", description: "Compatibility result against a previous mapping profile." })
 export class MappingProfileMatchDto {
   @Field(t.boolean()) matched!: boolean;
   @Field(t.optional(t.integer())) profileId?: number;
@@ -42,7 +42,7 @@ export class MappingProfileMatchDto {
   @Field(t.string()) rulesJson!: string;
 }
 
-@Dto({ description: "Multipart metadata used to execute an auditable workbook import." })
+@Dto({ name: "CreateImport", description: "Multipart metadata used to execute an auditable workbook import." })
 export class CreateImportDto {
   @Field(t.string({ minLength: 1 })) population!: string;
   @Field(t.optional(t.integer({ minimum: 1 }))) evaluationId?: number;
@@ -54,7 +54,7 @@ export class CreateImportDto {
   @Field(t.string({ minLength: 2 })) rulesJson!: string;
 }
 
-@Dto({ description: "Completed Data Studio import with persisted RAW, normalized and canonical rows." })
+@Dto({ name: "ImportResult", description: "Completed Data Studio import with persisted RAW, normalized and canonical rows." })
 export class ImportResultDto {
   @Field(t.string({ format: "uuid" })) id!: string;
   @Field(t.string({ format: "uuid" })) fileId!: string;
@@ -70,13 +70,13 @@ export class ImportResultDto {
   @Field(t.string()) status!: string;
 }
 
-@Dto({ description: "Start deterministic cadastral critique for a persisted import." })
+@Dto({ name: "CreateCritiqueRun", description: "Start deterministic cadastral critique for a persisted import." })
 export class CreateCritiqueRunDto {
   @Field(t.string({ format: "uuid" })) importJobId!: string;
   @Field(t.optional(t.string({ format: "uuid" }))) previousImportJobId?: string;
 }
 
-@Dto({ description: "Persisted cadastral critique execution summary." })
+@Dto({ name: "CritiqueRun", description: "Persisted cadastral critique execution summary." })
 export class CritiqueRunDto {
   @Field(t.string({ format: "uuid" })) id!: string;
   @Field(t.string({ format: "uuid" })) importJobId!: string;
@@ -92,12 +92,12 @@ export class CritiqueRunDto {
   @Field(t.nullable(t.string({ format: "date-time" }))) completedAt!: string | null;
 }
 
-@Dto()
+@Dto({ name: "CritiqueRunParams" })
 export class CritiqueRunParamsDto {
   @Field(t.string({ format: "uuid" })) id!: string;
 }
 
-@Dto({ description: "Cadastral critique occurrence." })
+@Dto({ name: "CritiqueIssue", description: "Cadastral critique occurrence." })
 export class CritiqueIssueDto {
   @Field(t.string({ format: "uuid" })) id!: string;
   @Field(t.string()) ruleCode!: string;
@@ -112,12 +112,12 @@ export class CritiqueIssueDto {
   @Field(t.string({ format: "date-time" })) createdAt!: string;
 }
 
-@Dto()
+@Dto({ name: "CritiqueIssueParams" })
 export class CritiqueIssueParamsDto {
   @Field(t.string({ format: "uuid" })) id!: string;
 }
 
-@Dto({ description: "Critique occurrence with complete source-data provenance." })
+@Dto({ name: "CritiqueIssueDetail", description: "Critique occurrence with complete source-data provenance." })
 export class CritiqueIssueDetailDto {
   @Field(t.string({ format: "uuid" })) id!: string;
   @Field(t.string()) ruleCode!: string;
@@ -139,13 +139,13 @@ export class CritiqueIssueDetailDto {
   @Field(t.nullable(t.string({ format: "date-time" }))) resolvedAt!: string | null;
 }
 
-@Dto({ description: "Resolve or justify a persisted cadastral critique occurrence." })
+@Dto({ name: "ResolveCritiqueIssue", description: "Resolve or justify a persisted cadastral critique occurrence." })
 export class ResolveCritiqueIssueDto {
   @Field(t.string({ minLength: 1 })) status!: string;
   @Field(t.string({ minLength: 1 })) note!: string;
 }
 
-@Dto({ description: "OpenAI-compatible LLM provider configuration summary." })
+@Dto({ name: "LlmProvider", description: "OpenAI-compatible LLM provider configuration summary." })
 export class LlmProviderDto {
   @Field(t.integer()) id!: number;
   @Field(t.string()) name!: string;
@@ -155,7 +155,7 @@ export class LlmProviderDto {
   @Field(t.boolean()) enabled!: boolean;
 }
 
-@Dto({ description: "Operational dashboard totals." })
+@Dto({ name: "Dashboard", description: "Operational dashboard totals." })
 export class DashboardDto {
   @Field(t.integer()) inProgress!: number;
   @Field(t.integer()) awaitingCorrections!: number;
