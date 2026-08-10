@@ -10,7 +10,15 @@ import HubOutlined from "@mui/icons-material/HubOutlined";
 import LogoutRounded from "@mui/icons-material/LogoutRounded";
 import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import TableViewOutlined from "@mui/icons-material/TableViewOutlined";
-import { api, clearAuthToken, getAuthToken, type AuthUser } from "./api/client";
+import {
+  api,
+  clearAuthToken,
+  defaultApplicationConfig,
+  getAuthToken,
+  unauthorizedEventName,
+  type ApplicationConfig,
+  type AuthUser
+} from "./api/client";
 import { AdherenceStudiesPage } from "./features/adherence/AdherenceStudiesPage";
 import { AdminUsersPage } from "./features/admin/AdminUsersPage";
 import { AiProvidersPage } from "./features/ai/AiProvidersPage";
@@ -50,7 +58,19 @@ export default function App() {
   const route = parseRoute(pathname);
   const requestedPath = useRef(pathname === "/" || pathname === "/login" ? "/avaliacoes" : pathname);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [appConfig, setAppConfig] = useState<ApplicationConfig>(defaultApplicationConfig);
   const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    void api.publicConfig()
+      .then((config) => {
+        setAppConfig(config);
+        document.title = config.organizationName ? `${config.name} — ${config.organizationName}` : config.name;
+      })
+      .catch(() => {
+        document.title = defaultApplicationConfig.name;
+      });
+  }, []);
 
   useEffect(() => {
     const unauthorized = () => {
@@ -58,13 +78,13 @@ export default function App() {
       setUser(null);
       navigate("/login", { replace: true });
     };
-    window.addEventListener("atuas:unauthorized", unauthorized);
+    window.addEventListener(unauthorizedEventName, unauthorized);
 
     const token = getAuthToken();
     if (!token) {
       if (window.location.pathname !== "/login") navigate("/login", { replace: true });
       setAuthLoading(false);
-      return () => window.removeEventListener("atuas:unauthorized", unauthorized);
+      return () => window.removeEventListener(unauthorizedEventName, unauthorized);
     }
 
     api.me()
@@ -81,7 +101,7 @@ export default function App() {
       })
       .finally(() => setAuthLoading(false));
 
-    return () => window.removeEventListener("atuas:unauthorized", unauthorized);
+    return () => window.removeEventListener(unauthorizedEventName, unauthorized);
   }, []);
 
   useEffect(() => {
@@ -106,7 +126,7 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginPage onAuthenticated={(authenticated) => {
+    return <LoginPage config={appConfig} onAuthenticated={(authenticated) => {
       setUser(authenticated);
       navigate(requestedPath.current, { replace: true });
     }} />;
@@ -115,8 +135,8 @@ export default function App() {
   return <Box sx={{ minHeight: "100vh", display: "grid", gridTemplateColumns: { xs: "1fr", md: "248px minmax(0, 1fr)" } }}>
     <Box component="aside" sx={{ display: { xs: "none", md: "flex" }, flexDirection: "column", p: 2, borderRight: "1px solid", borderColor: "divider", bgcolor: "background.paper", minHeight: "100vh", position: "sticky", top: 0, height: "100vh" }}>
       <Stack direction="row" spacing={1.25} alignItems="center" sx={{ px: 1, py: 1.5, mb: 2 }}>
-        <Avatar variant="rounded" sx={{ width: 34, height: 34, bgcolor: "primary.main", fontWeight: 800 }}>A</Avatar>
-        <Box><Typography fontWeight={800} letterSpacing="-.02em">ATUAS</Typography><Typography variant="caption" color="text.secondary">Atuária Previdenciária</Typography></Box>
+        <Avatar variant="rounded" sx={{ width: 34, height: 34, bgcolor: "primary.main", fontWeight: 800 }}>{initials(appConfig.shortName).slice(0, 1)}</Avatar>
+        <Box><Typography fontWeight={800} letterSpacing="-.02em">{appConfig.shortName}</Typography><Typography variant="caption" color="text.secondary">{appConfig.organizationName ?? appConfig.name}</Typography></Box>
       </Stack>
       <Stack spacing={.5} sx={{ flex: 1 }}>
         {nav.map((item) => <NavItem key={item.path} selected={item.active.includes(route.name)} icon={item.icon} label={item.label} onClick={() => navigate(item.path)} />)}
@@ -141,8 +161,8 @@ export default function App() {
         {route.name === "studies" && <AdherenceStudiesPage />}
         {route.name === "ai" && <AiProvidersPage />}
         {route.name === "admin-users" && user.role === "admin" && <AdminUsersPage />}
-        {route.name === "documents" && <Placeholder title="Documentos" />}
-        {route.name === "library" && <Placeholder title="Biblioteca" />}
+        {route.name === "documents" && <Placeholder config={appConfig} title="Documentos" />}
+        {route.name === "library" && <Placeholder config={appConfig} title="Biblioteca" />}
         {route.name === "not-found" && <NotFound />}
       </Box>
     </Box>
@@ -153,10 +173,10 @@ function NavItem({ selected, icon, label, onClick }: { selected: boolean; icon: 
   return <ButtonBase onClick={onClick} sx={{ width: "100%", borderRadius: 2, px: 1.25, py: 1, justifyContent: "flex-start", gap: 1.25, color: selected ? "primary.main" : "text.secondary", bgcolor: selected ? "primary.light" : "transparent", "&:hover": { bgcolor: selected ? "primary.light" : "action.hover" } }}><Box sx={{ display: "grid", placeItems: "center", "& svg": { fontSize: 20 } }}>{icon}</Box><Typography variant="body2" fontWeight={selected ? 750 : 600}>{label}</Typography></ButtonBase>;
 }
 
-function Placeholder({ title }: { title: string }) {
-  return <Stack spacing={2} sx={{ py: 3 }}><Typography variant="overline" color="text.secondary">ATUAS</Typography><Typography variant="h4">{title}</Typography><Typography color="text.secondary" sx={{ maxWidth: 620 }}>Módulo reservado na arquitetura atual. A URL já é estável e pode ser compartilhada ou reaberta diretamente.</Typography></Stack>;
+function Placeholder({ config, title }: { config: ApplicationConfig; title: string }) {
+  return <Stack spacing={2} sx={{ py: 3 }}><Typography variant="overline" color="text.secondary">{config.shortName}</Typography><Typography variant="h4">{title}</Typography><Typography color="text.secondary" sx={{ maxWidth: 620 }}>Módulo reservado na arquitetura atual. A URL já é estável e pode ser compartilhada ou reaberta diretamente.</Typography></Stack>;
 }
 
 function NotFound() {
-  return <Stack spacing={2} sx={{ py: 8, alignItems: "flex-start" }}><Typography variant="overline" color="text.secondary">404</Typography><Typography variant="h4">Página não encontrada</Typography><Typography color="text.secondary">A rota informada não existe no ATUAS.</Typography><ButtonBase onClick={() => navigate("/avaliacoes")} sx={{ color: "primary.main", fontWeight: 700 }}>Voltar para avaliações</ButtonBase></Stack>;
+  return <Stack spacing={2} sx={{ py: 8, alignItems: "flex-start" }}><Typography variant="overline" color="text.secondary">404</Typography><Typography variant="h4">Página não encontrada</Typography><Typography color="text.secondary">A rota informada não existe nesta aplicação.</Typography><ButtonBase onClick={() => navigate("/avaliacoes")} sx={{ color: "primary.main", fontWeight: 700 }}>Voltar para avaliações</ButtonBase></Stack>;
 }
