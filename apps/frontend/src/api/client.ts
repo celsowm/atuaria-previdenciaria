@@ -30,6 +30,13 @@ export type UpdateUserInput = ApiComponents["schemas"]["UpdateUser"];
 export type Plan = ApiComponents["schemas"]["Plan"];
 export type CreatePlanInput = ApiComponents["schemas"]["CreatePlan"];
 export type UpdatePlanInput = ApiComponents["schemas"]["UpdatePlan"];
+export type ApplicationConfig = ApiComponents["schemas"]["ApplicationConfig"];
+
+export const defaultApplicationConfig: ApplicationConfig = {
+  name: "Plataforma Atuarial",
+  shortName: "Atuária",
+  organizationName: null
+};
 
 export type ImportMappingRule = {
   sources: string[];
@@ -48,7 +55,10 @@ export type ImportWorkbookOptions = {
   rules: ImportMappingRule[];
 };
 
-const tokenKey = "atuas.session.token";
+const tokenKey = "actuarial-platform.session.token";
+const unauthorizedEventName = "application:unauthorized";
+
+export { unauthorizedEventName };
 
 export function getAuthToken() {
   if (typeof window === "undefined") return null;
@@ -72,10 +82,10 @@ async function requestJson<T>(url: string, init: RequestInit = {}): Promise<T> {
   if (!response.ok) {
     if (response.status === 401 && url !== "/api/auth/login") {
       clearAuthToken();
-      if (typeof window !== "undefined") window.dispatchEvent(new Event("atuas:unauthorized"));
+      if (typeof window !== "undefined") window.dispatchEvent(new Event(unauthorizedEventName));
     }
     const detail = await response.text();
-    throw new Error(detail || `ATUAS API ${response.status}: ${response.statusText}`);
+    throw new Error(detail || `API ${response.status}: ${response.statusText}`);
   }
   return response.json() as Promise<T>;
 }
@@ -116,6 +126,7 @@ async function importWorkbook(file: File, options: ImportWorkbookOptions): Promi
 }
 
 export const api = {
+  publicConfig: () => getJson<ApplicationConfig>("/api/config"),
   login: (email: string, password: string) => postJson<LoginResponse>("/api/auth/login", { email, password }),
   me: () => getJson<AuthUser>("/api/auth/me"),
   logout: () => requestJson<{ ok: boolean }>("/api/auth/logout", { method: "POST" }),
