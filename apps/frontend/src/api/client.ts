@@ -33,8 +33,8 @@ export type UpdatePlanInput = ApiComponents["schemas"]["UpdatePlan"];
 export type ApplicationConfig = ApiComponents["schemas"]["ApplicationConfig"];
 
 export const defaultApplicationConfig: ApplicationConfig = {
-  name: "Plataforma Atuarial",
-  shortName: "Atuária",
+  name: "Atuária Previdenciária",
+  shortName: "Atuária Previdenciária",
   organizationName: null
 };
 
@@ -55,8 +55,8 @@ export type ImportWorkbookOptions = {
   rules: ImportMappingRule[];
 };
 
-const tokenKey = "actuarial-platform.session.token";
-const unauthorizedEventName = "application:unauthorized";
+const tokenKey = "atuaria-previdenciaria.session.token";
+const unauthorizedEventName = "atuaria-previdenciaria:unauthorized";
 
 export { unauthorizedEventName };
 
