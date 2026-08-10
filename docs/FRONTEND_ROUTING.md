@@ -1,4 +1,4 @@
-# Rotas amigáveis do ATUAS
+# Rotas amigáveis da aplicação
 
 O frontend usa a URL do navegador como fonte de verdade da navegação. Não existe mais um estado paralelo `page` que desaparece ao atualizar a página.
 
@@ -24,7 +24,7 @@ A navegação usa a History API. `popstate` mantém voltar/avançar do navegador
 
 ## Autenticação e deep links
 
-Quando um usuário sem sessão abre diretamente uma rota protegida, o ATUAS exibe `/login` e preserva internamente o destino solicitado. Após autenticar, o usuário volta para a rota original.
+Quando um usuário sem sessão abre diretamente uma rota protegida, a aplicação exibe `/login` e preserva internamente o destino solicitado. Após autenticar, o usuário volta para a rota original.
 
 Uma sessão expirada também redireciona para login preservando a rota em que o usuário estava.
 
@@ -35,7 +35,7 @@ Em desenvolvimento o Vite já atende a aplicação como SPA. Em produção, o se
 Exemplo conceitual:
 
 ```text
-/api/*             -> backend ATUAS
+/api/*             -> backend da aplicação
 /assets/*          -> arquivos estáticos
 qualquer outra URL -> index.html
 ```
