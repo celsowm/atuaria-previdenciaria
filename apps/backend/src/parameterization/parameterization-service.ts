@@ -105,11 +105,17 @@ async function requireDraft(session: Session, id: string) {
   return parameterization;
 }
 
-async function valuesFor(session: Session, parameterizationId: string) {
-  const rows = await selectFromEntity(ActuarialParameterValue)
+async function allValuesFor(session: Session, parameterizationId: string) {
+  return selectFromEntity(ActuarialParameterValue)
     .where(eq(valueRef.parameterizationId, parameterizationId))
     .execute(session);
-  return rows.sort((a, b) => a.category.localeCompare(b.category, "pt-BR") || a.code.localeCompare(b.code));
+}
+
+async function valuesFor(session: Session, parameterizationId: string) {
+  const rows = await allValuesFor(session, parameterizationId);
+  return rows
+    .filter((row) => row.active !== 0)
+    .sort((a, b) => a.category.localeCompare(b.category, "pt-BR") || a.code.localeCompare(b.code));
 }
 
 async function selectionsFor(session: Session, parameterizationId: string) {
@@ -241,6 +247,7 @@ export async function createParameterization(
         value.valueJson = source.valueJson;
         value.unit = source.unit ?? null;
         value.source = source.source;
+        value.active = 1;
         value.updatedAt = now;
         session.trackNew(tableOf(ActuarialParameterValue), value, value.id);
       }
@@ -294,9 +301,17 @@ export async function setParameterValues(id: string, inputs: ParameterInput[]) {
 
   return withSession(async (session) => {
     const row = await requireDraft(session, id);
-    const existing = await valuesFor(session, id);
+    const existing = await allValuesFor(session, id);
     const byCode = new Map(existing.map((item) => [item.code, item]));
+    const incomingCodes = new Set(normalized.map((item) => item.code));
     const now = new Date().toISOString();
+
+    for (const stored of existing) {
+      if (incomingCodes.has(stored.code) || stored.active === 0) continue;
+      stored.active = 0;
+      stored.updatedAt = now;
+      session.markDirty(stored);
+    }
 
     for (const input of normalized) {
       const stored = byCode.get(input.code);
@@ -307,6 +322,7 @@ export async function setParameterValues(id: string, inputs: ParameterInput[]) {
         stored.valueJson = input.valueJson;
         stored.unit = input.unit;
         stored.source = input.source;
+        stored.active = 1;
         stored.updatedAt = now;
         session.markDirty(stored);
       } else {
@@ -320,6 +336,7 @@ export async function setParameterValues(id: string, inputs: ParameterInput[]) {
         value.valueJson = input.valueJson;
         value.unit = input.unit;
         value.source = input.source;
+        value.active = 1;
         value.updatedAt = now;
         session.trackNew(tableOf(ActuarialParameterValue), value, value.id);
       }
