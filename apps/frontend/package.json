@@ -4,8 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "npm run api:generate",
     "dev": "vite",
+    "prebuild": "npm run api:generate",
     "build": "tsc -b && vite build",
+    "pretypecheck": "npm run api:generate",
     "typecheck": "tsc -b --pretty false",
     "api:generate": "node scripts/generate-api.mjs"
   },
