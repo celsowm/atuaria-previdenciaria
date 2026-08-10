@@ -9,6 +9,7 @@ import {
   SystemController
 } from "./api/controllers.js";
 import { BiometricTableController, BiometricVersionController } from "./api/biometric-controller.js";
+import { AdherenceCandidateController, AdherenceStudyController } from "./api/adherence-controller.js";
 
 async function start() {
   await initializeDatabase();
@@ -22,6 +23,8 @@ async function start() {
       CritiqueController,
       BiometricTableController,
       BiometricVersionController,
+      AdherenceStudyController,
+      AdherenceCandidateController,
       LlmProviderController
     ],
     inputCoercion: "safe",
@@ -35,7 +38,7 @@ async function start() {
       info: {
         title: "ATUAS API",
         version: "0.0.1",
-        description: "Actuarial valuation, data studio, biometrics, assumptions, drafting and AI orchestration API."
+        description: "Actuarial valuation, data studio, biometrics, adherence studies, assumptions, drafting and AI orchestration API."
       },
       path: "/openapi.json",
       docs: { path: "/docs" }
