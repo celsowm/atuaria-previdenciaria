@@ -23,23 +23,10 @@ export type AdherenceStudyDetail = ApiComponents["schemas"]["AdherenceStudyDetai
 export type AdherenceCandidatePoint = ApiComponents["schemas"]["AdherenceCandidatePoint"];
 export type AdherenceCandidatePoints = ApiComponents["schemas"]["AdherenceCandidatePoints"];
 export type LlmProvider = ApiComponents["schemas"]["LlmProvider"];
-
-export type AuthUser = {
-  id: string;
-  email: string;
-  displayName: string;
-  role: "admin" | "actuary" | "reviewer" | string;
-  active: boolean;
-  createdAt: string;
-  updatedAt: string;
-  lastLoginAt: string | null;
-};
-
-export type LoginResponse = {
-  token: string;
-  expiresAt: string;
-  user: AuthUser;
-};
+export type AuthUser = ApiComponents["schemas"]["AuthUser"];
+export type LoginResponse = ApiComponents["schemas"]["LoginResponse"];
+export type CreateUserInput = ApiComponents["schemas"]["CreateUser"];
+export type UpdateUserInput = ApiComponents["schemas"]["UpdateUser"];
 
 export type ImportMappingRule = {
   sources: string[];
@@ -130,10 +117,8 @@ export const api = {
   me: () => getJson<AuthUser>("/api/auth/me"),
   logout: () => requestJson<{ ok: boolean }>("/api/auth/logout", { method: "POST" }),
   users: () => getJson<AuthUser[]>("/api/users/"),
-  createUser: (input: { email: string; displayName: string; password: string; role: string }) =>
-    postJson<AuthUser>("/api/users/", input),
-  updateUser: (id: string, input: { displayName?: string; password?: string; role?: string; active?: boolean }) =>
-    patchJson<AuthUser>(`/api/users/${id}`, input),
+  createUser: (input: CreateUserInput) => postJson<AuthUser>("/api/users/", input),
+  updateUser: (id: string, input: UpdateUserInput) => patchJson<AuthUser>(`/api/users/${id}`, input),
   dashboard: () => getJson<DashboardTotals>("/api/dashboard"),
   evaluations: () => getJson<Evaluation[]>("/api/evaluations/"),
   mappingProfiles: () => getJson<MappingProfile[]>("/api/mapping-profiles/"),
