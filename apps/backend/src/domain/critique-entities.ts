@@ -74,8 +74,8 @@ export class CritiqueIssue {
   @Column(col.notNull(col.text()))
   ruleCode!: string;
 
-  @Column(col.notNull(col.text()))
-  importRowId!: string;
+  @Column(col.text())
+  importRowId?: string | null;
 
   @Column(col.text())
   previousImportRowId?: string | null;
