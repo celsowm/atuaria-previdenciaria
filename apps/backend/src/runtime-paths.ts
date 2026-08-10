@@ -10,9 +10,9 @@ export function resolveRepositoryPath(configuredPath: string | undefined, fallba
 }
 
 export function databaseFilePath() {
-  return resolveRepositoryPath(process.env.ATUAS_DB_PATH, "data/atuas.sqlite");
+  return resolveRepositoryPath(process.env.APP_DB_PATH, "data/actuarial.sqlite");
 }
 
 export function storageRootPath() {
-  return resolveRepositoryPath(process.env.ATUAS_STORAGE_PATH, "data/storage");
+  return resolveRepositoryPath(process.env.APP_STORAGE_PATH, "data/storage");
 }
