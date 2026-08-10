@@ -1,0 +1,28 @@
+name: Golden Master Harness CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  golden-master-harness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Typecheck backend
+        run: npm run typecheck -w @atuas/backend
+      - name: Run synthetic Excel golden-master self-test
+        run: npm run adherence:golden:self-test -w @atuas/backend
+      - name: Assert no private golden-master data is tracked
+        shell: bash
+        run: |
+          if git ls-files | grep -E '(^|/)(data/golden-master|data/golden-master-reports)/|\.golden-master\.local\.json$|\.golden-master\.report\.json$'; then
+            echo 'Private golden-master data must never be committed.'
+            exit 1
+          fi
