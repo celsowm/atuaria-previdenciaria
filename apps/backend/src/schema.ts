@@ -16,6 +16,7 @@ import {
   MappingProfile,
   MappingRule
 } from "./domain/entities.js";
+import { User, UserSession } from "./domain/auth-entities.js";
 import { CritiqueIssue, CritiqueRule, CritiqueRun } from "./domain/critique-entities.js";
 import {
   BiometricTable,
@@ -30,6 +31,8 @@ import {
 } from "./domain/adherence-entities.js";
 
 const entityTypes = [
+  User,
+  UserSession,
   Evaluation,
   MappingProfile,
   MappingRule,
