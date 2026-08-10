@@ -33,6 +33,16 @@ export async function seedReferenceData(db: sqlite3.Database) {
 export async function seedDemoData(db: sqlite3.Database) {
   if (process.env.ATUAS_SEED_DEMO !== "true") return;
 
+  const planCount = await getValue<{ count: number }>(db, "SELECT COUNT(*) AS count FROM plans");
+  if (planCount.count === 0) {
+    await execSql(db, `
+      INSERT INTO plans (id, code, name, modality, sponsorName, cnpj, status, createdAt, updatedAt) VALUES
+        ('6d74e611-a2e0-4f51-b727-100000000001', 'ALFA-BD', 'Plano Previdenciário Alfa', 'BD', 'Patrocinadora Alfa', NULL, 'ACTIVE', '2026-08-10T13:00:00.000Z', '2026-08-10T13:00:00.000Z'),
+        ('6d74e611-a2e0-4f51-b727-100000000002', 'BETA-CD', 'Plano Beta', 'CD', 'Patrocinadora Beta', NULL, 'ACTIVE', '2026-08-10T13:00:00.000Z', '2026-08-10T13:00:00.000Z'),
+        ('6d74e611-a2e0-4f51-b727-100000000003', 'GAMA-CV', 'Plano Gama', 'CV', 'Patrocinadora Gama', NULL, 'ACTIVE', '2026-08-10T13:00:00.000Z', '2026-08-10T13:00:00.000Z');
+    `);
+  }
+
   const evaluationCount = await getValue<{ count: number }>(db, "SELECT COUNT(*) AS count FROM evaluations");
   if (evaluationCount.count === 0) {
     await execSql(db, `
