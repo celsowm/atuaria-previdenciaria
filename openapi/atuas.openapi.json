@@ -9,225 +9,114 @@
     { "name": "System" },
     { "name": "Evaluations" },
     { "name": "Data Studio" },
+    { "name": "Critique" },
     { "name": "AI" }
   ],
   "paths": {
     "/api/health": {
-      "get": {
-        "tags": ["System"],
-        "operationId": "systemHealth",
-        "responses": {
-          "200": {
-            "description": "Service health",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Health" } } }
-          }
-        }
-      }
+      "get": { "tags": ["System"], "operationId": "systemHealth", "responses": { "200": { "description": "Service health", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Health" } } } } } }
     },
     "/api/dashboard": {
-      "get": {
-        "tags": ["System"],
-        "operationId": "getDashboard",
-        "responses": {
-          "200": {
-            "description": "Dashboard totals",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Dashboard" } } }
-          }
-        }
-      }
+      "get": { "tags": ["System"], "operationId": "getDashboard", "responses": { "200": { "description": "Dashboard totals", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Dashboard" } } } } } }
     },
     "/api/evaluations/": {
-      "get": {
-        "tags": ["Evaluations"],
-        "operationId": "listEvaluations",
-        "responses": {
-          "200": {
-            "description": "Evaluation workspaces",
-            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Evaluation" } } } }
-          }
-        }
-      }
+      "get": { "tags": ["Evaluations"], "operationId": "listEvaluations", "responses": { "200": { "description": "Evaluation workspaces", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Evaluation" } } } } } } }
     },
     "/api/mapping-profiles/": {
-      "get": {
-        "tags": ["Data Studio"],
-        "operationId": "listMappingProfiles",
-        "responses": {
-          "200": {
-            "description": "Reusable mapping profiles",
-            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/MappingProfile" } } } }
-          }
-        }
-      }
+      "get": { "tags": ["Data Studio"], "operationId": "listMappingProfiles", "responses": { "200": { "description": "Reusable mapping profiles", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/MappingProfile" } } } } } } }
     },
     "/api/mapping-profiles/match": {
       "post": {
-        "tags": ["Data Studio"],
-        "operationId": "matchMappingProfile",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/MappingProfileMatchRequest" }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Best compatible mapping profile",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MappingProfileMatch" } } }
-          }
-        }
+        "tags": ["Data Studio"], "operationId": "matchMappingProfile",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MappingProfileMatchRequest" } } } },
+        "responses": { "200": { "description": "Best compatible mapping profile", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MappingProfileMatch" } } } } }
       }
     },
     "/api/imports/": {
       "post": {
-        "tags": ["Data Studio"],
-        "operationId": "createImport",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "required": ["file", "population", "headerRow", "rulesJson"],
-                "properties": {
-                  "file": { "type": "string", "format": "binary" },
-                  "population": { "type": "string" },
-                  "evaluationId": { "type": "integer", "minimum": 1 },
-                  "profileId": { "type": "integer", "minimum": 1 },
-                  "profileName": { "type": "string" },
-                  "saveProfile": { "type": "boolean" },
-                  "sheetName": { "type": "string" },
-                  "headerRow": { "type": "integer", "minimum": 1 },
-                  "rulesJson": { "type": "string" }
-                }
-              }
-            }
+        "tags": ["Data Studio"], "operationId": "createImport",
+        "requestBody": { "required": true, "content": { "multipart/form-data": { "schema": {
+          "type": "object", "required": ["file", "population", "headerRow", "rulesJson"],
+          "properties": {
+            "file": { "type": "string", "format": "binary" }, "population": { "type": "string" },
+            "evaluationId": { "type": "integer", "minimum": 1 }, "profileId": { "type": "integer", "minimum": 1 },
+            "profileName": { "type": "string" }, "saveProfile": { "type": "boolean" }, "sheetName": { "type": "string" },
+            "headerRow": { "type": "integer", "minimum": 1 }, "rulesJson": { "type": "string" }
           }
-        },
-        "responses": {
-          "201": {
-            "description": "Persisted import",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ImportResult" } } }
-          }
-        }
+        } } } },
+        "responses": { "201": { "description": "Persisted import", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ImportResult" } } } } }
+      }
+    },
+    "/api/critique/runs": {
+      "post": {
+        "tags": ["Critique"], "operationId": "createCritiqueRun",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateCritiqueRun" } } } },
+        "responses": { "201": { "description": "Critique run created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CritiqueRun" } } } } }
+      }
+    },
+    "/api/critique/runs/{id}": {
+      "get": {
+        "tags": ["Critique"], "operationId": "getCritiqueRun",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Critique run", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CritiqueRun" } } } } }
+      }
+    },
+    "/api/critique/runs/{id}/issues": {
+      "get": {
+        "tags": ["Critique"], "operationId": "listCritiqueIssues",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Critique issues", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/CritiqueIssue" } } } } } }
+      }
+    },
+    "/api/critique/issues/{id}": {
+      "get": {
+        "tags": ["Critique"], "operationId": "getCritiqueIssue",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Critique issue detail", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CritiqueIssueDetail" } } } } }
+      },
+      "patch": {
+        "tags": ["Critique"], "operationId": "resolveCritiqueIssue",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ResolveCritiqueIssue" } } } },
+        "responses": { "200": { "description": "Updated critique issue", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CritiqueIssueDetail" } } } } }
       }
     },
     "/api/llm/providers/": {
-      "get": {
-        "tags": ["AI"],
-        "operationId": "listLlmProviders",
-        "responses": {
-          "200": {
-            "description": "OpenAI-compatible providers",
-            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/LlmProvider" } } } }
-          }
-        }
-      }
+      "get": { "tags": ["AI"], "operationId": "listLlmProviders", "responses": { "200": { "description": "OpenAI-compatible providers", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/LlmProvider" } } } } } } }
     }
   },
   "components": {
     "schemas": {
-      "Health": {
-        "type": "object",
-        "required": ["status", "service", "version"],
-        "properties": {
-          "status": { "type": "string" },
-          "service": { "type": "string" },
-          "version": { "type": "string" }
-        }
-      },
-      "Dashboard": {
-        "type": "object",
-        "required": ["inProgress", "awaitingCorrections", "pendingStudies", "draftsAwaitingReview"],
-        "properties": {
-          "inProgress": { "type": "integer" },
-          "awaitingCorrections": { "type": "integer" },
-          "pendingStudies": { "type": "integer" },
-          "draftsAwaitingReview": { "type": "integer" }
-        }
-      },
+      "Health": { "type": "object", "required": ["status", "service", "version"], "properties": { "status": { "type": "string" }, "service": { "type": "string" }, "version": { "type": "string" } } },
+      "Dashboard": { "type": "object", "required": ["inProgress", "awaitingCorrections", "pendingStudies", "draftsAwaitingReview"], "properties": { "inProgress": { "type": "integer" }, "awaitingCorrections": { "type": "integer" }, "pendingStudies": { "type": "integer" }, "draftsAwaitingReview": { "type": "integer" } } },
       "Evaluation": {
-        "type": "object",
-        "required": ["id", "planName", "referenceDate", "status", "stage", "progress", "blockingIssues", "updatedAt"],
-        "properties": {
-          "id": { "type": "integer" },
-          "planName": { "type": "string" },
-          "referenceDate": { "type": "string", "format": "date" },
-          "status": { "type": "string" },
-          "stage": { "type": "string" },
-          "progress": { "type": "integer", "minimum": 0, "maximum": 100 },
-          "blockingIssues": { "type": "integer", "minimum": 0 },
-          "updatedAt": { "type": "string", "format": "date-time" }
-        }
+        "type": "object", "required": ["id", "planName", "referenceDate", "status", "stage", "progress", "blockingIssues", "updatedAt"],
+        "properties": { "id": { "type": "integer" }, "planName": { "type": "string" }, "referenceDate": { "type": "string", "format": "date" }, "status": { "type": "string" }, "stage": { "type": "string" }, "progress": { "type": "integer", "minimum": 0, "maximum": 100 }, "blockingIssues": { "type": "integer", "minimum": 0 }, "updatedAt": { "type": "string", "format": "date-time" } }
       },
-      "MappingProfile": {
-        "type": "object",
-        "required": ["id", "name", "population", "version", "mappedFields", "totalFields", "updatedAt"],
-        "properties": {
-          "id": { "type": "integer" },
-          "name": { "type": "string" },
-          "population": { "type": "string" },
-          "version": { "type": "string" },
-          "mappedFields": { "type": "integer" },
-          "totalFields": { "type": "integer" },
-          "updatedAt": { "type": "string", "format": "date-time" }
-        }
-      },
-      "MappingProfileMatchRequest": {
-        "type": "object",
-        "required": ["population", "headers"],
-        "properties": {
-          "population": { "type": "string", "minLength": 1 },
-          "headers": { "type": "array", "items": { "type": "string", "minLength": 1 } }
-        }
-      },
-      "MappingProfileMatch": {
-        "type": "object",
-        "required": ["matched", "compatibility", "exact", "missingColumns", "newColumns", "rulesJson"],
-        "properties": {
-          "matched": { "type": "boolean" },
-          "profileId": { "type": "integer" },
-          "profileName": { "type": "string" },
-          "version": { "type": "string" },
-          "compatibility": { "type": "integer", "minimum": 0, "maximum": 100 },
-          "exact": { "type": "boolean" },
-          "missingColumns": { "type": "array", "items": { "type": "string" } },
-          "newColumns": { "type": "array", "items": { "type": "string" } },
-          "rulesJson": { "type": "string" }
-        }
-      },
+      "MappingProfile": { "type": "object", "required": ["id", "name", "population", "version", "mappedFields", "totalFields", "updatedAt"], "properties": { "id": { "type": "integer" }, "name": { "type": "string" }, "population": { "type": "string" }, "version": { "type": "string" }, "mappedFields": { "type": "integer" }, "totalFields": { "type": "integer" }, "updatedAt": { "type": "string", "format": "date-time" } } },
+      "MappingProfileMatchRequest": { "type": "object", "required": ["population", "headers"], "properties": { "population": { "type": "string", "minLength": 1 }, "headers": { "type": "array", "items": { "type": "string", "minLength": 1 } } } },
+      "MappingProfileMatch": { "type": "object", "required": ["matched", "compatibility", "exact", "missingColumns", "newColumns", "rulesJson"], "properties": { "matched": { "type": "boolean" }, "profileId": { "type": "integer" }, "profileName": { "type": "string" }, "version": { "type": "string" }, "compatibility": { "type": "integer", "minimum": 0, "maximum": 100 }, "exact": { "type": "boolean" }, "missingColumns": { "type": "array", "items": { "type": "string" } }, "newColumns": { "type": "array", "items": { "type": "string" } }, "rulesJson": { "type": "string" } } },
       "ImportResult": {
-        "type": "object",
-        "required": ["id", "fileId", "mappingProfileId", "mappingProfileVersion", "fileName", "fileSha256", "population", "sheetName", "rowCount", "validRows", "invalidRows", "status"],
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "fileId": { "type": "string", "format": "uuid" },
-          "mappingProfileId": { "type": ["integer", "null"] },
-          "mappingProfileVersion": { "type": ["string", "null"] },
-          "fileName": { "type": "string" },
-          "fileSha256": { "type": "string" },
-          "population": { "type": "string" },
-          "sheetName": { "type": "string" },
-          "rowCount": { "type": "integer", "minimum": 0 },
-          "validRows": { "type": "integer", "minimum": 0 },
-          "invalidRows": { "type": "integer", "minimum": 0 },
-          "status": { "type": "string" }
-        }
+        "type": "object", "required": ["id", "fileId", "mappingProfileId", "mappingProfileVersion", "fileName", "fileSha256", "population", "sheetName", "rowCount", "validRows", "invalidRows", "status"],
+        "properties": { "id": { "type": "string", "format": "uuid" }, "fileId": { "type": "string", "format": "uuid" }, "mappingProfileId": { "type": ["integer", "null"] }, "mappingProfileVersion": { "type": ["string", "null"] }, "fileName": { "type": "string" }, "fileSha256": { "type": "string" }, "population": { "type": "string" }, "sheetName": { "type": "string" }, "rowCount": { "type": "integer", "minimum": 0 }, "validRows": { "type": "integer", "minimum": 0 }, "invalidRows": { "type": "integer", "minimum": 0 }, "status": { "type": "string" } }
       },
-      "LlmProvider": {
-        "type": "object",
-        "required": ["id", "name", "baseUrl", "model", "credentialCount", "enabled"],
-        "properties": {
-          "id": { "type": "integer" },
-          "name": { "type": "string" },
-          "baseUrl": { "type": "string", "format": "uri" },
-          "model": { "type": "string" },
-          "credentialCount": { "type": "integer", "minimum": 0 },
-          "enabled": { "type": "boolean" }
-        }
-      }
+      "CreateCritiqueRun": { "type": "object", "required": ["importJobId"], "properties": { "importJobId": { "type": "string", "format": "uuid" }, "previousImportJobId": { "type": "string", "format": "uuid" } } },
+      "CritiqueRun": {
+        "type": "object", "required": ["id", "importJobId", "previousImportJobId", "status", "blockingCount", "inconsistencyCount", "warningCount", "infoCount", "totalIssues", "comparedWithPrevious", "createdAt", "completedAt"],
+        "properties": { "id": { "type": "string", "format": "uuid" }, "importJobId": { "type": "string", "format": "uuid" }, "previousImportJobId": { "type": ["string", "null"], "format": "uuid" }, "status": { "type": "string" }, "blockingCount": { "type": "integer" }, "inconsistencyCount": { "type": "integer" }, "warningCount": { "type": "integer" }, "infoCount": { "type": "integer" }, "totalIssues": { "type": "integer" }, "comparedWithPrevious": { "type": "boolean" }, "createdAt": { "type": "string", "format": "date-time" }, "completedAt": { "type": ["string", "null"], "format": "date-time" } }
+      },
+      "CritiqueIssue": {
+        "type": "object", "required": ["id", "ruleCode", "severity", "category", "status", "participantRegistration", "fieldPath", "currentValueJson", "previousValueJson", "message", "createdAt"],
+        "properties": { "id": { "type": "string", "format": "uuid" }, "ruleCode": { "type": "string" }, "severity": { "type": "string" }, "category": { "type": "string" }, "status": { "type": "string" }, "participantRegistration": { "type": ["string", "null"] }, "fieldPath": { "type": ["string", "null"] }, "currentValueJson": { "type": ["string", "null"] }, "previousValueJson": { "type": ["string", "null"] }, "message": { "type": "string" }, "createdAt": { "type": "string", "format": "date-time" } }
+      },
+      "CritiqueIssueDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/CritiqueIssue" },
+          { "type": "object", "required": ["detailsJson", "rawJson", "normalizedJson", "canonicalJson", "previousCanonicalJson", "resolutionNote", "resolvedAt"], "properties": { "detailsJson": { "type": "string" }, "rawJson": { "type": ["string", "null"] }, "normalizedJson": { "type": ["string", "null"] }, "canonicalJson": { "type": ["string", "null"] }, "previousCanonicalJson": { "type": ["string", "null"] }, "resolutionNote": { "type": ["string", "null"] }, "resolvedAt": { "type": ["string", "null"], "format": "date-time" } } }
+        ]
+      },
+      "ResolveCritiqueIssue": { "type": "object", "required": ["status", "note"], "properties": { "status": { "type": "string", "enum": ["JUSTIFIED", "RESOLVED", "IGNORED"] }, "note": { "type": "string", "minLength": 1 } } },
+      "LlmProvider": { "type": "object", "required": ["id", "name", "baseUrl", "model", "credentialCount", "enabled"], "properties": { "id": { "type": "integer" }, "name": { "type": "string" }, "baseUrl": { "type": "string", "format": "uri" }, "model": { "type": "string" }, "credentialCount": { "type": "integer", "minimum": 0 }, "enabled": { "type": "boolean" } } }
     }
   }
 }
