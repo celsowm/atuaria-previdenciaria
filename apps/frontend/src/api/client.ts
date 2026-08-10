@@ -5,6 +5,9 @@ export type DashboardTotals = ApiComponents["schemas"]["Dashboard"];
 export type MappingProfile = ApiComponents["schemas"]["MappingProfile"];
 export type MappingProfileMatch = ApiComponents["schemas"]["MappingProfileMatch"];
 export type ImportResult = ApiComponents["schemas"]["ImportResult"];
+export type CritiqueRun = ApiComponents["schemas"]["CritiqueRun"];
+export type CritiqueIssue = ApiComponents["schemas"]["CritiqueIssue"];
+export type CritiqueIssueDetail = ApiComponents["schemas"]["CritiqueIssueDetail"];
 export type LlmProvider = ApiComponents["schemas"]["LlmProvider"];
 
 export type ImportMappingRule = {
@@ -24,23 +27,33 @@ export type ImportWorkbookOptions = {
   rules: ImportMappingRule[];
 };
 
-async function getJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`ATUAS API ${response.status}: ${response.statusText}`);
-  return response.json() as Promise<T>;
-}
-
-async function postJson<T>(url: string, body: unknown): Promise<T> {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body)
-  });
+async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, init);
   if (!response.ok) {
     const detail = await response.text();
     throw new Error(detail || `ATUAS API ${response.status}: ${response.statusText}`);
   }
   return response.json() as Promise<T>;
+}
+
+function getJson<T>(url: string) {
+  return requestJson<T>(url);
+}
+
+function postJson<T>(url: string, body: unknown) {
+  return requestJson<T>(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body)
+  });
+}
+
+function patchJson<T>(url: string, body: unknown) {
+  return requestJson<T>(url, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body)
+  });
 }
 
 async function importWorkbook(file: File, options: ImportWorkbookOptions): Promise<ImportResult> {
@@ -55,12 +68,7 @@ async function importWorkbook(file: File, options: ImportWorkbookOptions): Promi
   if (options.profileName) form.append("profileName", options.profileName);
   if (options.sheetName) form.append("sheetName", options.sheetName);
 
-  const response = await fetch("/api/imports/", { method: "POST", body: form });
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(detail || `ATUAS API ${response.status}: ${response.statusText}`);
-  }
-  return response.json() as Promise<ImportResult>;
+  return requestJson<ImportResult>("/api/imports/", { method: "POST", body: form });
 }
 
 export const api = {
@@ -70,5 +78,12 @@ export const api = {
   matchMappingProfile: (headers: string[], population: string) =>
     postJson<MappingProfileMatch>("/api/mapping-profiles/match", { headers, population }),
   importWorkbook,
+  createCritiqueRun: (importJobId: string, previousImportJobId?: string) =>
+    postJson<CritiqueRun>("/api/critique/runs", { importJobId, previousImportJobId }),
+  critiqueRun: (id: string) => getJson<CritiqueRun>(`/api/critique/runs/${id}`),
+  critiqueIssues: (runId: string) => getJson<CritiqueIssue[]>(`/api/critique/runs/${runId}/issues`),
+  critiqueIssue: (id: string) => getJson<CritiqueIssueDetail>(`/api/critique/issues/${id}`),
+  resolveCritiqueIssue: (id: string, status: "JUSTIFIED" | "RESOLVED" | "IGNORED", note: string) =>
+    patchJson<CritiqueIssueDetail>(`/api/critique/issues/${id}`, { status, note }),
   llmProviders: () => getJson<LlmProvider[]>("/api/llm/providers/")
 };
