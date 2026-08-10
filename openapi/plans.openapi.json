@@ -1,0 +1,135 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ATUAS Plans API fragment",
+    "version": "0.0.1"
+  },
+  "tags": [{ "name": "Plans" }],
+  "paths": {
+    "/api/plans/": {
+      "get": {
+        "tags": ["Plans"],
+        "operationId": "listPlans",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Plans",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Plan" } }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Plans"],
+        "operationId": "createPlan",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/CreatePlan" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created plan",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Plan" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/plans/{id}": {
+      "get": {
+        "tags": ["Plans"],
+        "operationId": "getPlan",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }],
+        "responses": {
+          "200": {
+            "description": "Plan",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Plan" } }
+            }
+          },
+          "404": { "description": "Plan not found" }
+        }
+      },
+      "patch": {
+        "tags": ["Plans"],
+        "operationId": "updatePlan",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/UpdatePlan" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated plan",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Plan" } }
+            }
+          },
+          "404": { "description": "Plan not found" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Plan": {
+        "type": "object",
+        "required": ["id", "code", "name", "modality", "sponsorName", "cnpj", "status", "createdAt", "updatedAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "modality": { "type": "string", "enum": ["BD", "CD", "CV"] },
+          "sponsorName": { "type": ["string", "null"] },
+          "cnpj": { "type": ["string", "null"] },
+          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "CLOSED"] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CreatePlan": {
+        "type": "object",
+        "required": ["code", "name", "modality"],
+        "properties": {
+          "code": { "type": "string", "minLength": 1, "maxLength": 40 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "modality": { "type": "string", "enum": ["BD", "CD", "CV"] },
+          "sponsorName": { "type": "string", "maxLength": 200 },
+          "cnpj": { "type": "string", "maxLength": 20 }
+        }
+      },
+      "UpdatePlan": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "minLength": 1, "maxLength": 40 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "modality": { "type": "string", "enum": ["BD", "CD", "CV"] },
+          "sponsorName": { "type": ["string", "null"], "maxLength": 200 },
+          "cnpj": { "type": ["string", "null"], "maxLength": 20 },
+          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "CLOSED"] }
+        }
+      }
+    }
+  }
+}
