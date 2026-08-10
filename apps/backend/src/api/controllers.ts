@@ -3,6 +3,8 @@ import {
   Controller,
   Get,
   HttpError,
+  Params,
+  Patch,
   Post,
   Returns,
   UploadedFile,
@@ -16,14 +18,28 @@ import { Evaluation, LlmProvider, LlmProviderCredential, MappingProfile } from "
 import { matchMappingProfile, persistImport } from "../data-studio/import-service.js";
 import type { MappingRuleInput, Transform } from "../data-studio/mapping.js";
 import {
+  getCritiqueIssueDetail,
+  getCritiqueRun,
+  listCritiqueIssues,
+  resolveCritiqueIssue,
+  runCritique
+} from "../critique/critique-service.js";
+import {
+  CreateCritiqueRunDto,
   CreateImportDto,
+  CritiqueIssueDetailDto,
+  CritiqueIssueDto,
+  CritiqueIssueParamsDto,
+  CritiqueRunDto,
+  CritiqueRunParamsDto,
   DashboardDto,
   EvaluationDto,
   ImportResultDto,
   LlmProviderDto,
   MappingProfileDto,
   MappingProfileMatchDto,
-  MappingProfileMatchRequestDto
+  MappingProfileMatchRequestDto,
+  ResolveCritiqueIssueDto
 } from "./dtos.js";
 
 type Session = ReturnType<typeof createSession>;
@@ -188,6 +204,64 @@ export class ImportController {
       headerRow: ctx.body.headerRow,
       rules
     });
+  }
+}
+
+@Controller({ path: "/api/critique", tags: ["Critique"] })
+export class CritiqueController {
+  @Post("/runs")
+  @Body(CreateCritiqueRunDto)
+  @Returns({ status: 201, schema: CritiqueRunDto })
+  async createRun(ctx: RequestContext<CreateCritiqueRunDto>): Promise<CritiqueRunDto> {
+    try {
+      const result = await runCritique(ctx.body.importJobId, ctx.body.previousImportJobId);
+      if (!result) throw new HttpError(500, "A execução de crítica não pôde ser recuperada.");
+      return result;
+    } catch (error) {
+      if (error instanceof HttpError) throw error;
+      throw new HttpError(400, error instanceof Error ? error.message : "Não foi possível executar a crítica cadastral.");
+    }
+  }
+
+  @Get("/runs/:id")
+  @Params(CritiqueRunParamsDto)
+  @Returns(CritiqueRunDto)
+  async getRun(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<CritiqueRunDto> {
+    const result = await getCritiqueRun(ctx.params.id);
+    if (!result) throw new HttpError(404, "Execução de crítica não encontrada.");
+    return result;
+  }
+
+  @Get("/runs/:id/issues")
+  @Params(CritiqueRunParamsDto)
+  @Returns(t.array(t.ref(CritiqueIssueDto)))
+  async listIssues(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<CritiqueIssueDto[]> {
+    const run = await getCritiqueRun(ctx.params.id);
+    if (!run) throw new HttpError(404, "Execução de crítica não encontrada.");
+    return listCritiqueIssues(ctx.params.id);
+  }
+
+  @Get("/issues/:id")
+  @Params(CritiqueIssueParamsDto)
+  @Returns(CritiqueIssueDetailDto)
+  async getIssue(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<CritiqueIssueDetailDto> {
+    const issue = await getCritiqueIssueDetail(ctx.params.id);
+    if (!issue) throw new HttpError(404, "Ocorrência de crítica não encontrada.");
+    return issue;
+  }
+
+  @Patch("/issues/:id")
+  @Params(CritiqueIssueParamsDto)
+  @Body(ResolveCritiqueIssueDto)
+  @Returns(CritiqueIssueDetailDto)
+  async resolveIssue(ctx: RequestContext<ResolveCritiqueIssueDto, undefined, { id: string }>): Promise<CritiqueIssueDetailDto> {
+    const status = ctx.body.status as "JUSTIFIED" | "RESOLVED" | "IGNORED";
+    if (!["JUSTIFIED", "RESOLVED", "IGNORED"].includes(status)) {
+      throw new HttpError(400, "status deve ser JUSTIFIED, RESOLVED ou IGNORED.");
+    }
+    const issue = await resolveCritiqueIssue(ctx.params.id, status, ctx.body.note);
+    if (!issue) throw new HttpError(404, "Ocorrência de crítica não encontrada.");
+    return issue;
   }
 }
 
