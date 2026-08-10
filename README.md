@@ -26,6 +26,10 @@ A primeira versão estabelece o fluxo e a arquitetura do produto:
 - Crítica Cadastral determinística com severidade e workflow de resolução;
 - comparação automática com a massa do exercício anterior quando a importação pertence a uma Avaliação;
 - drill-down de cada crítica até RAW, NORMALIZED, CANONICAL e CANONICAL anterior;
+- Biblioteca de Tábuas Biométricas versionada, com pontos qx por idade e sexo;
+- importação de tábuas XLSX/XLS/CSV com mapping de idade, qx e sexo;
+- derivação imutável de versões por escala de qx e deslocamento etário;
+- gráfico e comparação de versões no frontend;
 - fundação para providers LLM OpenAI-compatible.
 
 ## Arquitetura
@@ -178,25 +182,57 @@ INFO           → movimentação ou informação contextual
 
 Quando a importação está vinculada a uma Avaliação, o ATUAS procura automaticamente a avaliação anterior do mesmo plano e a importação da mesma população. A comparação histórica então passa a fazer parte da mesma execução de crítica.
 
-Cada ocorrência mantém:
-
-```text
-regra
-severidade
-matrícula
-campo criticado
-valor atual
-valor anterior
-mensagem
-status
-justificativa
-RAW
-NORMALIZED
-CANONICAL
-CANONICAL anterior
-```
+Cada ocorrência mantém regra, severidade, matrícula, campo criticado, valores atual/anterior, mensagem, status, justificativa e toda a proveniência RAW → NORMALIZED → CANONICAL.
 
 O workflow de resolução não apaga o achado. A ocorrência muda de `OPEN` para `RESOLVED`, `JUSTIFIED` ou `IGNORED`, mantendo a trilha de auditoria. Ao resolver ou justificar bloqueios, a quantidade de bloqueios abertos da Avaliação é recalculada automaticamente; quando chega a zero, ela deixa de ficar presa em `Aguardando correção`.
+
+## Biblioteca de Tábuas Biométricas
+
+A biblioteca não guarda tábuas como colunas soltas de planilhas. O domínio é explícito:
+
+```text
+BiometricTable
+      ↓ 1:N
+BiometricTableVersion
+      ↓ 1:N
+BiometricTablePoint
+```
+
+Cada ponto possui:
+
+```text
+idade
+sexo = MALE | FEMALE | UNISEX
+qx
+```
+
+`qx` é persistido pelo Metal ORM como `decimal(18, 12)` e validado no intervalo `0 <= qx <= 1`.
+
+Uma versão é imutável. Ela registra faixa etária, quantidade de pontos, vigência e, quando derivada, a versão-mãe, a transformação e os parâmetros utilizados.
+
+A UI permite importar `.xlsx`, `.xls` ou `.csv`, escolher quais colunas representam idade, qx e sexo, usar sexo fixo quando a fonte não possui coluna própria, revisar os pontos e somente então persistir a tábua.
+
+As primitivas de derivação iniciais são:
+
+```text
+QX_SCALE
+  qx_novo(x) = qx_origem(x) × fator
+
+AGE_SHIFT
+  qx_novo(x) = qx_origem(x + deslocamento)
+```
+
+Exemplo de redução de 10%:
+
+```text
+factor = 0.90
+```
+
+A derivação nunca altera a origem. Os pontos resultantes são materializados em uma nova versão para que estudos e avaliações futuras sejam reproduzíveis exatamente.
+
+A tela também permite comparar duas versões graficamente e inspecionar os qx por idade/sexo.
+
+Nenhuma tábua atuarial fictícia é criada por seed. Os valores oficiais entram somente por importação ou derivação explícita.
 
 ## Backend
 
@@ -206,6 +242,7 @@ O backend usa os padrões atuais do Adorn API e Metal ORM:
 - `createExpressApp`;
 - OpenAPI em `/openapi.json`;
 - Swagger em `/docs`;
+- nomes explícitos nos `@Dto` para manter o OpenAPI runtime alinhado ao snapshot usado pelo codegen;
 - `Orm` + `SqliteDialect` + `createSqliteExecutor`;
 - `bootstrapEntities` + introspecção/diff/sincronização de schema;
 - SQLite em modo WAL;
@@ -225,6 +262,11 @@ GET   /api/critique/runs/:id
 GET   /api/critique/runs/:id/issues
 GET   /api/critique/issues/:id
 PATCH /api/critique/issues/:id
+GET   /api/biometric-tables/
+POST  /api/biometric-tables/
+GET   /api/biometric-tables/:id
+POST  /api/biometric-tables/:id/derive
+GET   /api/biometric-versions/:id/points
 GET   /api/llm/providers/
 ```
 
@@ -244,7 +286,7 @@ A saída fica em:
 apps/frontend/src/api/generated/
 ```
 
-O `client.ts` usa os schemas gerados para os DTOs de resposta. `dev`, `build` e `typecheck` regeneram os contratos automaticamente antes de executar.
+O `client.ts` usa os schemas gerados para os DTOs de resposta e também para os contratos biométricos. `dev`, `build` e `typecheck` regeneram os contratos automaticamente antes de executar.
 
 Quando o backend estiver rodando, o snapshot deverá ser atualizado a partir do `/openapi.json` canônico antes de releases.
 
@@ -306,19 +348,19 @@ build
   ↓
 health smoke test
   ↓
-importação de uma massa válida
+Data Studio + Mapping Profile
   ↓
-crítica sem falsos positivos
+Crítica limpa e massa propositalmente inconsistente
   ↓
-reconhecimento do Mapping Profile em 100%
+proveniência e resolução de ocorrências
   ↓
-importação de uma massa propositalmente inconsistente
+criação de tábua biométrica real via API
   ↓
-persistência e listagem das ocorrências
+leitura dos pontos qx
   ↓
-verificação RAW → NORMALIZED → CANONICAL
+derivação QX_SCALE
   ↓
-resolução de uma ocorrência via API
+validação da nova versão e da proveniência
 ```
 
 ## Princípio para IA
@@ -333,8 +375,7 @@ Providers são OpenAI-compatible e podem possuir múltiplas credenciais referenc
 
 ## Próximos slices
 
-1. Biblioteca versionada de tábuas biométricas.
-2. Hypothesis Lab: exposição, observados/esperados, Qui-Quadrado, KS, Z, Fisher e DQM.
-3. Orquestração do motor Delphi legado como golden master.
-4. Fechamento estruturado para substituir gradualmente a planilha de fechamento.
-5. Document Studio e providers LLM OpenAI-compatible com múltiplas API keys.
+1. Hypothesis Lab: exposição, observados/esperados, Qui-Quadrado, KS, Z, Fisher e DQM.
+2. Orquestração do motor Delphi legado como golden master.
+3. Fechamento estruturado para substituir gradualmente a planilha de fechamento.
+4. Document Studio e providers LLM OpenAI-compatible com múltiplas API keys.
