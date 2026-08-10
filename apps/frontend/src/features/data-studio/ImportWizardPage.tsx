@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import {
   Alert,
@@ -29,8 +29,9 @@ import {
 import ArrowBackRounded from "@mui/icons-material/ArrowBackRounded";
 import ArrowForwardRounded from "@mui/icons-material/ArrowForwardRounded";
 import DeleteOutlineRounded from "@mui/icons-material/DeleteOutlineRounded";
+import FactCheckOutlined from "@mui/icons-material/FactCheckOutlined";
 import UploadFileRounded from "@mui/icons-material/UploadFileRounded";
-import { api, type ImportResult, type MappingProfileMatch } from "../../api/client";
+import { api, type Evaluation, type ImportResult, type MappingProfileMatch } from "../../api/client";
 
 const steps = ["Arquivo", "Estrutura", "Mapping", "Transformações", "Preview", "Validação", "Concluir"];
 
@@ -50,8 +51,12 @@ const populations = ["Ativos", "Assistidos", "Pensionistas", "Autopatrocinados",
 
 type Transform = "auto" | "date-yyyymmdd" | "date-br" | "concat" | "sum" | "split-dash" | "sex";
 type Rule = { id: number; sources: string[]; targets: string[]; transform: Transform };
-
 type ProfileRule = Omit<Rule, "id">;
+
+type Props = {
+  onClose: () => void;
+  onCritique: (importJobId: string) => void;
+};
 
 function normalize(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
@@ -145,12 +150,14 @@ function parseProfileRules(match: MappingProfileMatch): ProfileRule[] {
   }
 }
 
-export function ImportWizardPage({ onClose }: { onClose: () => void }) {
+export function ImportWizardPage({ onClose, onCritique }: Props) {
   const [activeStep, setActiveStep] = useState(0);
   const [sourceFile, setSourceFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState("");
   const [sheetName, setSheetName] = useState("");
   const [population, setPopulation] = useState<(typeof populations)[number]>("Ativos");
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+  const [evaluationId, setEvaluationId] = useState<number | undefined>();
   const [matrix, setMatrix] = useState<unknown[][]>([]);
   const [headerRow, setHeaderRow] = useState(1);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -165,6 +172,10 @@ export function ImportWizardPage({ onClose }: { onClose: () => void }) {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+
+  useEffect(() => {
+    api.evaluations().then(setEvaluations).catch(() => setEvaluations([]));
+  }, []);
 
   const applyProfile = (match: MappingProfileMatch, nextHeaders = headers) => {
     const profileRules = parseProfileRules(match);
@@ -243,6 +254,7 @@ export function ImportWizardPage({ onClose }: { onClose: () => void }) {
     try {
       const result = await api.importWorkbook(sourceFile, {
         population,
+        evaluationId,
         profileId: selectedProfileId,
         profileName: profileName.trim() || undefined,
         saveProfile,
@@ -284,13 +296,15 @@ export function ImportWizardPage({ onClose }: { onClose: () => void }) {
       </Box>}
 
       {activeStep === 1 && <Stack spacing={3}>
-        <Box><Typography variant="h6">Estrutura detectada</Typography><Typography color="text.secondary">Confirme população, aba e onde os dados realmente começam.</Typography></Box>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr 1fr" }, gap: 2 }}>
+        <Box><Typography variant="h6">Estrutura detectada</Typography><Typography color="text.secondary">Confirme avaliação, população, aba e onde os dados realmente começam.</Typography></Box>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1.6fr 1.5fr 1fr 1fr 1fr" }, gap: 2 }}>
           <TextField label="Arquivo" value={fileName} slotProps={{ input: { readOnly: true } }} />
+          <FormControl fullWidth><InputLabel>Avaliação</InputLabel><Select label="Avaliação" value={evaluationId ?? ""} onChange={(event) => setEvaluationId(event.target.value === "" ? undefined : Number(event.target.value))}><MenuItem value=""><em>Sem vínculo</em></MenuItem>{evaluations.map((evaluation) => <MenuItem key={evaluation.id} value={evaluation.id}>{evaluation.planName} · {new Date(`${evaluation.referenceDate}T12:00:00`).toLocaleDateString("pt-BR")}</MenuItem>)}</Select></FormControl>
           <FormControl fullWidth><InputLabel>População</InputLabel><Select label="População" value={population} onChange={(event) => { const value = event.target.value as (typeof populations)[number]; setPopulation(value); setProfileName(`${value} - ${fileName.replace(/\.[^.]+$/, "")}`); void findProfile(headers, value); }}>{populations.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</Select></FormControl>
           <TextField label="Aba" value={sheetName} slotProps={{ input: { readOnly: true } }} />
           <TextField label="Linha do cabeçalho" type="number" value={headerRow} onChange={(event) => { const value = Math.max(1, Number(event.target.value)); setHeaderRow(value); const nextHeaders = rebuild(matrix, value); void findProfile(nextHeaders, population); }} />
         </Box>
+        {evaluationId && <Alert severity="success">A massa ficará vinculada à avaliação selecionada. Na crítica, o ATUAS poderá localizar automaticamente o exercício anterior do mesmo plano e população.</Alert>}
         <Alert severity="info">{headers.length} colunas e {rows.length} registros detectados.</Alert>
         {profileLoading && <Alert icon={<CircularProgress size={18} />} severity="info">Comparando este layout com perfis anteriores…</Alert>}
         {!profileLoading && profileMatch?.matched && profileMatch.exact && <Alert severity="success">Perfil <strong>{profileMatch.profileName} {profileMatch.version}</strong> reconhecido com 100% de compatibilidade. As regras foram reaplicadas automaticamente.</Alert>}
@@ -350,7 +364,7 @@ export function ImportWizardPage({ onClose }: { onClose: () => void }) {
             <Paper variant="outlined" sx={{ p: 2 }}><Typography variant="h6">{importResult.mappingProfileVersion ?? "—"}</Typography><Typography variant="body2" color="text.secondary">Perfil salvo</Typography></Paper>
           </Box>
           <Paper variant="outlined" sx={{ p: 2 }}><Typography variant="caption" color="text.secondary">Import job</Typography><Typography sx={{ fontFamily: "monospace" }}>{importResult.id}</Typography><Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>SHA-256 do original</Typography><Typography sx={{ fontFamily: "monospace", overflowWrap: "anywhere" }}>{importResult.fileSha256}</Typography></Paper>
-          <Box><Button variant="contained" onClick={onClose}>Voltar às avaliações</Button></Box>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}><Button variant="contained" onClick={() => onCritique(importResult.id)} startIcon={<FactCheckOutlined />}>Abrir crítica cadastral</Button><Button variant="outlined" onClick={onClose}>Voltar às avaliações</Button></Stack>
         </>}
       </Stack>}
 
