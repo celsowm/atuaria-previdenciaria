@@ -2,6 +2,7 @@ import { createExpressApp } from "adorn-api";
 import { initializeDatabase } from "./db.js";
 import {
   EvaluationController,
+  ImportController,
   LlmProviderController,
   MappingProfileController,
   SystemController
@@ -15,10 +16,16 @@ async function start() {
       SystemController,
       EvaluationController,
       MappingProfileController,
+      ImportController,
       LlmProviderController
     ],
     inputCoercion: "safe",
     validation: { enabled: true, mode: "strict" },
+    multipart: {
+      storage: "memory",
+      maxFileSize: 100 * 1024 * 1024,
+      maxFiles: 1
+    },
     openApi: {
       info: {
         title: "ATUAS API",
