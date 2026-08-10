@@ -10,7 +10,7 @@ export function resolveRepositoryPath(configuredPath: string | undefined, fallba
 }
 
 export function databaseFilePath() {
-  return resolveRepositoryPath(process.env.APP_DB_PATH, "data/actuarial.sqlite");
+  return resolveRepositoryPath(process.env.APP_DB_PATH, "data/atuaria-previdenciaria.sqlite");
 }
 
 export function storageRootPath() {
