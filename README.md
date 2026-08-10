@@ -4,32 +4,24 @@ Plataforma web para conduzir o ciclo de trabalho de avaliações atuariais de pr
 
 ## v0.0.1
 
-A primeira versão estabelece o fluxo e a arquitetura do produto:
+A base funcional atual já inclui:
 
 - monorepo TypeScript;
 - backend com `adorn-api`;
-- persistência SQLite com `metal-orm` e entities anotadas;
-- schema SQLite sincronizado a partir das entities do Metal ORM;
-- OpenAPI 3.2 gerado pelo backend;
+- SQLite com `metal-orm` e entities anotadas;
+- schema sincronizado a partir das entities;
 - frontend React + Material UI;
-- contratos frontend gerados e consumidos com `better-openapi-typescript`;
-- Dashboard operacional;
-- Workspace de Avaliação Atuarial;
-- Data Studio com wizard/stepper para XLSX/XLS/CSV;
-- mapping N:N entre colunas de origem e campos canônicos;
-- transformações de data, sexo, split, concatenação e soma;
-- preview do modelo canônico antes da importação;
+- OpenAPI 3.2 + contratos gerados por `better-openapi-typescript`;
+- Dashboard e Workspace de Avaliação;
+- Data Studio com wizard XLSX/XLS/CSV;
+- mapping N:N e transformações;
 - persistência auditável `RAW → NORMALIZED → CANONICAL`;
-- armazenamento imutável do arquivo-fonte com SHA-256;
-- Mapping Profiles e Mapping Rules versionados;
-- detecção de compatibilidade e diff do layout recebido contra perfis anteriores;
-- Crítica Cadastral determinística com severidade e workflow de resolução;
-- comparação automática com a massa do exercício anterior quando a importação pertence a uma Avaliação;
-- drill-down de cada crítica até RAW, NORMALIZED, CANONICAL e CANONICAL anterior;
-- Biblioteca de Tábuas Biométricas versionada, com pontos qx por idade e sexo;
-- importação de tábuas XLSX/XLS/CSV com mapping de idade, qx e sexo;
-- derivação imutável de versões por escala de qx e deslocamento etário;
-- gráfico e comparação de versões no frontend;
+- Mapping Profiles versionados e detecção de mudança de layout;
+- Crítica Cadastral determinística e comparação com exercício anterior;
+- Biblioteca de Tábuas Biométricas versionada;
+- derivação imutável por escala de qx e deslocamento etário;
+- Hypothesis Lab com observado × esperado, χ², KS, Z, Fisher e DQM;
+- ranking persistido das versões biométricas candidatas;
 - fundação para providers LLM OpenAI-compatible.
 
 ## Arquitetura
@@ -38,13 +30,16 @@ A primeira versão estabelece o fluxo e a arquitetura do produto:
 atuas/
 ├── apps/
 │   ├── backend/               # Adorn API + Metal ORM + SQLite
-│   └── frontend/              # React + MUI + Data Studio
+│   └── frontend/              # React + MUI
+├── docs/
+│   └── HYPOTHESIS_LAB.md
 ├── openapi/
-│   └── atuas.openapi.json     # snapshot versionado para codegen
+│   ├── atuas.openapi.json     # snapshot base
+│   └── adherence.openapi.json # fragmento do Hypothesis Lab
 └── package.json               # npm workspaces
 ```
 
-O domínio é organizado ao redor de uma **Avaliação Atuarial**, e não de arquivos isolados:
+O domínio é organizado ao redor de uma **Avaliação Atuarial**, não de arquivos isolados:
 
 ```text
 Dados
@@ -68,13 +63,13 @@ Regulatório
 
 ## Data Studio
 
-A entrada de uma massa não é uma importação cega. O wizard segue:
+A massa não é importada cegamente. O fluxo é:
 
 ```text
 Arquivo → Estrutura → Mapping → Transformações → Preview → Validação → Concluir
 ```
 
-O mapping é explicitamente N:N. Exemplos válidos:
+O mapping é N:N e permite, por exemplo:
 
 ```text
 DIA_NASC + MES_NASC + ANO_NASC
@@ -94,9 +89,7 @@ SAL_BASE + GRATIFICACAO + ADICIONAL
         Salário de contribuição
 ```
 
-### Persistência e proveniência
-
-O browser oferece o preview, mas o resultado oficial não depende do JavaScript do frontend. Ao concluir, o arquivo original e as regras são enviados ao backend, que abre novamente a planilha e repete deterministicamente o mapping.
+O browser exibe preview, mas o resultado oficial é recalculado no backend a partir do arquivo original.
 
 ```text
 arquivo original
@@ -115,38 +108,9 @@ arquivo original
  crítica cadastral
 ```
 
-Para cada importação o ATUAS mantém:
-
-- `ImportFile`: nome original, MIME type, tamanho, SHA-256 e localização no storage;
-- `ImportJob`: avaliação opcional, população, aba, cabeçalho, fingerprint do schema, perfil aplicado, status e contagens;
-- `ImportRow`: número da linha, JSON RAW, NORMALIZED e CANONICAL, status e erros de validação;
-- `MappingProfile`: família/versionamento do mapping e fingerprints;
-- `MappingRule`: origens, destinos, transformação e ordem da regra.
-
-### Reutilização de mappings
-
-Depois da primeira importação, o perfil pode ser reutilizado em novos exercícios. O backend compara os cabeçalhos normalizados:
-
-```text
-mesmo layout
-  → 100% compatível
-  → regras reaplicadas automaticamente
-
-layout alterado
-  → percentual de compatibilidade
-  → colunas removidas
-  → colunas novas
-  → aplicar apenas regras ainda compatíveis
-  → revisar diferenças
-```
-
-Se schema ou regras mudarem, o ATUAS cria uma nova versão do perfil em vez de sobrescrever o histórico.
-
 ## Crítica Cadastral
 
-Depois de persistir a massa, o usuário pode abrir a Crítica Cadastral diretamente do último passo do wizard.
-
-O motor é determinístico e trabalha exclusivamente sobre o CANONICAL persistido. Os achados ficam separados da validação estrutural da importação e são armazenados como entidades próprias:
+O motor trabalha sobre o CANONICAL persistido e gera ocorrências próprias, separadas das falhas estruturais da importação.
 
 ```text
 CritiqueRule
@@ -156,39 +120,11 @@ CritiqueRun
 CritiqueIssue
 ```
 
-As regras iniciais cobrem:
+As regras iniciais cobrem matrícula ausente/duplicada, nascimento inválido, idade fora de faixa, ingresso no plano anterior à admissão, salário não positivo, mudanças entre exercícios, variação salarial, entradas e saídas da massa.
 
-- falha estrutural herdada da importação;
-- matrícula ausente;
-- matrícula duplicada;
-- nascimento inválido;
-- idade fora da faixa esperada;
-- ingresso no plano anterior à admissão;
-- salário de contribuição não positivo;
-- mudança de sexo entre exercícios;
-- mudança de data de nascimento entre exercícios;
-- variação salarial acima do limite configurado;
-- novos participantes;
-- saídas da massa.
-
-As severidades são:
-
-```text
-BLOCKING       → impede avanço enquanto estiver OPEN
-INCONSISTENCY  → exige análise atuarial/cadastral
-WARNING        → variação relevante
-INFO           → movimentação ou informação contextual
-```
-
-Quando a importação está vinculada a uma Avaliação, o ATUAS procura automaticamente a avaliação anterior do mesmo plano e a importação da mesma população. A comparação histórica então passa a fazer parte da mesma execução de crítica.
-
-Cada ocorrência mantém regra, severidade, matrícula, campo criticado, valores atual/anterior, mensagem, status, justificativa e toda a proveniência RAW → NORMALIZED → CANONICAL.
-
-O workflow de resolução não apaga o achado. A ocorrência muda de `OPEN` para `RESOLVED`, `JUSTIFIED` ou `IGNORED`, mantendo a trilha de auditoria. Ao resolver ou justificar bloqueios, a quantidade de bloqueios abertos da Avaliação é recalculada automaticamente; quando chega a zero, ela deixa de ficar presa em `Aguardando correção`.
+As severidades são `BLOCKING`, `INCONSISTENCY`, `WARNING` e `INFO`. Uma ocorrência nunca é apagada ao ser tratada: ela passa para `RESOLVED`, `JUSTIFIED` ou `IGNORED` e mantém a proveniência `RAW → NORMALIZED → CANONICAL`.
 
 ## Biblioteca de Tábuas Biométricas
-
-A biblioteca não guarda tábuas como colunas soltas de planilhas. O domínio é explícito:
 
 ```text
 BiometricTable
@@ -198,21 +134,9 @@ BiometricTableVersion
 BiometricTablePoint
 ```
 
-Cada ponto possui:
+Cada ponto possui idade, sexo e `qx`. O qx é validado em `0 <= qx <= 1` e persistido como `decimal(18,12)`.
 
-```text
-idade
-sexo = MALE | FEMALE | UNISEX
-qx
-```
-
-`qx` é persistido pelo Metal ORM como `decimal(18, 12)` e validado no intervalo `0 <= qx <= 1`.
-
-Uma versão é imutável. Ela registra faixa etária, quantidade de pontos, vigência e, quando derivada, a versão-mãe, a transformação e os parâmetros utilizados.
-
-A UI permite importar `.xlsx`, `.xls` ou `.csv`, escolher quais colunas representam idade, qx e sexo, usar sexo fixo quando a fonte não possui coluna própria, revisar os pontos e somente então persistir a tábua.
-
-As primitivas de derivação iniciais são:
+Versões são imutáveis. Derivações registram a versão-mãe, transformação e parâmetros:
 
 ```text
 QX_SCALE
@@ -222,59 +146,94 @@ AGE_SHIFT
   qx_novo(x) = qx_origem(x + deslocamento)
 ```
 
-Exemplo de redução de 10%:
+A UI importa XLSX/XLS/CSV, permite mapear idade/qx/sexo, revisar os pontos e comparar curvas entre versões. Percentuais como `0,10%` são normalizados para `0,001`.
+
+Nenhuma tábua oficial é inventada por seed: valores atuariais entram apenas por importação ou derivação explícita.
+
+## Hypothesis Lab
+
+O módulo de Estudos de Aderência já é funcional.
+
+O wizard recebe uma base histórica com:
 
 ```text
-factor = 0.90
+ano
+idade
+sexo
+exposição
+eventos observados
 ```
 
-A derivação nunca altera a origem. Os pontos resultantes são materializados em uma nova versão para que estudos e avaliações futuras sejam reproduzíveis exatamente.
-
-A tela também permite comparar duas versões graficamente e inspecionar os qx por idade/sexo.
-
-Nenhuma tábua atuarial fictícia é criada por seed. Os valores oficiais entram somente por importação ou derivação explícita.
-
-## Backend
-
-O backend usa os padrões atuais do Adorn API e Metal ORM:
-
-- Stage 3 decorators;
-- `createExpressApp`;
-- OpenAPI em `/openapi.json`;
-- Swagger em `/docs`;
-- nomes explícitos nos `@Dto` para manter o OpenAPI runtime alinhado ao snapshot usado pelo codegen;
-- `Orm` + `SqliteDialect` + `createSqliteExecutor`;
-- `bootstrapEntities` + introspecção/diff/sincronização de schema;
-- SQLite em modo WAL;
-- multipart para importações de até 100 MB nesta primeira versão.
-
-Endpoints atuais:
+O usuário seleciona uma ou mais versões imutáveis da Biblioteca Biométrica e o backend calcula deterministicamente:
 
 ```text
-GET   /api/health
-GET   /api/dashboard
-GET   /api/evaluations/
-GET   /api/mapping-profiles/
-POST  /api/mapping-profiles/match
-POST  /api/imports/
-POST  /api/critique/runs
-GET   /api/critique/runs/:id
-GET   /api/critique/runs/:id/issues
-GET   /api/critique/issues/:id
-PATCH /api/critique/issues/:id
-GET   /api/biometric-tables/
-POST  /api/biometric-tables/
-GET   /api/biometric-tables/:id
-POST  /api/biometric-tables/:id/derive
-GET   /api/biometric-versions/:id/points
-GET   /api/llm/providers/
+observado × esperado
+χ²
+Kolmogorov-Smirnov
+Teste Z
+Exato de Fisher
+DQM
 ```
 
-## Frontend e OpenAPI
+O modelo é:
 
-O snapshot OpenAPI versionado fica em `openapi/atuas.openapi.json`.
+```text
+AdherenceStudy
+  ├─ AdherenceObservation 1:N
+  └─ AdherenceCandidateResult 1:N
+       └─ AdherenceCandidatePoint 1:N
+```
 
-Os contratos são gerados por controller/tag com `better-openapi-typescript`:
+Cada candidato preserva, por idade/sexo:
+
+- exposição;
+- eventos observados;
+- qx usado;
+- eventos esperados;
+- resíduo.
+
+Também são persistidos:
+
+- estatísticas calculadas;
+- valores críticos de χ², KS e Z;
+- p-values;
+- decisão rejeita/não rejeita por teste;
+- DQM;
+- quantidade de testes rejeitados;
+- ranking;
+- versão do motor estatístico.
+
+A versão atual do motor é:
+
+```text
+atuas-adherence-v1
+```
+
+O ranking inicial usa:
+
+1. menor quantidade de testes rejeitados;
+2. menor DQM;
+3. maior p-value do χ².
+
+O ranking é auxílio operacional e não aprova automaticamente uma hipótese.
+
+A metodologia detalhada está em `docs/HYPOTHESIS_LAB.md`. O objetivo seguinte é comparar os resultados com as planilhas históricas usadas como **golden master**.
+
+## OpenAPI e frontend
+
+O contrato base fica em:
+
+```text
+openapi/atuas.openapi.json
+```
+
+Domínios podem adicionar fragmentos, como:
+
+```text
+openapi/adherence.openapi.json
+```
+
+O script `apps/frontend/scripts/generate-api.mjs` mescla os fragmentos antes de executar `better-openapi-typescript`.
 
 ```bash
 npm run api:generate
@@ -286,26 +245,52 @@ A saída fica em:
 apps/frontend/src/api/generated/
 ```
 
-O `client.ts` usa os schemas gerados para os DTOs de resposta e também para os contratos biométricos. `dev`, `build` e `typecheck` regeneram os contratos automaticamente antes de executar.
+O frontend consome esses schemas gerados em vez de duplicar DTOs manualmente.
 
-Quando o backend estiver rodando, o snapshot deverá ser atualizado a partir do `/openapi.json` canônico antes de releases.
+## Backend
+
+Padrões principais:
+
+- Stage 3 decorators;
+- `createExpressApp`;
+- Swagger em `/docs`;
+- OpenAPI runtime em `/openapi.json`;
+- `Orm` + `SqliteDialect` + `createSqliteExecutor`;
+- `bootstrapEntities` + introspecção/diff/sincronização de schema;
+- SQLite WAL;
+- multipart para importações.
+
+Endpoints centrais atuais:
+
+```text
+GET   /api/health
+GET   /api/dashboard
+GET   /api/evaluations/
+POST  /api/imports/
+POST  /api/mapping-profiles/match
+POST  /api/critique/runs
+GET   /api/critique/runs/:id/issues
+PATCH /api/critique/issues/:id
+GET   /api/biometric-tables/
+POST  /api/biometric-tables/
+POST  /api/biometric-tables/:id/derive
+GET   /api/biometric-versions/:id/points
+GET   /api/adherence-studies/
+POST  /api/adherence-studies/
+GET   /api/adherence-studies/:id
+GET   /api/adherence-candidates/:id/points
+GET   /api/llm/providers/
+```
 
 ## Desenvolvimento
 
 Requisitos:
 
 - Node.js 22+
-- npm com suporte a workspaces
-
-Instale tudo na raiz:
+- npm com workspaces
 
 ```bash
 npm install
-```
-
-Suba backend e frontend juntos:
-
-```bash
 npm run dev
 ```
 
@@ -325,47 +310,27 @@ data/atuas.sqlite
 data/storage/
 ```
 
-Podem ser alterados com:
-
-```bash
-ATUAS_DB_PATH=/caminho/atuas.sqlite \
-ATUAS_STORAGE_PATH=/caminho/storage \
-npm run dev -w @atuas/backend
-```
+Podem ser alterados com `ATUAS_DB_PATH` e `ATUAS_STORAGE_PATH`.
 
 ## CI
 
-A CI faz:
+A CI cobre Data Studio, Crítica Cadastral e Biblioteca Biométrica. Há também um workflow específico do Hypothesis Lab que:
 
 ```text
-install
+cria uma tábua biométrica
   ↓
-OpenAPI codegen
+deriva uma segunda versão
   ↓
-typecheck
+executa estudo observado × esperado
   ↓
-build
+valida ranking e resultados
   ↓
-health smoke test
-  ↓
-Data Studio + Mapping Profile
-  ↓
-Crítica limpa e massa propositalmente inconsistente
-  ↓
-proveniência e resolução de ocorrências
-  ↓
-criação de tábua biométrica real via API
-  ↓
-leitura dos pontos qx
-  ↓
-derivação QX_SCALE
-  ↓
-validação da nova versão e da proveniência
+abre os pontos persistidos do candidato vencedor
 ```
 
 ## Princípio para IA
 
-A camada de IA nunca é a fonte dos resultados atuariais oficiais.
+A IA nunca é fonte dos resultados atuariais oficiais.
 
 ```text
 motor determinístico → fatos estruturados → LLM → explicação/minuta/revisão
@@ -375,7 +340,8 @@ Providers são OpenAI-compatible e podem possuir múltiplas credenciais referenc
 
 ## Próximos slices
 
-1. Hypothesis Lab: exposição, observados/esperados, Qui-Quadrado, KS, Z, Fisher e DQM.
-2. Orquestração do motor Delphi legado como golden master.
-3. Fechamento estruturado para substituir gradualmente a planilha de fechamento.
-4. Document Studio e providers LLM OpenAI-compatible com múltiplas API keys.
+1. regressão do Hypothesis Lab contra os Excel históricos como golden master;
+2. integração dos estudos às Avaliações e snapshot formal das hipóteses aprovadas;
+3. orquestração do motor Delphi legado como golden master da avaliação;
+4. fechamento estruturado para substituir gradualmente `FECHAMENTO.xlsx`;
+5. Document Studio e IA contextual para relatório/parecer.
