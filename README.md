@@ -2,7 +2,7 @@
 
 Plataforma web para conduzir o ciclo de avaliações atuariais de previdência complementar, substituindo progressivamente aplicações legadas, planilhas operacionais, cálculos estatísticos manuais e fluxos documentais dispersos.
 
-O projeto é **white-label por deployment**: o core não pressupõe nome de produto nem organização específica. Nome, nome curto e entidade são configurados em runtime.
+**Atuária Previdenciária** é o nome do produto e corresponde ao nome do repositório `atuaria-previdenciaria`. Uma implantação pode identificar a UE/entidade que a opera, mas isso não renomeia o sistema.
 
 ## Fundação atual
 
@@ -15,7 +15,7 @@ A base funcional inclui:
 - frontend React + Material UI;
 - OpenAPI + contratos gerados por `better-openapi-typescript`;
 - autenticação bearer, usuários e RBAC básico;
-- branding configurável por deployment;
+- identificação configurável da organização responsável pelo deployment;
 - cadastro de Planos BD/CD/CV;
 - Dashboard e Workspace de Avaliação;
 - Data Studio com wizard XLSX/XLS/CSV;
@@ -29,13 +29,11 @@ A base funcional inclui:
 - ranking persistido das versões biométricas candidatas;
 - fundação para providers LLM OpenAI-compatible.
 
-## White-label
+## Produto e organização
 
-O mesmo build pode ser usado por entidades diferentes sem fork de código:
+O produto mantém sempre a identidade **Atuária Previdenciária**. O que pode variar por deployment é a organização/UE responsável pela instância:
 
 ```env
-APP_NAME=Plataforma Atuarial
-APP_SHORT_NAME=Atuária
 APP_ORGANIZATION_NAME=
 ```
 
@@ -45,9 +43,9 @@ O backend expõe a configuração pública em:
 GET /api/config
 ```
 
-O frontend usa esse endpoint para nome do login, sidebar e título do navegador. `APP_ORGANIZATION_NAME` pode ser diferente em cada deployment.
+O frontend usa a organização como contexto institucional no login, sidebar e título do navegador, sem alterar o nome do produto.
 
-White-label não é o mesmo que multi-tenant: hoje a arquitetura suporta deployments independentes por entidade. Uma instalação única atendendo várias entidades deverá ganhar isolamento explícito por tenant em um slice próprio.
+Isso também não é o mesmo que multi-tenant: hoje a arquitetura suporta deployments independentes por entidade. Uma instalação única atendendo várias entidades deverá ganhar isolamento explícito por tenant em um slice próprio.
 
 ## Arquitetura
 
@@ -267,14 +265,14 @@ OpenAPI   http://localhost:3001/openapi.json
 Banco e storage padrão:
 
 ```text
-data/actuarial.sqlite
+data/atuaria-previdenciaria.sqlite
 data/storage/
 ```
 
 Podem ser alterados com:
 
 ```env
-APP_DB_PATH=./data/actuarial.sqlite
+APP_DB_PATH=./data/atuaria-previdenciaria.sqlite
 APP_STORAGE_PATH=./data/storage
 ```
 
