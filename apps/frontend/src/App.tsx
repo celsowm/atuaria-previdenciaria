@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Avatar, Box, ButtonBase, Divider, Stack, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
+import { Avatar, Box, ButtonBase, CircularProgress, Divider, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import AssessmentOutlined from "@mui/icons-material/AssessmentOutlined";
 import ApartmentOutlined from "@mui/icons-material/ApartmentOutlined";
 import AutoAwesomeOutlined from "@mui/icons-material/AutoAwesomeOutlined";
@@ -7,10 +7,14 @@ import BiotechOutlined from "@mui/icons-material/BiotechOutlined";
 import DescriptionOutlined from "@mui/icons-material/DescriptionOutlined";
 import FolderOutlined from "@mui/icons-material/FolderOutlined";
 import HubOutlined from "@mui/icons-material/HubOutlined";
+import LogoutRounded from "@mui/icons-material/LogoutRounded";
 import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import TableViewOutlined from "@mui/icons-material/TableViewOutlined";
+import { api, clearAuthToken, getAuthToken, type AuthUser } from "./api/client";
 import { AdherenceStudiesPage } from "./features/adherence/AdherenceStudiesPage";
+import { AdminUsersPage } from "./features/admin/AdminUsersPage";
 import { AiProvidersPage } from "./features/ai/AiProvidersPage";
+import { LoginPage } from "./features/auth/LoginPage";
 import { BiometricTablesPage } from "./features/biometrics/BiometricTablesPage";
 import { CritiquePage } from "./features/critique/CritiquePage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
@@ -44,14 +48,69 @@ const pageNames: Record<Page, string> = {
   admin: "Administração"
 };
 
+function initials(name: string) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "A";
+}
+
+function roleLabel(role: string) {
+  if (role === "admin") return "Administrador";
+  if (role === "actuary") return "Atuário";
+  if (role === "reviewer") return "Revisor";
+  return role;
+}
+
 export default function App() {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [page, setPage] = useState<Page>("dashboard");
   const [critiqueImportJobId, setCritiqueImportJobId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unauthorized = () => setUser(null);
+    window.addEventListener("atuas:unauthorized", unauthorized);
+
+    const token = getAuthToken();
+    if (!token) {
+      setAuthLoading(false);
+      return () => window.removeEventListener("atuas:unauthorized", unauthorized);
+    }
+
+    api.me()
+      .then(setUser)
+      .catch(() => {
+        clearAuthToken();
+        setUser(null);
+      })
+      .finally(() => setAuthLoading(false));
+
+    return () => window.removeEventListener("atuas:unauthorized", unauthorized);
+  }, []);
 
   const openCritique = (importJobId: string) => {
     setCritiqueImportJobId(importJobId);
     setPage("critique");
   };
+
+  const logout = async () => {
+    try {
+      await api.logout();
+    } finally {
+      clearAuthToken();
+      setUser(null);
+      setPage("dashboard");
+    }
+  };
+
+  if (authLoading) {
+    return <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center" }}><CircularProgress size={30} /></Box>;
+  }
+
+  if (!user) {
+    return <LoginPage onAuthenticated={(authenticated) => {
+      setUser(authenticated);
+      setPage("dashboard");
+    }} />;
+  }
 
   return <Box sx={{ minHeight: "100vh", display: "grid", gridTemplateColumns: { xs: "1fr", md: "248px minmax(0, 1fr)" } }}>
     <Box component="aside" sx={{ display: { xs: "none", md: "flex" }, flexDirection: "column", p: 2, borderRight: "1px solid", borderColor: "divider", bgcolor: "background.paper", minHeight: "100vh", position: "sticky", top: 0, height: "100vh" }}>
@@ -63,8 +122,12 @@ export default function App() {
         {nav.map(([key, label, icon]) => <NavItem key={key} selected={page === key || (key === "dashboard" && page === "evaluation") || (key === "import" && page === "critique")} icon={icon} label={label} onClick={() => setPage(key)} />)}
       </Stack>
       <Divider sx={{ my: 1.5 }} />
-      <NavItem selected={page === "admin"} icon={<SettingsOutlined />} label="Administração" onClick={() => setPage("admin")} />
-      <Stack direction="row" spacing={1.2} alignItems="center" sx={{ p: 1, mt: 1.5 }}><Avatar sx={{ width: 32, height: 32 }}>CF</Avatar><Box sx={{ minWidth: 0 }}><Typography variant="body2" fontWeight={700} noWrap>Usuário ATUAS</Typography><Typography variant="caption" color="text.secondary">Atuário</Typography></Box></Stack>
+      {user.role === "admin" && <NavItem selected={page === "admin"} icon={<SettingsOutlined />} label="Administração" onClick={() => setPage("admin")} />}
+      <Stack direction="row" spacing={1.2} alignItems="center" sx={{ p: 1, mt: 1.5 }}>
+        <Avatar sx={{ width: 32, height: 32 }}>{initials(user.displayName)}</Avatar>
+        <Box sx={{ minWidth: 0, flex: 1 }}><Typography variant="body2" fontWeight={700} noWrap>{user.displayName}</Typography><Typography variant="caption" color="text.secondary">{roleLabel(user.role)}</Typography></Box>
+        <Tooltip title="Sair"><IconButton size="small" onClick={() => void logout()}><LogoutRounded fontSize="small" /></IconButton></Tooltip>
+      </Stack>
     </Box>
 
     <Box component="main" sx={{ minWidth: 0 }}>
@@ -76,7 +139,8 @@ export default function App() {
         {page === "assumptions" && <BiometricTablesPage />}
         {page === "studies" && <AdherenceStudiesPage />}
         {page === "ai" && <AiProvidersPage />}
-        {!(["dashboard", "evaluation", "import", "critique", "assumptions", "studies", "ai"] as Page[]).includes(page) && <Placeholder title={pageNames[page]} />}
+        {page === "admin" && user.role === "admin" && <AdminUsersPage />}
+        {!(["dashboard", "evaluation", "import", "critique", "assumptions", "studies", "ai", "admin"] as Page[]).includes(page) && <Placeholder title={pageNames[page]} />}
       </Box>
     </Box>
   </Box>;
