@@ -70,6 +70,70 @@ export class ImportResultDto {
   @Field(t.string()) status!: string;
 }
 
+@Dto({ description: "Start deterministic cadastral critique for a persisted import." })
+export class CreateCritiqueRunDto {
+  @Field(t.string({ format: "uuid" })) importJobId!: string;
+  @Field(t.optional(t.string({ format: "uuid" }))) previousImportJobId?: string;
+}
+
+@Dto({ description: "Persisted cadastral critique execution summary." })
+export class CritiqueRunDto {
+  @Field(t.string({ format: "uuid" })) id!: string;
+  @Field(t.string({ format: "uuid" })) importJobId!: string;
+  @Field(t.nullable(t.string({ format: "uuid" }))) previousImportJobId!: string | null;
+  @Field(t.string()) status!: string;
+  @Field(t.integer({ minimum: 0 })) blockingCount!: number;
+  @Field(t.integer({ minimum: 0 })) inconsistencyCount!: number;
+  @Field(t.integer({ minimum: 0 })) warningCount!: number;
+  @Field(t.integer({ minimum: 0 })) infoCount!: number;
+  @Field(t.integer({ minimum: 0 })) totalIssues!: number;
+  @Field(t.boolean()) comparedWithPrevious!: boolean;
+  @Field(t.string({ format: "date-time" })) createdAt!: string;
+  @Field(t.nullable(t.string({ format: "date-time" }))) completedAt!: string | null;
+}
+
+@Dto()
+export class CritiqueRunParamsDto {
+  @Field(t.string({ format: "uuid" })) id!: string;
+}
+
+@Dto({ description: "Cadastral critique occurrence." })
+export class CritiqueIssueDto {
+  @Field(t.string({ format: "uuid" })) id!: string;
+  @Field(t.string()) ruleCode!: string;
+  @Field(t.string()) severity!: string;
+  @Field(t.string()) category!: string;
+  @Field(t.string()) status!: string;
+  @Field(t.nullable(t.string())) participantRegistration!: string | null;
+  @Field(t.nullable(t.string())) fieldPath!: string | null;
+  @Field(t.nullable(t.string())) currentValueJson!: string | null;
+  @Field(t.nullable(t.string())) previousValueJson!: string | null;
+  @Field(t.string()) message!: string;
+  @Field(t.string({ format: "date-time" })) createdAt!: string;
+}
+
+@Dto()
+export class CritiqueIssueParamsDto {
+  @Field(t.string({ format: "uuid" })) id!: string;
+}
+
+@Dto({ description: "Critique occurrence with complete source-data provenance." })
+export class CritiqueIssueDetailDto extends CritiqueIssueDto {
+  @Field(t.string()) detailsJson!: string;
+  @Field(t.nullable(t.string())) rawJson!: string | null;
+  @Field(t.nullable(t.string())) normalizedJson!: string | null;
+  @Field(t.nullable(t.string())) canonicalJson!: string | null;
+  @Field(t.nullable(t.string())) previousCanonicalJson!: string | null;
+  @Field(t.nullable(t.string())) resolutionNote!: string | null;
+  @Field(t.nullable(t.string({ format: "date-time" }))) resolvedAt!: string | null;
+}
+
+@Dto({ description: "Resolve or justify a persisted cadastral critique occurrence." })
+export class ResolveCritiqueIssueDto {
+  @Field(t.string({ minLength: 1 })) status!: string;
+  @Field(t.string({ minLength: 1 })) note!: string;
+}
+
 @Dto({ description: "OpenAI-compatible LLM provider configuration summary." })
 export class LlmProviderDto {
   @Field(t.integer()) id!: number;
