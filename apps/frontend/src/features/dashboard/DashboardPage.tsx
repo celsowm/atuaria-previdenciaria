@@ -7,7 +7,7 @@ import DescriptionOutlined from "@mui/icons-material/DescriptionOutlined";
 import TimelineRounded from "@mui/icons-material/TimelineRounded";
 import { api, type DashboardTotals, type Evaluation } from "../../api/client";
 
-type Props = { onOpenEvaluation: () => void; onImport: () => void };
+type Props = { onOpenEvaluation: (id: number) => void; onImport: () => void };
 const emptyTotals: DashboardTotals = { inProgress: 0, awaitingCorrections: 0, pendingStudies: 0, draftsAwaitingReview: 0 };
 
 export function DashboardPage({ onOpenEvaluation, onImport }: Props) {
@@ -44,7 +44,7 @@ export function DashboardPage({ onOpenEvaluation, onImport }: Props) {
           <Box><Stack direction="row" spacing={1} alignItems="center" sx={{ mb: .6 }}><Typography fontWeight={700}>{evaluation.planName}</Typography>{evaluation.blockingIssues > 0 && <Chip size="small" color="warning" label={`${evaluation.blockingIssues} críticas`} />}</Stack><Typography variant="body2" color="text.secondary">Data-base {new Date(`${evaluation.referenceDate}T12:00:00`).toLocaleDateString("pt-BR")}</Typography></Box>
           <Box><Typography variant="body2" fontWeight={650}>{evaluation.stage}</Typography><LinearProgress variant="determinate" value={evaluation.progress} sx={{ mt: 1, height: 7 }} /></Box>
           <Chip size="small" variant="outlined" label={`${evaluation.progress}%`} sx={{ justifySelf: { md: "end" } }} />
-          <Button onClick={onOpenEvaluation} sx={{ minWidth: 36, px: 0 }}><ArrowForwardRounded /></Button>
+          <Button onClick={() => onOpenEvaluation(evaluation.id)} sx={{ minWidth: 36, px: 0 }}><ArrowForwardRounded /></Button>
         </Box>
       </Paper>)}
     </Stack>
