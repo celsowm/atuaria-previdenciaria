@@ -1,6 +1,7 @@
 import { createExpressApp } from "adorn-api";
 import { bootstrapAdminFromEnvironment, verifyBearerToken } from "./auth/auth-service.js";
 import { AuthController, UserController } from "./api/auth-controller.js";
+import { PlanController } from "./api/plan-controller.js";
 import {
   CritiqueController,
   EvaluationController,
@@ -22,6 +23,7 @@ async function start() {
       AuthController,
       UserController,
       SystemController,
+      PlanController,
       EvaluationController,
       MappingProfileController,
       ImportController,
@@ -44,7 +46,7 @@ async function start() {
       info: {
         title: "ATUAS API",
         version: "0.0.1",
-        description: "Actuarial valuation, data studio, biometrics, adherence studies, assumptions, drafting and AI orchestration API."
+        description: "Actuarial valuation, pension plans, data studio, biometrics, adherence studies, assumptions, drafting and AI orchestration API."
       },
       path: "/openapi.json",
       docs: { path: "/docs" }
