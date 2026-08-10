@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Avatar, Box, ButtonBase, CircularProgress, Divider, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import AssessmentOutlined from "@mui/icons-material/AssessmentOutlined";
 import ApartmentOutlined from "@mui/icons-material/ApartmentOutlined";
@@ -20,33 +20,19 @@ import { CritiquePage } from "./features/critique/CritiquePage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { EvaluationPage } from "./features/evaluations/EvaluationPage";
 import { ImportWizardPage } from "./features/data-studio/ImportWizardPage";
+import { PlansPage } from "./features/plans/PlansPage";
+import { navigate, parseRoute, usePathname, type AppRoute } from "./routing";
 
-type Page = "dashboard" | "evaluation" | "import" | "critique" | "plans" | "assumptions" | "studies" | "documents" | "library" | "ai" | "admin";
-
-const nav = [
-  ["dashboard", "Avaliações", <AssessmentOutlined />],
-  ["plans", "Planos", <ApartmentOutlined />],
-  ["import", "Data Studio", <TableViewOutlined />],
-  ["assumptions", "Hipóteses & Tábuas", <HubOutlined />],
-  ["studies", "Estudos", <BiotechOutlined />],
-  ["documents", "Documentos", <DescriptionOutlined />],
-  ["library", "Biblioteca", <FolderOutlined />],
-  ["ai", "IA", <AutoAwesomeOutlined />]
-] as const;
-
-const pageNames: Record<Page, string> = {
-  dashboard: "Avaliações",
-  evaluation: "Avaliação",
-  import: "Data Studio",
-  critique: "Crítica cadastral",
-  plans: "Planos",
-  assumptions: "Hipóteses & Tábuas",
-  studies: "Estudos de Aderência",
-  documents: "Documentos",
-  library: "Biblioteca",
-  ai: "Inteligência Artificial",
-  admin: "Administração"
-};
+const nav: Array<{ path: string; label: string; icon: ReactNode; active: AppRoute["name"][] }> = [
+  { path: "/avaliacoes", label: "Avaliações", icon: <AssessmentOutlined />, active: ["evaluations"] },
+  { path: "/planos", label: "Planos", icon: <ApartmentOutlined />, active: ["plans"] },
+  { path: "/data-studio", label: "Data Studio", icon: <TableViewOutlined />, active: ["data-studio", "critique"] },
+  { path: "/hipoteses-e-tabuas", label: "Hipóteses & Tábuas", icon: <HubOutlined />, active: ["assumptions"] },
+  { path: "/estudos-de-aderencia", label: "Estudos", icon: <BiotechOutlined />, active: ["studies"] },
+  { path: "/documentos", label: "Documentos", icon: <DescriptionOutlined />, active: ["documents"] },
+  { path: "/biblioteca", label: "Biblioteca", icon: <FolderOutlined />, active: ["library"] },
+  { path: "/inteligencia-artificial", label: "IA", icon: <AutoAwesomeOutlined />, active: ["ai"] }
+];
 
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "A";
@@ -60,44 +46,58 @@ function roleLabel(role: string) {
 }
 
 export default function App() {
+  const pathname = usePathname();
+  const route = parseRoute(pathname);
+  const requestedPath = useRef(pathname === "/" || pathname === "/login" ? "/avaliacoes" : pathname);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [page, setPage] = useState<Page>("dashboard");
-  const [critiqueImportJobId, setCritiqueImportJobId] = useState<string | null>(null);
 
   useEffect(() => {
-    const unauthorized = () => setUser(null);
+    const unauthorized = () => {
+      if (window.location.pathname !== "/login") requestedPath.current = window.location.pathname;
+      setUser(null);
+      navigate("/login", { replace: true });
+    };
     window.addEventListener("atuas:unauthorized", unauthorized);
 
     const token = getAuthToken();
     if (!token) {
+      if (window.location.pathname !== "/login") navigate("/login", { replace: true });
       setAuthLoading(false);
       return () => window.removeEventListener("atuas:unauthorized", unauthorized);
     }
 
     api.me()
-      .then(setUser)
+      .then((authenticated) => {
+        setUser(authenticated);
+        if (window.location.pathname === "/login" || window.location.pathname === "/") {
+          navigate(requestedPath.current, { replace: true });
+        }
+      })
       .catch(() => {
         clearAuthToken();
         setUser(null);
+        navigate("/login", { replace: true });
       })
       .finally(() => setAuthLoading(false));
 
     return () => window.removeEventListener("atuas:unauthorized", unauthorized);
   }, []);
 
-  const openCritique = (importJobId: string) => {
-    setCritiqueImportJobId(importJobId);
-    setPage("critique");
-  };
+  useEffect(() => {
+    if (!authLoading && user && route.name === "admin-users" && user.role !== "admin") {
+      navigate("/avaliacoes", { replace: true });
+    }
+  }, [authLoading, route.name, user]);
 
   const logout = async () => {
     try {
       await api.logout();
     } finally {
       clearAuthToken();
+      requestedPath.current = "/avaliacoes";
       setUser(null);
-      setPage("dashboard");
+      navigate("/login", { replace: true });
     }
   };
 
@@ -108,7 +108,7 @@ export default function App() {
   if (!user) {
     return <LoginPage onAuthenticated={(authenticated) => {
       setUser(authenticated);
-      setPage("dashboard");
+      navigate(requestedPath.current, { replace: true });
     }} />;
   }
 
@@ -119,10 +119,10 @@ export default function App() {
         <Box><Typography fontWeight={800} letterSpacing="-.02em">ATUAS</Typography><Typography variant="caption" color="text.secondary">Atuária Previdenciária</Typography></Box>
       </Stack>
       <Stack spacing={.5} sx={{ flex: 1 }}>
-        {nav.map(([key, label, icon]) => <NavItem key={key} selected={page === key || (key === "dashboard" && page === "evaluation") || (key === "import" && page === "critique")} icon={icon} label={label} onClick={() => setPage(key)} />)}
+        {nav.map((item) => <NavItem key={item.path} selected={item.active.includes(route.name)} icon={item.icon} label={item.label} onClick={() => navigate(item.path)} />)}
       </Stack>
       <Divider sx={{ my: 1.5 }} />
-      {user.role === "admin" && <NavItem selected={page === "admin"} icon={<SettingsOutlined />} label="Administração" onClick={() => setPage("admin")} />}
+      {user.role === "admin" && <NavItem selected={route.name === "admin-users"} icon={<SettingsOutlined />} label="Administração" onClick={() => navigate("/administracao/usuarios")} />}
       <Stack direction="row" spacing={1.2} alignItems="center" sx={{ p: 1, mt: 1.5 }}>
         <Avatar sx={{ width: 32, height: 32 }}>{initials(user.displayName)}</Avatar>
         <Box sx={{ minWidth: 0, flex: 1 }}><Typography variant="body2" fontWeight={700} noWrap>{user.displayName}</Typography><Typography variant="caption" color="text.secondary">{roleLabel(user.role)}</Typography></Box>
@@ -132,24 +132,31 @@ export default function App() {
 
     <Box component="main" sx={{ minWidth: 0 }}>
       <Box sx={{ px: { xs: 2, sm: 3, lg: 5 }, py: { xs: 3, lg: 4 }, maxWidth: 1480, mx: "auto" }}>
-        {page === "dashboard" && <DashboardPage onOpenEvaluation={() => setPage("evaluation")} onImport={() => setPage("import")} />}
-        {page === "evaluation" && <EvaluationPage onBack={() => setPage("dashboard")} />}
-        {page === "import" && <ImportWizardPage onClose={() => setPage("dashboard")} onCritique={openCritique} />}
-        {page === "critique" && critiqueImportJobId && <CritiquePage importJobId={critiqueImportJobId} onBack={() => setPage("import")} />}
-        {page === "assumptions" && <BiometricTablesPage />}
-        {page === "studies" && <AdherenceStudiesPage />}
-        {page === "ai" && <AiProvidersPage />}
-        {page === "admin" && user.role === "admin" && <AdminUsersPage />}
-        {!(["dashboard", "evaluation", "import", "critique", "assumptions", "studies", "ai", "admin"] as Page[]).includes(page) && <Placeholder title={pageNames[page]} />}
+        {route.name === "evaluations" && route.evaluationId === undefined && <DashboardPage onOpenEvaluation={(id) => navigate(`/avaliacoes/${id}`)} onImport={() => navigate("/data-studio")} />}
+        {route.name === "evaluations" && route.evaluationId !== undefined && <EvaluationPage evaluationId={route.evaluationId} onBack={() => navigate("/avaliacoes")} />}
+        {route.name === "plans" && <PlansPage planId={route.planId} onOpenPlan={(id) => navigate(`/planos/${id}`)} onBack={() => navigate("/planos")} />}
+        {route.name === "data-studio" && <ImportWizardPage onClose={() => navigate("/avaliacoes")} onCritique={(id) => navigate(`/data-studio/criticas/${id}`)} />}
+        {route.name === "critique" && <CritiquePage importJobId={route.importJobId} onBack={() => navigate("/data-studio")} />}
+        {route.name === "assumptions" && <BiometricTablesPage />}
+        {route.name === "studies" && <AdherenceStudiesPage />}
+        {route.name === "ai" && <AiProvidersPage />}
+        {route.name === "admin-users" && user.role === "admin" && <AdminUsersPage />}
+        {route.name === "documents" && <Placeholder title="Documentos" />}
+        {route.name === "library" && <Placeholder title="Biblioteca" />}
+        {route.name === "not-found" && <NotFound />}
       </Box>
     </Box>
   </Box>;
 }
 
-function NavItem({ selected, icon, label, onClick }: { selected: boolean; icon: React.ReactNode; label: string; onClick: () => void }) {
+function NavItem({ selected, icon, label, onClick }: { selected: boolean; icon: ReactNode; label: string; onClick: () => void }) {
   return <ButtonBase onClick={onClick} sx={{ width: "100%", borderRadius: 2, px: 1.25, py: 1, justifyContent: "flex-start", gap: 1.25, color: selected ? "primary.main" : "text.secondary", bgcolor: selected ? "primary.light" : "transparent", "&:hover": { bgcolor: selected ? "primary.light" : "action.hover" } }}><Box sx={{ display: "grid", placeItems: "center", "& svg": { fontSize: 20 } }}>{icon}</Box><Typography variant="body2" fontWeight={selected ? 750 : 600}>{label}</Typography></ButtonBase>;
 }
 
 function Placeholder({ title }: { title: string }) {
-  return <Stack spacing={2} sx={{ py: 3 }}><Typography variant="overline" color="text.secondary">ATUAS</Typography><Typography variant="h4">{title}</Typography><Typography color="text.secondary" sx={{ maxWidth: 620 }}>Módulo reservado na arquitetura da v0.0.1. A fundação visual e de navegação já está pronta para receber o próximo slice funcional.</Typography></Stack>;
+  return <Stack spacing={2} sx={{ py: 3 }}><Typography variant="overline" color="text.secondary">ATUAS</Typography><Typography variant="h4">{title}</Typography><Typography color="text.secondary" sx={{ maxWidth: 620 }}>Módulo reservado na arquitetura atual. A URL já é estável e pode ser compartilhada ou reaberta diretamente.</Typography></Stack>;
+}
+
+function NotFound() {
+  return <Stack spacing={2} sx={{ py: 8, alignItems: "flex-start" }}><Typography variant="overline" color="text.secondary">404</Typography><Typography variant="h4">Página não encontrada</Typography><Typography color="text.secondary">A rota informada não existe no ATUAS.</Typography><ButtonBase onClick={() => navigate("/avaliacoes")} sx={{ color: "primary.main", fontWeight: 700 }}>Voltar para avaliações</ButtonBase></Stack>;
 }
