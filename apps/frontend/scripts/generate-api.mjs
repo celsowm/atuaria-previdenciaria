@@ -7,7 +7,8 @@ const fragments = [
   resolve("../../openapi/config.openapi.json"),
   resolve("../../openapi/auth.openapi.json"),
   resolve("../../openapi/plans.openapi.json"),
-  resolve("../../openapi/adherence.openapi.json")
+  resolve("../../openapi/adherence.openapi.json"),
+  resolve("../../openapi/parameterization.openapi.json")
 ];
 const mergedPath = resolve("./.openapi.merged.json");
 
