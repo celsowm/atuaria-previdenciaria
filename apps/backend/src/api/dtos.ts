@@ -58,8 +58,8 @@ export class CreateImportDto {
 export class ImportResultDto {
   @Field(t.string({ format: "uuid" })) id!: string;
   @Field(t.string({ format: "uuid" })) fileId!: string;
-  @Field(t.optional(t.integer())) mappingProfileId?: number | null;
-  @Field(t.optional(t.string())) mappingProfileVersion?: string | null;
+  @Field(t.nullable(t.integer())) mappingProfileId!: number | null;
+  @Field(t.nullable(t.string())) mappingProfileVersion!: string | null;
   @Field(t.string()) fileName!: string;
   @Field(t.string()) fileSha256!: string;
   @Field(t.string()) population!: string;
