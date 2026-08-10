@@ -1,0 +1,21 @@
+{
+  "name": "atuas",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c auto \"npm run dev -w @atuas/backend\" \"npm run dev -w @atuas/frontend\"",
+    "build": "npm run build -w @atuas/backend && npm run build -w @atuas/frontend",
+    "typecheck": "npm run typecheck -w @atuas/backend && npm run typecheck -w @atuas/frontend",
+    "api:generate": "npm run api:generate -w @atuas/frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
