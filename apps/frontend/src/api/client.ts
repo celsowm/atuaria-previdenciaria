@@ -10,6 +10,84 @@ export type CritiqueIssue = ApiComponents["schemas"]["CritiqueIssue"];
 export type CritiqueIssueDetail = ApiComponents["schemas"]["CritiqueIssueDetail"];
 export type LlmProvider = ApiComponents["schemas"]["LlmProvider"];
 
+export type BiometricPoint = {
+  age: number;
+  sex: "MALE" | "FEMALE" | "UNISEX";
+  qx: number;
+};
+
+export type BiometricVersion = {
+  id: string;
+  version: string;
+  status: string;
+  effectiveFrom: string | null;
+  effectiveTo: string | null;
+  parentVersionId: string | null;
+  derivationType: string | null;
+  derivationParametersJson: string;
+  minAge: number;
+  maxAge: number;
+  pointCount: number;
+  createdAt: string;
+};
+
+export type BiometricTableSummary = {
+  id: string;
+  code: string;
+  name: string;
+  kind: string;
+  sexScope: string;
+  source: string | null;
+  description: string | null;
+  versionCount: number;
+  latestVersionId: string | null;
+  latestVersion: string | null;
+  pointCount: number;
+  minAge: number | null;
+  maxAge: number | null;
+  updatedAt: string;
+};
+
+export type BiometricTableDetail = {
+  id: string;
+  code: string;
+  name: string;
+  kind: string;
+  sexScope: string;
+  source: string | null;
+  description: string | null;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+  versions: BiometricVersion[];
+};
+
+export type BiometricVersionPoints = {
+  version: BiometricVersion;
+  points: BiometricPoint[];
+};
+
+export type CreateBiometricTableInput = {
+  code: string;
+  name: string;
+  kind: string;
+  sexScope: string;
+  source?: string;
+  description?: string;
+  version?: string;
+  effectiveFrom?: string;
+  points: BiometricPoint[];
+};
+
+export type DeriveBiometricVersionInput = {
+  parentVersionId: string;
+  version: string;
+  transform: "QX_SCALE" | "AGE_SHIFT";
+  factor?: number;
+  years?: number;
+  effectiveFrom?: string;
+};
+
 export type ImportMappingRule = {
   sources: string[];
   targets: string[];
@@ -85,5 +163,13 @@ export const api = {
   critiqueIssue: (id: string) => getJson<CritiqueIssueDetail>(`/api/critique/issues/${id}`),
   resolveCritiqueIssue: (id: string, status: "JUSTIFIED" | "RESOLVED" | "IGNORED", note: string) =>
     patchJson<CritiqueIssueDetail>(`/api/critique/issues/${id}`, { status, note }),
+  biometricTables: () => getJson<BiometricTableSummary[]>("/api/biometric-tables/"),
+  biometricTable: (id: string) => getJson<BiometricTableDetail>(`/api/biometric-tables/${id}`),
+  createBiometricTable: (input: CreateBiometricTableInput) =>
+    postJson<BiometricTableDetail>("/api/biometric-tables/", input),
+  biometricVersionPoints: (id: string) =>
+    getJson<BiometricVersionPoints>(`/api/biometric-versions/${id}/points`),
+  deriveBiometricVersion: (tableId: string, input: DeriveBiometricVersionInput) =>
+    postJson<BiometricVersionPoints>(`/api/biometric-tables/${tableId}/derive`, input),
   llmProviders: () => getJson<LlmProvider[]>("/api/llm/providers/")
 };
