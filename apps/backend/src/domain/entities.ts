@@ -175,6 +175,9 @@ export class ImportRow {
 
   @Column(col.notNull(col.text()))
   validationStatus!: string;
+
+  @Column(col.notNull(col.text()))
+  validationErrorsJson!: string;
 }
 
 @Entity({ tableName: "llm_providers" })
