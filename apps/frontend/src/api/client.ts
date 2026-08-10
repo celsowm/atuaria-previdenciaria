@@ -1,57 +1,11 @@
-export type Evaluation = {
-  id: number;
-  planName: string;
-  referenceDate: string;
-  status: string;
-  stage: string;
-  progress: number;
-  blockingIssues: number;
-  updatedAt: string;
-};
+import type { components as ApiComponents } from "./generated/index";
 
-export type DashboardTotals = {
-  inProgress: number;
-  awaitingCorrections: number;
-  pendingStudies: number;
-  draftsAwaitingReview: number;
-};
-
-export type MappingProfile = {
-  id: number;
-  name: string;
-  population: string;
-  version: string;
-  mappedFields: number;
-  totalFields: number;
-  updatedAt: string;
-};
-
-export type MappingProfileMatch = {
-  matched: boolean;
-  profileId?: number;
-  profileName?: string;
-  version?: string;
-  compatibility: number;
-  exact: boolean;
-  missingColumns: string[];
-  newColumns: string[];
-  rulesJson: string;
-};
-
-export type ImportResult = {
-  id: string;
-  fileId: string;
-  mappingProfileId: number | null;
-  mappingProfileVersion: string | null;
-  fileName: string;
-  fileSha256: string;
-  population: string;
-  sheetName: string;
-  rowCount: number;
-  validRows: number;
-  invalidRows: number;
-  status: string;
-};
+export type Evaluation = ApiComponents["schemas"]["Evaluation"];
+export type DashboardTotals = ApiComponents["schemas"]["Dashboard"];
+export type MappingProfile = ApiComponents["schemas"]["MappingProfile"];
+export type MappingProfileMatch = ApiComponents["schemas"]["MappingProfileMatch"];
+export type ImportResult = ApiComponents["schemas"]["ImportResult"];
+export type LlmProvider = ApiComponents["schemas"]["LlmProvider"];
 
 export type ImportMappingRule = {
   sources: string[];
@@ -68,15 +22,6 @@ export type ImportWorkbookOptions = {
   sheetName?: string;
   headerRow: number;
   rules: ImportMappingRule[];
-};
-
-export type LlmProvider = {
-  id: number;
-  name: string;
-  baseUrl: string;
-  model: string;
-  credentialCount: number;
-  enabled: boolean;
 };
 
 async function getJson<T>(url: string): Promise<T> {
