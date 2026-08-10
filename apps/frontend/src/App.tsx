@@ -1,12 +1,5 @@
 import { useState } from "react";
-import {
-  Avatar,
-  Box,
-  ButtonBase,
-  Divider,
-  Stack,
-  Typography
-} from "@mui/material";
+import { Avatar, Box, ButtonBase, Divider, Stack, Typography } from "@mui/material";
 import AssessmentOutlined from "@mui/icons-material/AssessmentOutlined";
 import ApartmentOutlined from "@mui/icons-material/ApartmentOutlined";
 import AutoAwesomeOutlined from "@mui/icons-material/AutoAwesomeOutlined";
@@ -16,6 +9,7 @@ import FolderOutlined from "@mui/icons-material/FolderOutlined";
 import HubOutlined from "@mui/icons-material/HubOutlined";
 import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import TableViewOutlined from "@mui/icons-material/TableViewOutlined";
+import { AiProvidersPage } from "./features/ai/AiProvidersPage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { EvaluationPage } from "./features/evaluations/EvaluationPage";
 import { ImportWizardPage } from "./features/data-studio/ImportWizardPage";
@@ -68,7 +62,8 @@ export default function App() {
         {page === "dashboard" && <DashboardPage onOpenEvaluation={() => setPage("evaluation")} onImport={() => setPage("import")} />}
         {page === "evaluation" && <EvaluationPage onBack={() => setPage("dashboard")} />}
         {page === "import" && <ImportWizardPage onClose={() => setPage("dashboard")} />}
-        {!(["dashboard", "evaluation", "import"] as Page[]).includes(page) && <Placeholder title={pageNames[page]} />}
+        {page === "ai" && <AiProvidersPage />}
+        {!(["dashboard", "evaluation", "import", "ai"] as Page[]).includes(page) && <Placeholder title={pageNames[page]} />}
       </Box>
     </Box>
   </Box>;
