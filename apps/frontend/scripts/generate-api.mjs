@@ -3,7 +3,10 @@ import { resolve } from "node:path";
 import { generateTypes } from "better-openapi-typescript";
 
 const basePath = resolve("../../openapi/atuas.openapi.json");
-const fragments = [resolve("../../openapi/adherence.openapi.json")];
+const fragments = [
+  resolve("../../openapi/auth.openapi.json"),
+  resolve("../../openapi/adherence.openapi.json")
+];
 const mergedPath = resolve("./.atuas.openapi.merged.json");
 
 const base = JSON.parse(await readFile(basePath, "utf8"));
@@ -18,6 +21,10 @@ for (const fragmentPath of fragments) {
   base.components.schemas = {
     ...(base.components.schemas ?? {}),
     ...(fragment.components?.schemas ?? {})
+  };
+  base.components.securitySchemes = {
+    ...(base.components.securitySchemes ?? {}),
+    ...(fragment.components?.securitySchemes ?? {})
   };
 }
 
