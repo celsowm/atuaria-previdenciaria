@@ -1,20 +1,23 @@
-# Fundação SaaS, white-label e ciclo de vida do SQLite
+# Fundação SaaS e ciclo de vida do SQLite
 
-Este documento descreve a fundação de autenticação, usuários, configuração por deployment e persistência local da plataforma atuarial.
+Este documento descreve a fundação de autenticação, usuários, configuração por deployment e persistência local do **Atuária Previdenciária**.
 
-## White-label por deployment
+## Produto e organização do deployment
 
-O core não possui nome institucional fixo. O mesmo build pode ser usado por entidades diferentes alterando apenas configuração de runtime:
+O nome do produto é fixo e corresponde ao repositório:
+
+```text
+Atuária Previdenciária
+atuaria-previdenciaria
+```
+
+O que varia por deployment é somente a organização/UE que opera aquela instância:
 
 ```env
-APP_NAME=Plataforma Atuarial
-APP_SHORT_NAME=Atuária
 APP_ORGANIZATION_NAME=
 ```
 
-`APP_NAME` é o nome completo exibido no login, título do navegador e documentação da API. `APP_SHORT_NAME` é usado na navegação lateral. `APP_ORGANIZATION_NAME` é opcional e identifica a entidade que está operando aquele deployment.
-
-O frontend consulta `GET /api/config`, uma rota pública que expõe somente esses dados de apresentação. Nenhuma identidade de organização é compilada no bundle como requisito para funcionamento.
+O frontend consulta `GET /api/config`, uma rota pública que expõe o nome do produto e, opcionalmente, a organização da instância. A organização pode aparecer como contexto institucional no login, sidebar e título do navegador, mas não renomeia o sistema.
 
 ## Autenticação
 
@@ -75,7 +78,7 @@ Depois que já existe algum usuário, essas variáveis não recriam nem sobrescr
 O caminho é configurado por:
 
 ```env
-APP_DB_PATH=./data/actuarial.sqlite
+APP_DB_PATH=./data/atuaria-previdenciaria.sqlite
 ```
 
 Caminhos relativos são resolvidos a partir da raiz do repositório, independentemente do diretório corrente usado para iniciar o backend. O arquivo, WAL, SHM e todo o diretório `/data/` são ignorados pelo Git.
@@ -149,9 +152,9 @@ SQLite continua sendo uma boa escolha enquanto cada deployment for executado com
 1 processo/contêiner
         │
         ├── volume persistente
-        │     ├── actuarial.sqlite
-        │     ├── actuarial.sqlite-wal
-        │     └── actuarial.sqlite-shm
+        │     ├── atuaria-previdenciaria.sqlite
+        │     ├── atuaria-previdenciaria.sqlite-wal
+        │     └── atuaria-previdenciaria.sqlite-shm
         │
         └── storage privado de imports
 ```
@@ -162,13 +165,13 @@ Quando houver necessidade real de múltiplas instâncias simultâneas, failover 
 
 ## Multi-entidade
 
-White-label e multi-tenant são problemas diferentes. A configuração atual permite vários deployments independentes, cada um com nome e entidade próprios, sem fork de código.
+O produto poder ser usado por diferentes UEs não significa que seu nome seja variável. Cada UE pode operar um deployment independente do **Atuária Previdenciária**, identificado por `APP_ORGANIZATION_NAME`.
 
-Se no futuro uma única instalação precisar hospedar várias entidades simultaneamente, isso deverá entrar como um slice explícito de tenancy, com isolamento de dados, autorização e auditoria por `tenantId`. O core não deve presumir uma organização específica para facilitar essa evolução.
+Se no futuro uma única instalação precisar hospedar várias entidades simultaneamente, isso deverá entrar como um slice explícito de tenancy, com isolamento de dados, autorização e auditoria por `tenantId`.
 
 ## Próximos hardenings SaaS
 
-A fundação atual cobre login, sessão, usuários, RBAC básico e branding por deployment. Ainda são slices separados:
+A fundação atual cobre login, sessão, usuários e RBAC básico. Ainda são slices separados:
 
 - recuperação/troca de senha pelo próprio usuário;
 - MFA;
