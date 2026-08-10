@@ -111,8 +111,10 @@ export function ParameterizationPage({
           setParameterization(null);
         }
 
-        const linked = studySummaries.filter((study) => study.evaluationId === evaluationId);
-        const details = await Promise.all(linked.map((study) => api.adherenceStudy(study.id)));
+        const usable = studySummaries.filter(
+          (study) => study.evaluationId === evaluationId || study.evaluationId === null
+        );
+        const details = await Promise.all(usable.map((study) => api.adherenceStudy(study.id)));
         if (!cancelled) setStudies(details);
       })
       .catch((reason) => !cancelled && setError(reason instanceof Error ? reason.message : "Não foi possível carregar a parametrização."))
@@ -197,7 +199,7 @@ export function ParameterizationPage({
     try {
       const updated = await api.promoteAdherenceCandidate(parameterization.id, candidateResultId);
       setParameterization(updated);
-      setSuccess("Hipótese promovida para a parametrização.");
+      setSuccess("Hipótese promovida para a parametrização e vinculada a esta avaliação.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível promover a hipótese.");
     } finally {
@@ -251,9 +253,9 @@ export function ParameterizationPage({
           />)}
           {versions.length === 0 && <Typography variant="body2" color="text.secondary">Nenhuma versão criada.</Typography>}
         </Stack>
-        <Button disabled={saving} variant="outlined" onClick={() => void createVersion(parameterization?.id)} startIcon={parameterization ? <ContentCopyRounded /> : undefined}>
+        {!parameterization || parameterization.status !== "DRAFT" ? <Button disabled={saving} variant="outlined" onClick={() => void createVersion(parameterization?.id)} startIcon={parameterization ? <ContentCopyRounded /> : undefined}>
           {parameterization ? "Nova versão" : "Criar parametrização"}
-        </Button>
+        </Button> : <Typography variant="caption" color="text.secondary">Conclua o rascunho atual antes de criar outra versão.</Typography>}
       </Stack>
     </Paper>
 
@@ -282,7 +284,7 @@ export function ParameterizationPage({
                 value={numericValues[spec.code] ?? ""}
                 onChange={(event) => setNumericValues((current) => ({ ...current, [spec.code]: event.target.value }))}
                 disabled={parameterization.status !== "DRAFT"}
-                inputMode="decimal"
+                inputProps={{ inputMode: "decimal" }}
                 helperText={spec.unit}
               />)}
               <TextField
@@ -293,7 +295,7 @@ export function ParameterizationPage({
                 disabled={parameterization.status !== "DRAFT"}
               >
                 <MenuItem value="">Não definido</MenuItem>
-                {financingMethods.map((method) => <MenuItem key={method} value={method}>{method.replaceAll("_", " ")}</MenuItem>)}
+                {financingMethods.map((method) => <MenuItem key={method} value={method}>{method.replace(/_/g, " ")}</MenuItem>)}
               </TextField>
             </Box>
             <TextField
@@ -322,10 +324,10 @@ export function ParameterizationPage({
 
         <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider", alignSelf: "start" }}>
           <Stack direction="row" spacing={1} alignItems="center"><ScienceOutlined color="primary" /><Typography variant="h6">Promover estudo de aderência</Typography></Stack>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: .75, mb: 2.5 }}>Somente estudos vinculados a esta avaliação aparecem aqui.</Typography>
-          {studies.length === 0 ? <Alert severity="info">Ainda não há estudo de aderência vinculado à avaliação #{evaluationId}.</Alert> : <Stack spacing={2.5}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: .75, mb: 2.5 }}>Estudos já vinculados à avaliação e estudos ainda sem vínculo podem ser promovidos. Um estudo sem vínculo passa a pertencer a esta avaliação na promoção.</Typography>
+          {studies.length === 0 ? <Alert severity="info">Ainda não há estudo de aderência disponível para a avaliação #{evaluationId}.</Alert> : <Stack spacing={2.5}>
             {studies.map((study) => <Box key={study.id}>
-              <Typography fontWeight={800}>{study.name}</Typography>
+              <Stack direction="row" spacing={1} alignItems="center"><Typography fontWeight={800}>{study.name}</Typography><Chip size="small" variant="outlined" label={study.evaluationId === null ? "Sem vínculo" : `Avaliação #${study.evaluationId}`} /></Stack>
               <Typography variant="body2" color="text.secondary">{study.hypothesisType} · {study.periodStart}–{study.periodEnd}</Typography>
               <Stack spacing={1} sx={{ mt: 1.5 }}>
                 {study.candidates.map((candidate) => {
