@@ -31,7 +31,7 @@ export async function seedReferenceData(db: sqlite3.Database) {
 }
 
 export async function seedDemoData(db: sqlite3.Database) {
-  if (process.env.ATUAS_SEED_DEMO !== "true") return;
+  if (process.env.APP_SEED_DEMO !== "true") return;
 
   const planCount = await getValue<{ count: number }>(db, "SELECT COUNT(*) AS count FROM plans");
   if (planCount.count === 0) {
@@ -63,17 +63,17 @@ export async function seedDemoData(db: sqlite3.Database) {
   if (providerCount.count === 0) {
     await execSql(db, `
       INSERT INTO llm_providers (name, baseUrl, model, enabled) VALUES
-        ('PGE LLM', 'https://llm.interno/v1', 'modelo-principal', 1),
+        ('OpenAI-compatible', 'http://localhost:8000/v1', 'modelo-principal', 1),
         ('OpenAI', 'https://api.openai.com/v1', 'modelo-redacao', 1);
 
       INSERT INTO llm_provider_credentials (providerId, label, secretRef, enabled, priority)
-        SELECT id, 'Produção 01', 'env://ATUAS_PGE_LLM_KEY_1', 1, 10 FROM llm_providers WHERE name = 'PGE LLM';
+        SELECT id, 'Credencial 01', 'env://APP_LLM_KEY_1', 1, 10 FROM llm_providers WHERE name = 'OpenAI-compatible';
       INSERT INTO llm_provider_credentials (providerId, label, secretRef, enabled, priority)
-        SELECT id, 'Produção 02', 'env://ATUAS_PGE_LLM_KEY_2', 1, 20 FROM llm_providers WHERE name = 'PGE LLM';
+        SELECT id, 'Credencial 02', 'env://APP_LLM_KEY_2', 1, 20 FROM llm_providers WHERE name = 'OpenAI-compatible';
       INSERT INTO llm_provider_credentials (providerId, label, secretRef, enabled, priority)
-        SELECT id, 'Produção 03', 'env://ATUAS_PGE_LLM_KEY_3', 1, 30 FROM llm_providers WHERE name = 'PGE LLM';
+        SELECT id, 'Credencial 03', 'env://APP_LLM_KEY_3', 1, 30 FROM llm_providers WHERE name = 'OpenAI-compatible';
       INSERT INTO llm_provider_credentials (providerId, label, secretRef, enabled, priority)
-        SELECT id, 'Produção 01', 'env://ATUAS_OPENAI_KEY_1', 1, 10 FROM llm_providers WHERE name = 'OpenAI';
+        SELECT id, 'Credencial 01', 'env://OPENAI_API_KEY', 1, 10 FROM llm_providers WHERE name = 'OpenAI';
     `);
   }
 }
