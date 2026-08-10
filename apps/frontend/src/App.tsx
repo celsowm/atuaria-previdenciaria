@@ -10,11 +10,12 @@ import HubOutlined from "@mui/icons-material/HubOutlined";
 import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import TableViewOutlined from "@mui/icons-material/TableViewOutlined";
 import { AiProvidersPage } from "./features/ai/AiProvidersPage";
+import { CritiquePage } from "./features/critique/CritiquePage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { EvaluationPage } from "./features/evaluations/EvaluationPage";
 import { ImportWizardPage } from "./features/data-studio/ImportWizardPage";
 
-type Page = "dashboard" | "evaluation" | "import" | "plans" | "assumptions" | "studies" | "documents" | "library" | "ai" | "admin";
+type Page = "dashboard" | "evaluation" | "import" | "critique" | "plans" | "assumptions" | "studies" | "documents" | "library" | "ai" | "admin";
 
 const nav = [
   ["dashboard", "Avaliações", <AssessmentOutlined />],
@@ -31,6 +32,7 @@ const pageNames: Record<Page, string> = {
   dashboard: "Avaliações",
   evaluation: "Avaliação",
   import: "Data Studio",
+  critique: "Crítica cadastral",
   plans: "Planos",
   assumptions: "Hipóteses & Tábuas",
   studies: "Estudos de Aderência",
@@ -42,6 +44,12 @@ const pageNames: Record<Page, string> = {
 
 export default function App() {
   const [page, setPage] = useState<Page>("dashboard");
+  const [critiqueImportJobId, setCritiqueImportJobId] = useState<string | null>(null);
+
+  const openCritique = (importJobId: string) => {
+    setCritiqueImportJobId(importJobId);
+    setPage("critique");
+  };
 
   return <Box sx={{ minHeight: "100vh", display: "grid", gridTemplateColumns: { xs: "1fr", md: "248px minmax(0, 1fr)" } }}>
     <Box component="aside" sx={{ display: { xs: "none", md: "flex" }, flexDirection: "column", p: 2, borderRight: "1px solid", borderColor: "divider", bgcolor: "background.paper", minHeight: "100vh", position: "sticky", top: 0, height: "100vh" }}>
@@ -50,7 +58,7 @@ export default function App() {
         <Box><Typography fontWeight={800} letterSpacing="-.02em">ATUAS</Typography><Typography variant="caption" color="text.secondary">Atuária Previdenciária</Typography></Box>
       </Stack>
       <Stack spacing={.5} sx={{ flex: 1 }}>
-        {nav.map(([key, label, icon]) => <NavItem key={key} selected={page === key || (key === "dashboard" && page === "evaluation")} icon={icon} label={label} onClick={() => setPage(key)} />)}
+        {nav.map(([key, label, icon]) => <NavItem key={key} selected={page === key || (key === "dashboard" && page === "evaluation") || (key === "import" && page === "critique")} icon={icon} label={label} onClick={() => setPage(key)} />)}
       </Stack>
       <Divider sx={{ my: 1.5 }} />
       <NavItem selected={page === "admin"} icon={<SettingsOutlined />} label="Administração" onClick={() => setPage("admin")} />
@@ -61,9 +69,10 @@ export default function App() {
       <Box sx={{ px: { xs: 2, sm: 3, lg: 5 }, py: { xs: 3, lg: 4 }, maxWidth: 1480, mx: "auto" }}>
         {page === "dashboard" && <DashboardPage onOpenEvaluation={() => setPage("evaluation")} onImport={() => setPage("import")} />}
         {page === "evaluation" && <EvaluationPage onBack={() => setPage("dashboard")} />}
-        {page === "import" && <ImportWizardPage onClose={() => setPage("dashboard")} />}
+        {page === "import" && <ImportWizardPage onClose={() => setPage("dashboard")} onCritique={openCritique} />}
+        {page === "critique" && critiqueImportJobId && <CritiquePage importJobId={critiqueImportJobId} onBack={() => setPage("import")} />}
         {page === "ai" && <AiProvidersPage />}
-        {!(["dashboard", "evaluation", "import", "ai"] as Page[]).includes(page) && <Placeholder title={pageNames[page]} />}
+        {!(["dashboard", "evaluation", "import", "critique", "ai"] as Page[]).includes(page) && <Placeholder title={pageNames[page]} />}
       </Box>
     </Box>
   </Box>;
