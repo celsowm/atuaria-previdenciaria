@@ -21,13 +21,15 @@ import {
 import AddRounded from "@mui/icons-material/AddRounded";
 import { api, type AuthUser } from "../../api/client";
 
+type UserRole = AuthUser["role"];
+
 const roles = [
   { value: "admin", label: "Administrador" },
   { value: "actuary", label: "Atuário" },
   { value: "reviewer", label: "Revisor" }
-];
+] as const satisfies ReadonlyArray<{ value: UserRole; label: string }>;
 
-function roleLabel(role: string) {
+function roleLabel(role: UserRole) {
   return roles.find((candidate) => candidate.value === role)?.label ?? role;
 }
 
@@ -53,7 +55,7 @@ export function AdminUsersPage() {
     void reload();
   }, []);
 
-  const update = async (user: AuthUser, patch: { role?: string; active?: boolean }) => {
+  const update = async (user: AuthUser, patch: { role?: UserRole; active?: boolean }) => {
     try {
       const updated = await api.updateUser(user.id, patch);
       setUsers((current) => current.map((candidate) => candidate.id === updated.id ? updated : candidate));
@@ -94,7 +96,7 @@ export function AdminUsersPage() {
                   size="small"
                   label="Perfil"
                   value={user.role}
-                  onChange={(event) => void update(user, { role: event.target.value })}
+                  onChange={(event) => void update(user, { role: event.target.value as UserRole })}
                 >
                   {roles.map((role) => <MenuItem key={role.value} value={role.value}>{role.label}</MenuItem>)}
                 </TextField>
@@ -122,7 +124,7 @@ function CreateUserDialog({ open, onClose, onCreated }: { open: boolean; onClose
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("actuary");
+  const [role, setRole] = useState<UserRole>("actuary");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -145,23 +147,25 @@ function CreateUserDialog({ open, onClose, onCreated }: { open: boolean; onClose
   };
 
   return (
-    <Dialog open={open} onClose={saving ? undefined : onClose} fullWidth maxWidth="sm" PaperProps={{ component: "form", onSubmit: submit }}>
-      <DialogTitle>Novo usuário</DialogTitle>
-      <DialogContent>
-        <Stack spacing={2} sx={{ pt: 1 }}>
-          {error && <Alert severity="error">{error}</Alert>}
-          <TextField label="Nome" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required autoFocus />
-          <TextField label="E-mail" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-          <TextField label="Senha inicial" type="password" helperText="Mínimo de 10 caracteres." value={password} onChange={(event) => setPassword(event.target.value)} required inputProps={{ minLength: 10 }} />
-          <TextField select label="Perfil" value={role} onChange={(event) => setRole(event.target.value)}>
-            {roles.map((candidate) => <MenuItem key={candidate.value} value={candidate.value}>{candidate.label}</MenuItem>)}
-          </TextField>
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={saving}>Cancelar</Button>
-        <Button type="submit" variant="contained" disabled={saving}>{saving ? "Criando…" : "Criar usuário"}</Button>
-      </DialogActions>
+    <Dialog open={open} onClose={saving ? undefined : onClose} fullWidth maxWidth="sm">
+      <Box component="form" onSubmit={submit}>
+        <DialogTitle>Novo usuário</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            {error && <Alert severity="error">{error}</Alert>}
+            <TextField label="Nome" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required autoFocus />
+            <TextField label="E-mail" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+            <TextField label="Senha inicial" type="password" helperText="Mínimo de 10 caracteres." value={password} onChange={(event) => setPassword(event.target.value)} required inputProps={{ minLength: 10 }} />
+            <TextField select label="Perfil" value={role} onChange={(event) => setRole(event.target.value as UserRole)}>
+              {roles.map((candidate) => <MenuItem key={candidate.value} value={candidate.value}>{candidate.label}</MenuItem>)}
+            </TextField>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button type="submit" variant="contained" disabled={saving}>{saving ? "Criando…" : "Criar usuário"}</Button>
+        </DialogActions>
+      </Box>
     </Dialog>
   );
 }
