@@ -1,5 +1,6 @@
 import { createExpressApp } from "adorn-api";
-import { initializeDatabase } from "./db.js";
+import { bootstrapAdminFromEnvironment, verifyBearerToken } from "./auth/auth-service.js";
+import { AuthController, UserController } from "./api/auth-controller.js";
 import {
   CritiqueController,
   EvaluationController,
@@ -10,12 +11,16 @@ import {
 } from "./api/controllers.js";
 import { BiometricTableController, BiometricVersionController } from "./api/biometric-controller.js";
 import { AdherenceCandidateController, AdherenceStudyController } from "./api/adherence-controller.js";
+import { closeDatabase, initializeDatabase } from "./db.js";
 
 async function start() {
-  await initializeDatabase();
+  const databasePath = await initializeDatabase();
+  await bootstrapAdminFromEnvironment();
 
   const app = await createExpressApp({
     controllers: [
+      AuthController,
+      UserController,
       SystemController,
       EvaluationController,
       MappingProfileController,
@@ -27,6 +32,7 @@ async function start() {
       AdherenceCandidateController,
       LlmProviderController
     ],
+    bearerAuth: { verifyToken: verifyBearerToken },
     inputCoercion: "safe",
     validation: { enabled: true, mode: "strict" },
     multipart: {
@@ -46,14 +52,26 @@ async function start() {
   });
 
   const port = Number(process.env.PORT ?? 3001);
-  app.listen(port, () => {
+  const server = app.listen(port, () => {
     console.log(`ATUAS API: http://localhost:${port}`);
     console.log(`OpenAPI: http://localhost:${port}/openapi.json`);
     console.log(`Swagger: http://localhost:${port}/docs`);
+    console.log(`SQLite: ${databasePath}`);
   });
+
+  let shuttingDown = false;
+  const shutdown = async () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await closeDatabase();
+  };
+
+  process.once("SIGINT", () => void shutdown().finally(() => process.exit(0)));
+  process.once("SIGTERM", () => void shutdown().finally(() => process.exit(0)));
 }
 
 start().catch((error) => {
   console.error(error);
-  process.exit(1);
+  void closeDatabase().finally(() => process.exit(1));
 });
