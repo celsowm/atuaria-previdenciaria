@@ -15,6 +15,13 @@ export type BiometricTableDetail = ApiComponents["schemas"]["BiometricTableDetai
 export type BiometricVersionPoints = ApiComponents["schemas"]["BiometricVersionPoints"];
 export type CreateBiometricTableInput = ApiComponents["schemas"]["CreateBiometricTable"];
 export type DeriveBiometricVersionInput = ApiComponents["schemas"]["DeriveBiometricVersion"];
+export type AdherenceObservation = ApiComponents["schemas"]["AdherenceObservation"];
+export type CreateAdherenceStudyInput = ApiComponents["schemas"]["CreateAdherenceStudy"];
+export type AdherenceStudySummary = ApiComponents["schemas"]["AdherenceStudySummary"];
+export type AdherenceCandidateResult = ApiComponents["schemas"]["AdherenceCandidateResult"];
+export type AdherenceStudyDetail = ApiComponents["schemas"]["AdherenceStudyDetail"];
+export type AdherenceCandidatePoint = ApiComponents["schemas"]["AdherenceCandidatePoint"];
+export type AdherenceCandidatePoints = ApiComponents["schemas"]["AdherenceCandidatePoints"];
 export type LlmProvider = ApiComponents["schemas"]["LlmProvider"];
 
 export type ImportMappingRule = {
@@ -100,5 +107,11 @@ export const api = {
     getJson<BiometricVersionPoints>(`/api/biometric-versions/${id}/points`),
   deriveBiometricVersion: (tableId: string, input: DeriveBiometricVersionInput) =>
     postJson<BiometricVersionPoints>(`/api/biometric-tables/${tableId}/derive`, input),
+  adherenceStudies: () => getJson<AdherenceStudySummary[]>("/api/adherence-studies/"),
+  adherenceStudy: (id: string) => getJson<AdherenceStudyDetail>(`/api/adherence-studies/${id}`),
+  createAdherenceStudy: (input: CreateAdherenceStudyInput) =>
+    postJson<AdherenceStudyDetail>("/api/adherence-studies/", input),
+  adherenceCandidatePoints: (id: string) =>
+    getJson<AdherenceCandidatePoints>(`/api/adherence-candidates/${id}/points`),
   llmProviders: () => getJson<LlmProvider[]>("/api/llm/providers/")
 };
