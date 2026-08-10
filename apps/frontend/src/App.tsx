@@ -135,8 +135,8 @@ export default function App() {
   return <Box sx={{ minHeight: "100vh", display: "grid", gridTemplateColumns: { xs: "1fr", md: "248px minmax(0, 1fr)" } }}>
     <Box component="aside" sx={{ display: { xs: "none", md: "flex" }, flexDirection: "column", p: 2, borderRight: "1px solid", borderColor: "divider", bgcolor: "background.paper", minHeight: "100vh", position: "sticky", top: 0, height: "100vh" }}>
       <Stack direction="row" spacing={1.25} alignItems="center" sx={{ px: 1, py: 1.5, mb: 2 }}>
-        <Avatar variant="rounded" sx={{ width: 34, height: 34, bgcolor: "primary.main", fontWeight: 800 }}>{initials(appConfig.shortName).slice(0, 1)}</Avatar>
-        <Box><Typography fontWeight={800} letterSpacing="-.02em">{appConfig.shortName}</Typography><Typography variant="caption" color="text.secondary">{appConfig.organizationName ?? appConfig.name}</Typography></Box>
+        <Avatar variant="rounded" sx={{ width: 34, height: 34, bgcolor: "primary.main", fontWeight: 800 }}>{initials(appConfig.name).slice(0, 1)}</Avatar>
+        <Box sx={{ minWidth: 0 }}><Typography fontWeight={800} letterSpacing="-.02em" lineHeight={1.15}>{appConfig.name}</Typography><Typography variant="caption" color="text.secondary">{appConfig.organizationName ?? "Previdência Complementar"}</Typography></Box>
       </Stack>
       <Stack spacing={.5} sx={{ flex: 1 }}>
         {nav.map((item) => <NavItem key={item.path} selected={item.active.includes(route.name)} icon={item.icon} label={item.label} onClick={() => navigate(item.path)} />)}
@@ -174,7 +174,7 @@ function NavItem({ selected, icon, label, onClick }: { selected: boolean; icon: 
 }
 
 function Placeholder({ config, title }: { config: ApplicationConfig; title: string }) {
-  return <Stack spacing={2} sx={{ py: 3 }}><Typography variant="overline" color="text.secondary">{config.shortName}</Typography><Typography variant="h4">{title}</Typography><Typography color="text.secondary" sx={{ maxWidth: 620 }}>Módulo reservado na arquitetura atual. A URL já é estável e pode ser compartilhada ou reaberta diretamente.</Typography></Stack>;
+  return <Stack spacing={2} sx={{ py: 3 }}><Typography variant="overline" color="text.secondary">{config.name}</Typography><Typography variant="h4">{title}</Typography><Typography color="text.secondary" sx={{ maxWidth: 620 }}>Módulo reservado na arquitetura atual. A URL já é estável e pode ser compartilhada ou reaberta diretamente.</Typography></Stack>;
 }
 
 function NotFound() {
