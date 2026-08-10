@@ -12,6 +12,10 @@ const fragments = [
 const mergedPath = resolve("./.openapi.merged.json");
 
 const base = JSON.parse(await readFile(basePath, "utf8"));
+base.info = {
+  ...(base.info ?? {}),
+  title: "Atuária Previdenciária API"
+};
 for (const fragmentPath of fragments) {
   const fragment = JSON.parse(await readFile(fragmentPath, "utf8"));
   base.tags = [
