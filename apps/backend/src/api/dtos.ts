@@ -118,7 +118,18 @@ export class CritiqueIssueParamsDto {
 }
 
 @Dto({ description: "Critique occurrence with complete source-data provenance." })
-export class CritiqueIssueDetailDto extends CritiqueIssueDto {
+export class CritiqueIssueDetailDto {
+  @Field(t.string({ format: "uuid" })) id!: string;
+  @Field(t.string()) ruleCode!: string;
+  @Field(t.string()) severity!: string;
+  @Field(t.string()) category!: string;
+  @Field(t.string()) status!: string;
+  @Field(t.nullable(t.string())) participantRegistration!: string | null;
+  @Field(t.nullable(t.string())) fieldPath!: string | null;
+  @Field(t.nullable(t.string())) currentValueJson!: string | null;
+  @Field(t.nullable(t.string())) previousValueJson!: string | null;
+  @Field(t.string()) message!: string;
+  @Field(t.string({ format: "date-time" })) createdAt!: string;
   @Field(t.string()) detailsJson!: string;
   @Field(t.nullable(t.string())) rawJson!: string | null;
   @Field(t.nullable(t.string())) normalizedJson!: string | null;
