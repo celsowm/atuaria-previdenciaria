@@ -5,8 +5,10 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   Divider,
   FormControl,
+  FormControlLabel,
   InputLabel,
   MenuItem,
   Paper,
@@ -15,6 +17,7 @@ import {
   Step,
   StepLabel,
   Stepper,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -27,6 +30,7 @@ import ArrowBackRounded from "@mui/icons-material/ArrowBackRounded";
 import ArrowForwardRounded from "@mui/icons-material/ArrowForwardRounded";
 import DeleteOutlineRounded from "@mui/icons-material/DeleteOutlineRounded";
 import UploadFileRounded from "@mui/icons-material/UploadFileRounded";
+import { api, type ImportResult, type MappingProfileMatch } from "../../api/client";
 
 const steps = ["Arquivo", "Estrutura", "Mapping", "Transformações", "Preview", "Validação", "Concluir"];
 
@@ -42,8 +46,12 @@ const canonicalFields = [
   ["participant.sponsorCode", "Patrocinador"]
 ] as const;
 
+const populations = ["Ativos", "Assistidos", "Pensionistas", "Autopatrocinados", "BPD"] as const;
+
 type Transform = "auto" | "date-yyyymmdd" | "date-br" | "concat" | "sum" | "split-dash" | "sex";
 type Rule = { id: number; sources: string[]; targets: string[]; transform: Transform };
+
+type ProfileRule = Omit<Rule, "id">;
 
 function normalize(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
@@ -63,11 +71,35 @@ function suggestTarget(header: string): string[] {
   return [];
 }
 
+function suggestedRules(headers: string[]): Rule[] {
+  return headers.map((header, index) => ({
+    id: index + 1,
+    sources: [header],
+    targets: suggestTarget(header),
+    transform: /NASC|ADMIS|PLANO/.test(normalize(header))
+      ? "date-br"
+      : /SEXO|GENERO/.test(normalize(header))
+        ? "sex"
+        : "auto"
+  }));
+}
+
 function parsePtNumber(value: unknown) {
   if (typeof value === "number") return value;
   const text = String(value ?? "").trim().replace(/R\$\s?/g, "").replace(/\./g, "").replace(",", ".");
   const parsed = Number(text);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeBrazilianDate(value: unknown) {
+  const match = String(value ?? "").match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
+  if (!match) return value;
+  let year = Number(match[3]);
+  if (match[3].length === 2) {
+    const currentTwoDigits = new Date().getUTCFullYear() % 100;
+    year += year <= currentTwoDigits ? 2000 : 1900;
+  }
+  return `${String(year).padStart(4, "0")}-${match[2].padStart(2, "0")}-${match[1].padStart(2, "0")}`;
 }
 
 function applyRule(rule: Rule, row: unknown[], headers: string[]) {
@@ -88,10 +120,7 @@ function applyRule(rule: Rule, row: unknown[], headers: string[]) {
     const digits = String(value).replace(/\D/g, "");
     value = digits.length === 8 ? `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}` : value;
   }
-  if (rule.transform === "date-br") {
-    const match = String(value).match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
-    if (match) value = `${match[3].length === 2 ? `19${match[3]}` : match[3]}-${match[2].padStart(2, "0")}-${match[1].padStart(2, "0")}`;
-  }
+  if (rule.transform === "date-br") value = normalizeBrazilianDate(value);
   if (rule.transform === "sex") {
     const sex = normalize(String(value));
     value = ["M", "1", "MASC", "MASCULINO"].includes(sex) ? "MALE" : ["F", "2", "FEM", "FEMININO"].includes(sex) ? "FEMALE" : value;
@@ -102,49 +131,132 @@ function applyRule(rule: Rule, row: unknown[], headers: string[]) {
   return output;
 }
 
+function parseProfileRules(match: MappingProfileMatch): ProfileRule[] {
+  try {
+    const parsed = JSON.parse(match.rulesJson) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is ProfileRule => {
+      if (!item || typeof item !== "object") return false;
+      const value = item as Record<string, unknown>;
+      return Array.isArray(value.sources) && Array.isArray(value.targets) && typeof value.transform === "string";
+    });
+  } catch {
+    return [];
+  }
+}
+
 export function ImportWizardPage({ onClose }: { onClose: () => void }) {
   const [activeStep, setActiveStep] = useState(0);
+  const [sourceFile, setSourceFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState("");
   const [sheetName, setSheetName] = useState("");
+  const [population, setPopulation] = useState<(typeof populations)[number]>("Ativos");
   const [matrix, setMatrix] = useState<unknown[][]>([]);
   const [headerRow, setHeaderRow] = useState(1);
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<unknown[][]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [profileMatch, setProfileMatch] = useState<MappingProfileMatch | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [selectedProfileId, setSelectedProfileId] = useState<number | undefined>();
+  const [profileName, setProfileName] = useState("");
+  const [saveProfile, setSaveProfile] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+
+  const applyProfile = (match: MappingProfileMatch, nextHeaders = headers) => {
+    const profileRules = parseProfileRules(match);
+    const headerSet = new Set(nextHeaders);
+    const compatible = profileRules.filter((rule) => rule.sources.every((source) => headerSet.has(source)));
+    const consumed = new Set(compatible.flatMap((rule) => rule.sources));
+    const fallback = suggestedRules(nextHeaders).filter((rule) => !consumed.has(rule.sources[0]));
+    setRules([...compatible, ...fallback].map((rule, index) => ({ ...rule, id: index + 1 })));
+    setSelectedProfileId(match.profileId);
+    setProfileName(match.profileName ?? "");
+  };
+
+  const findProfile = async (nextHeaders: string[], nextPopulation: string) => {
+    if (!nextHeaders.length) return;
+    setProfileLoading(true);
+    try {
+      const match = await api.matchMappingProfile(nextHeaders, nextPopulation);
+      setProfileMatch(match);
+      setSelectedProfileId(undefined);
+      if (match.matched && match.exact) applyProfile(match, nextHeaders);
+    } catch {
+      setProfileMatch(null);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   const rebuild = (allRows: unknown[][], headerNumber: number) => {
     const index = Math.max(0, headerNumber - 1);
     const nextHeaders = (allRows[index] ?? []).map((value, i) => String(value || `COL_${i + 1}`).trim());
+    const nextRows = allRows.slice(index + 1).filter((row) => row.some((value) => String(value ?? "").trim() !== ""));
     setHeaders(nextHeaders);
-    setRows(allRows.slice(index + 1).filter((row) => row.some((value) => String(value ?? "").trim() !== "")));
-    setRules(nextHeaders.map((header, indexRule) => ({ id: indexRule + 1, sources: [header], targets: suggestTarget(header), transform: /NASC|ADMIS|PLANO/.test(normalize(header)) ? "date-br" : /SEXO|GENERO/.test(normalize(header)) ? "sex" : "auto" })));
+    setRows(nextRows);
+    setRules(suggestedRules(nextHeaders));
+    setProfileMatch(null);
+    setSelectedProfileId(undefined);
+    return nextHeaders;
   };
 
-  const readFile = async (file: File) => {
+  const readSourceFile = async (file: File) => {
     setParseError(null);
+    setImportResult(null);
     try {
       const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: false });
       const firstSheet = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheet];
       const allRows = XLSX.utils.sheet_to_json<unknown[]>(worksheet, { header: 1, defval: "", raw: false });
+      setSourceFile(file);
       setFileName(file.name);
       setSheetName(firstSheet);
       setMatrix(allRows);
       setHeaderRow(1);
-      rebuild(allRows, 1);
+      const nextHeaders = rebuild(allRows, 1);
+      setProfileName(`${population} - ${file.name.replace(/\.[^.]+$/, "")}`);
       setActiveStep(1);
+      void findProfile(nextHeaders, population);
     } catch (error) {
       setParseError(error instanceof Error ? error.message : "Não foi possível ler a planilha.");
     }
   };
 
-  const canonicalPreview = useMemo(() => rows.slice(0, 8).map((row) => Object.assign({}, ...rules.map((rule) => applyRule(rule, row, headers)))), [rows, rules, headers]);
+  const canonicalPreview = useMemo(
+    () => rows.slice(0, 8).map((row) => Object.assign({}, ...rules.map((rule) => applyRule(rule, row, headers)))),
+    [rows, rules, headers]
+  );
   const mappedTargets = new Set(rules.flatMap((rule) => rule.targets));
   const required = ["participant.registration", "participant.birthDate", "participant.sex"];
   const missingRequired = required.filter((field) => !mappedTargets.has(field));
 
   const changeRule = (id: number, patch: Partial<Rule>) => setRules((current) => current.map((rule) => rule.id === id ? { ...rule, ...patch } : rule));
+
+  const concludeImport = async () => {
+    if (!sourceFile) return;
+    setImporting(true);
+    setImportError(null);
+    try {
+      const result = await api.importWorkbook(sourceFile, {
+        population,
+        profileId: selectedProfileId,
+        profileName: profileName.trim() || undefined,
+        saveProfile,
+        sheetName,
+        headerRow,
+        rules: rules.map(({ sources, targets, transform }) => ({ sources, targets, transform }))
+      });
+      setImportResult(result);
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "Não foi possível persistir a importação.");
+    } finally {
+      setImporting(false);
+    }
+  };
 
   return <Stack spacing={3}>
     <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
@@ -156,26 +268,43 @@ export function ImportWizardPage({ onClose }: { onClose: () => void }) {
       <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>{steps.map((label) => <Step key={label}><StepLabel>{label}</StepLabel></Step>)}</Stepper>
       {parseError && <Alert severity="error" sx={{ mb: 2 }}>{parseError}</Alert>}
 
-      {activeStep === 0 && <Box sx={{ py: 8, textAlign: "center", border: "1px dashed", borderColor: "divider", borderRadius: 3 }}>
+      {activeStep === 0 && <Box
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={(event) => {
+          event.preventDefault();
+          const file = event.dataTransfer.files?.[0];
+          if (file) void readSourceFile(file);
+        }}
+        sx={{ py: 8, textAlign: "center", border: "1px dashed", borderColor: "divider", borderRadius: 3 }}
+      >
         <UploadFileRounded sx={{ fontSize: 48, color: "primary.main", mb: 1.5 }} />
         <Typography variant="h6">Arraste ou escolha sua planilha</Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>.xlsx, .xls ou .csv</Typography>
-        <Button component="label" variant="contained">Escolher arquivo<input hidden type="file" accept=".xlsx,.xls,.csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void readFile(file); }} /></Button>
+        <Button component="label" variant="contained">Escolher arquivo<input hidden type="file" accept=".xlsx,.xls,.csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void readSourceFile(file); }} /></Button>
       </Box>}
 
       {activeStep === 1 && <Stack spacing={3}>
-        <Box><Typography variant="h6">Estrutura detectada</Typography><Typography color="text.secondary">Confirme onde os dados realmente começam.</Typography></Box>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr" }, gap: 2 }}>
+        <Box><Typography variant="h6">Estrutura detectada</Typography><Typography color="text.secondary">Confirme população, aba e onde os dados realmente começam.</Typography></Box>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr 1fr" }, gap: 2 }}>
           <TextField label="Arquivo" value={fileName} slotProps={{ input: { readOnly: true } }} />
+          <FormControl fullWidth><InputLabel>População</InputLabel><Select label="População" value={population} onChange={(event) => { const value = event.target.value as (typeof populations)[number]; setPopulation(value); setProfileName(`${value} - ${fileName.replace(/\.[^.]+$/, "")}`); void findProfile(headers, value); }}>{populations.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</Select></FormControl>
           <TextField label="Aba" value={sheetName} slotProps={{ input: { readOnly: true } }} />
-          <TextField label="Linha do cabeçalho" type="number" value={headerRow} onChange={(event) => { const value = Math.max(1, Number(event.target.value)); setHeaderRow(value); rebuild(matrix, value); }} />
+          <TextField label="Linha do cabeçalho" type="number" value={headerRow} onChange={(event) => { const value = Math.max(1, Number(event.target.value)); setHeaderRow(value); const nextHeaders = rebuild(matrix, value); void findProfile(nextHeaders, population); }} />
         </Box>
         <Alert severity="info">{headers.length} colunas e {rows.length} registros detectados.</Alert>
+        {profileLoading && <Alert icon={<CircularProgress size={18} />} severity="info">Comparando este layout com perfis anteriores…</Alert>}
+        {!profileLoading && profileMatch?.matched && profileMatch.exact && <Alert severity="success">Perfil <strong>{profileMatch.profileName} {profileMatch.version}</strong> reconhecido com 100% de compatibilidade. As regras foram reaplicadas automaticamente.</Alert>}
+        {!profileLoading && profileMatch?.matched && !profileMatch.exact && <Alert severity="warning" action={<Button color="inherit" size="small" onClick={() => applyProfile(profileMatch)}>Aplicar regras compatíveis</Button>}>
+          Perfil <strong>{profileMatch.profileName} {profileMatch.version}</strong>: {profileMatch.compatibility}% compatível.
+          {profileMatch.missingColumns.length > 0 && <> Sumiram: {profileMatch.missingColumns.join(", ")}.</>}
+          {profileMatch.newColumns.length > 0 && <> Novas: {profileMatch.newColumns.join(", ")}.</>}
+        </Alert>}
         <PreviewTable headers={headers.slice(0, 8)} rows={rows.slice(0, 5).map((row) => row.slice(0, 8))} />
       </Stack>}
 
       {activeStep === 2 && <Stack spacing={2.5}>
         <Box><Typography variant="h6">Casar origem com o modelo ATUAS</Typography><Typography color="text.secondary">Uma regra pode usar várias colunas de origem e produzir um ou vários campos canônicos.</Typography></Box>
+        {selectedProfileId && <Alert severity="info">Baseando este mapping no perfil #{selectedProfileId}. Se o layout ou as regras mudarem, o backend criará uma nova versão em vez de sobrescrever o histórico.</Alert>}
         {rules.map((rule) => <Box key={rule.id} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1.5fr 48px 1.5fr 1fr 42px" }, gap: 1.5, alignItems: "center" }}>
           <MultiSelect label="Origem" values={rule.sources} options={headers.map((value) => [value, value] as const)} onChange={(values) => changeRule(rule.id, { sources: values })} />
           <Typography sx={{ textAlign: "center", color: "text.secondary" }}>→</Typography>
@@ -187,26 +316,47 @@ export function ImportWizardPage({ onClose }: { onClose: () => void }) {
       </Stack>}
 
       {activeStep === 3 && <Stack spacing={2}>
-        <Box><Typography variant="h6">Transformações</Typography><Typography color="text.secondary">As transformações ficam salvas no perfil e são reproduzíveis nas próximas avaliações.</Typography></Box>
+        <Box><Typography variant="h6">Transformações</Typography><Typography color="text.secondary">As transformações ficam versionadas no perfil e o backend as reaplica sobre o arquivo original.</Typography></Box>
         {rules.filter((rule) => rule.targets.length).map((rule) => <Paper key={rule.id} variant="outlined" sx={{ p: 2 }}><Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ md: "center" }}><Box sx={{ flex: 1 }}><Typography fontWeight={700}>{rule.sources.join(" + ")} → {rule.targets.map((target) => canonicalFields.find(([key]) => key === target)?.[1] ?? target).join(" + ")}</Typography><Typography variant="body2" color="text.secondary">{rule.transform}</Typography></Box><TransformSelect value={rule.transform} onChange={(transform) => changeRule(rule.id, { transform })} /></Stack></Paper>)}
       </Stack>}
 
       {activeStep === 4 && <Stack spacing={2}>
-        <Box><Typography variant="h6">Preview canônico</Typography><Typography color="text.secondary">O original permanece intacto; esta é a representação normalizada que seguirá para as críticas atuariais.</Typography></Box>
+        <Box><Typography variant="h6">Preview canônico</Typography><Typography color="text.secondary">O original permanece intacto; esta é uma prévia da representação canônica que o servidor recalculará e persistirá.</Typography></Box>
         <PreviewObjects rows={canonicalPreview} />
       </Stack>}
 
       {activeStep === 5 && <Stack spacing={2}>
         <Typography variant="h6">Validação pré-importação</Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, gap: 2 }}><Stat label="Registros" value={rows.length} /><Stat label="Campos canônicos" value={mappedTargets.size} /><Stat label="Regras" value={rules.length} /></Box>
-        {missingRequired.length ? <Alert severity="error">Campos obrigatórios ainda sem mapping: {missingRequired.map((field) => canonicalFields.find(([key]) => key === field)?.[1] ?? field).join(", ")}.</Alert> : <Alert severity="success">Mapping mínimo válido. A massa pode seguir para a crítica cadastral.</Alert>}
+        {missingRequired.length ? <Alert severity="error">Campos obrigatórios ainda sem mapping: {missingRequired.map((field) => canonicalFields.find(([key]) => key === field)?.[1] ?? field).join(", ")}.</Alert> : <Alert severity="success">Mapping mínimo válido. A massa pode ser persistida e seguir para a crítica cadastral.</Alert>}
       </Stack>}
 
-      {activeStep === 6 && <Stack spacing={2} alignItems="flex-start"><Chip color="success" label="Pronto para importar" /><Typography variant="h5">Perfil de mapping preparado</Typography><Typography color="text.secondary">{fileName} será convertido para o modelo canônico ATUAS com {rules.length} regras. Na persistência, RAW, NORMALIZED e CANONICAL ficarão rastreáveis.</Typography><Button variant="contained" onClick={onClose}>Concluir importação</Button></Stack>}
+      {activeStep === 6 && <Stack spacing={2.5} alignItems="stretch">
+        {!importResult && <>
+          <Box><Chip color="success" label="Pronto para importar" sx={{ mb: 1.5 }} /><Typography variant="h5">Persistir importação</Typography><Typography color="text.secondary">O servidor guardará o arquivo original, hash SHA-256, mapping versionado e cada linha nos estados RAW, NORMALIZED e CANONICAL.</Typography></Box>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr" }, gap: 2, alignItems: "center" }}>
+            <TextField label="Nome do perfil de mapping" value={profileName} onChange={(event) => setProfileName(event.target.value)} disabled={!saveProfile} />
+            <FormControlLabel control={<Switch checked={saveProfile} onChange={(event) => setSaveProfile(event.target.checked)} />} label="Salvar/reutilizar perfil" />
+          </Box>
+          {importError && <Alert severity="error">{importError}</Alert>}
+          <Box><Button variant="contained" disabled={importing} onClick={() => void concludeImport()} startIcon={importing ? <CircularProgress size={18} color="inherit" /> : undefined}>{importing ? "Importando…" : "Concluir importação"}</Button></Box>
+        </>}
+        {importResult && <>
+          <Alert severity={importResult.invalidRows > 0 ? "warning" : "success"}>Importação persistida com sucesso. {importResult.invalidRows > 0 ? `${importResult.invalidRows} registros já foram marcados para crítica.` : "Todos os registros passaram pela validação estrutural inicial."}</Alert>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2 }}>
+            <Stat label="Linhas" value={importResult.rowCount} />
+            <Stat label="Válidas" value={importResult.validRows} />
+            <Stat label="Para crítica" value={importResult.invalidRows} />
+            <Paper variant="outlined" sx={{ p: 2 }}><Typography variant="h6">{importResult.mappingProfileVersion ?? "—"}</Typography><Typography variant="body2" color="text.secondary">Perfil salvo</Typography></Paper>
+          </Box>
+          <Paper variant="outlined" sx={{ p: 2 }}><Typography variant="caption" color="text.secondary">Import job</Typography><Typography sx={{ fontFamily: "monospace" }}>{importResult.id}</Typography><Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>SHA-256 do original</Typography><Typography sx={{ fontFamily: "monospace", overflowWrap: "anywhere" }}>{importResult.fileSha256}</Typography></Paper>
+          <Box><Button variant="contained" onClick={onClose}>Voltar às avaliações</Button></Box>
+        </>}
+      </Stack>}
 
       <Divider sx={{ my: 3 }} />
       <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-        <Button disabled={activeStep === 0} onClick={() => setActiveStep((step) => Math.max(0, step - 1))} startIcon={<ArrowBackRounded />}>Anterior</Button>
+        <Button disabled={activeStep === 0 || importing || Boolean(importResult)} onClick={() => setActiveStep((step) => Math.max(0, step - 1))} startIcon={<ArrowBackRounded />}>Anterior</Button>
         {activeStep < steps.length - 1 && <Button variant="contained" disabled={activeStep === 0 || (activeStep === 5 && missingRequired.length > 0)} onClick={() => setActiveStep((step) => Math.min(steps.length - 1, step + 1))} endIcon={<ArrowForwardRounded />}>Continuar</Button>}
       </Box>
     </Paper>
@@ -230,4 +380,6 @@ function PreviewObjects({ rows }: { rows: Record<string, unknown>[] }) {
   return <Box sx={{ overflowX: "auto" }}><Table size="small"><TableHead><TableRow>{keys.map((key) => <TableCell key={key} sx={{ fontWeight: 700 }}>{canonicalFields.find(([field]) => field === key)?.[1] ?? key}</TableCell>)}</TableRow></TableHead><TableBody>{rows.map((row, index) => <TableRow key={index}>{keys.map((key) => <TableCell key={key}>{String(row[key] ?? "")}</TableCell>)}</TableRow>)}</TableBody></Table></Box>;
 }
 
-function Stat({ label, value }: { label: string; value: number }) { return <Paper variant="outlined" sx={{ p: 2 }}><Typography variant="h5">{value}</Typography><Typography variant="body2" color="text.secondary">{label}</Typography></Paper>; }
+function Stat({ label, value }: { label: string; value: number }) {
+  return <Paper variant="outlined" sx={{ p: 2 }}><Typography variant="h5">{value}</Typography><Typography variant="body2" color="text.secondary">{label}</Typography></Paper>;
+}
