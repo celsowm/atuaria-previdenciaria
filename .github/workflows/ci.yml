@@ -21,7 +21,7 @@ jobs:
         run: npm run typecheck
       - name: Build
         run: npm run build
-      - name: Smoke test API and Data Studio
+      - name: Smoke test API, Data Studio and critique
         shell: bash
         run: |
           node apps/backend/dist/server.js > /tmp/atuas-api.log 2>&1 &
@@ -60,6 +60,15 @@ jobs:
             > /tmp/atuas-import-result.json
 
           node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-import-result.json","utf8")); if(x.status!=="COMPLETED"||x.rowCount!==2||x.validRows!==2||x.invalidRows!==0||!x.fileSha256) process.exit(1)'
+
+          JOB_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/atuas-import-result.json","utf8")).id')
+          curl --fail --silent --show-error \
+            -H 'content-type: application/json' \
+            -d "{\"importJobId\":\"$JOB_ID\"}" \
+            http://localhost:3001/api/critique/runs \
+            > /tmp/atuas-critique-result.json
+
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-critique-result.json","utf8")); if(x.status!=="COMPLETED"||x.totalIssues!==0||x.blockingCount!==0) process.exit(1)'
 
           curl --fail --silent --show-error \
             -H 'content-type: application/json' \
