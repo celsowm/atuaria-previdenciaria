@@ -1,13 +1,13 @@
 import { Dto, Field, t } from "adorn-api";
 
-@Dto({ description: "Single qx point of a biometric table version." })
+@Dto({ name: "BiometricPoint", description: "Single qx point of a biometric table version." })
 export class BiometricPointDto {
   @Field(t.integer({ minimum: 0, maximum: 130 })) age!: number;
   @Field(t.string()) sex!: string;
   @Field(t.number({ minimum: 0, maximum: 1 })) qx!: number;
 }
 
-@Dto({ description: "Create an immutable first version of a biometric table." })
+@Dto({ name: "CreateBiometricTable", description: "Create an immutable first version of a biometric table." })
 export class CreateBiometricTableDto {
   @Field(t.string({ minLength: 1 })) code!: string;
   @Field(t.string({ minLength: 1 })) name!: string;
@@ -20,7 +20,7 @@ export class CreateBiometricTableDto {
   @Field(t.array(t.ref(BiometricPointDto), { minItems: 1 })) points!: BiometricPointDto[];
 }
 
-@Dto({ description: "Biometric table library summary." })
+@Dto({ name: "BiometricTableSummary", description: "Biometric table library summary." })
 export class BiometricTableSummaryDto {
   @Field(t.string({ format: "uuid" })) id!: string;
   @Field(t.string()) code!: string;
@@ -38,7 +38,7 @@ export class BiometricTableSummaryDto {
   @Field(t.string({ format: "date-time" })) updatedAt!: string;
 }
 
-@Dto({ description: "Version metadata with derivation provenance." })
+@Dto({ name: "BiometricVersion", description: "Version metadata with derivation provenance." })
 export class BiometricVersionDto {
   @Field(t.string({ format: "uuid" })) id!: string;
   @Field(t.string()) version!: string;
@@ -54,7 +54,7 @@ export class BiometricVersionDto {
   @Field(t.string({ format: "date-time" })) createdAt!: string;
 }
 
-@Dto({ description: "Biometric table and all of its immutable versions." })
+@Dto({ name: "BiometricTableDetail", description: "Biometric table and all of its immutable versions." })
 export class BiometricTableDetailDto {
   @Field(t.string({ format: "uuid" })) id!: string;
   @Field(t.string()) code!: string;
@@ -69,23 +69,23 @@ export class BiometricTableDetailDto {
   @Field(t.array(t.ref(BiometricVersionDto))) versions!: BiometricVersionDto[];
 }
 
-@Dto({ description: "Biometric version including all qx points." })
+@Dto({ name: "BiometricVersionPoints", description: "Biometric version including all qx points." })
 export class BiometricVersionPointsDto {
   @Field(t.ref(BiometricVersionDto)) version!: BiometricVersionDto;
   @Field(t.array(t.ref(BiometricPointDto))) points!: BiometricPointDto[];
 }
 
-@Dto()
+@Dto({ name: "BiometricTableParams" })
 export class BiometricTableParamsDto {
   @Field(t.string({ format: "uuid" })) id!: string;
 }
 
-@Dto()
+@Dto({ name: "BiometricVersionParams" })
 export class BiometricVersionParamsDto {
   @Field(t.string({ format: "uuid" })) id!: string;
 }
 
-@Dto({ description: "Create a derived immutable biometric version." })
+@Dto({ name: "DeriveBiometricVersion", description: "Create a derived immutable biometric version." })
 export class DeriveBiometricVersionDto {
   @Field(t.string({ format: "uuid" })) parentVersionId!: string;
   @Field(t.string({ minLength: 1 })) version!: string;
