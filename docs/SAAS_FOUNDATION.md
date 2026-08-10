@@ -1,10 +1,24 @@
-# Fundação SaaS e ciclo de vida do SQLite
+# Fundação SaaS, white-label e ciclo de vida do SQLite
 
-Este documento descreve a fundação de autenticação, usuários e persistência local do ATUAS.
+Este documento descreve a fundação de autenticação, usuários, configuração por deployment e persistência local da plataforma atuarial.
+
+## White-label por deployment
+
+O core não possui nome institucional fixo. O mesmo build pode ser usado por entidades diferentes alterando apenas configuração de runtime:
+
+```env
+APP_NAME=Plataforma Atuarial
+APP_SHORT_NAME=Atuária
+APP_ORGANIZATION_NAME=
+```
+
+`APP_NAME` é o nome completo exibido no login, título do navegador e documentação da API. `APP_SHORT_NAME` é usado na navegação lateral. `APP_ORGANIZATION_NAME` é opcional e identifica a entidade que está operando aquele deployment.
+
+O frontend consulta `GET /api/config`, uma rota pública que expõe somente esses dados de apresentação. Nenhuma identidade de organização é compilada no bundle como requisito para funcionamento.
 
 ## Autenticação
 
-O ATUAS usa contas locais persistidas no próprio banco e sessões bearer opacas.
+A aplicação usa contas locais persistidas no próprio banco e sessões bearer opacas.
 
 ### Usuários
 
@@ -26,7 +40,7 @@ Ao autenticar:
 1. o backend gera 32 bytes aleatórios;
 2. o token bruto é devolvido uma única vez ao cliente;
 3. somente `SHA-256(token)` é persistido em `user_sessions`;
-4. a sessão recebe validade configurável por `ATUAS_SESSION_TTL_DAYS`;
+4. a sessão recebe validade configurável por `APP_SESSION_TTL_DAYS`;
 5. logout, troca de senha ou desativação revogam a sessão.
 
 `user_sessions.userId` possui chave estrangeira para `users.id` com `ON DELETE CASCADE`.
@@ -38,6 +52,7 @@ A verificação de sessão usa lookup pela coluna única `tokenHash`, e não var
 O backend usa a autenticação bearer nativa do `adorn-api`.
 
 - `/api/health` é público;
+- `/api/config` é público;
 - `/api/auth/login` é público;
 - as rotas funcionais exigem usuário autenticado;
 - `/api/users/*` exige perfil `admin`;
@@ -46,9 +61,9 @@ O backend usa a autenticação bearer nativa do `adorn-api`.
 O primeiro administrador não possui senha padrão no código. Quando a tabela de usuários está vazia, ele pode ser criado uma única vez com:
 
 ```env
-ATUAS_BOOTSTRAP_ADMIN_EMAIL=admin@example.com
-ATUAS_BOOTSTRAP_ADMIN_PASSWORD=uma-senha-forte
-ATUAS_BOOTSTRAP_ADMIN_NAME=Administrador ATUAS
+APP_BOOTSTRAP_ADMIN_EMAIL=admin@example.com
+APP_BOOTSTRAP_ADMIN_PASSWORD=uma-senha-forte
+APP_BOOTSTRAP_ADMIN_NAME=Administrador
 ```
 
 Depois que já existe algum usuário, essas variáveis não recriam nem sobrescrevem contas.
@@ -60,10 +75,16 @@ Depois que já existe algum usuário, essas variáveis não recriam nem sobrescr
 O caminho é configurado por:
 
 ```env
-ATUAS_DB_PATH=./data/atuas.sqlite
+APP_DB_PATH=./data/actuarial.sqlite
 ```
 
-O arquivo e seus sidecars de WAL são ignorados pelo Git. Dados de produção nunca devem ser versionados.
+Caminhos relativos são resolvidos a partir da raiz do repositório, independentemente do diretório corrente usado para iniciar o backend. O arquivo, WAL, SHM e todo o diretório `/data/` são ignorados pelo Git.
+
+O storage privado de uploads usa, por padrão:
+
+```env
+APP_STORAGE_PATH=./data/storage
+```
 
 ### Inicialização
 
@@ -106,13 +127,15 @@ Alterações destrutivas futuras devem ser tratadas como migrações explícitas
 Existem dois tipos diferentes de seed:
 
 - **referência**: regras determinísticas necessárias à aplicação; idempotentes e sempre aplicadas;
-- **demo**: avaliações, perfis e providers de exemplo; somente quando `ATUAS_SEED_DEMO=true`.
+- **demo**: planos, avaliações, perfis e providers genéricos de exemplo; somente quando `APP_SEED_DEMO=true`.
 
 Produção deve manter:
 
 ```env
-ATUAS_SEED_DEMO=false
+APP_SEED_DEMO=false
 ```
+
+O seed opcional de IA usa apenas nomes genéricos (`OpenAI-compatible` e `OpenAI`) e referências como `APP_LLM_KEY_1` e `OPENAI_API_KEY`; não carrega identidade ou infraestrutura de uma organização específica.
 
 ### Encerramento
 
@@ -120,17 +143,15 @@ O servidor trata `SIGINT` e `SIGTERM`, fecha primeiro o listener HTTP e depois f
 
 ## Estratégia de implantação
 
-SQLite continua sendo uma boa escolha enquanto o ATUAS for executado como uma única instância de aplicação com volume local persistente e backup do arquivo.
-
-Recomendação para esse estágio:
+SQLite continua sendo uma boa escolha enquanto cada deployment for executado como uma única instância de aplicação com volume local persistente e backup do arquivo.
 
 ```text
-1 processo/contêiner ATUAS
+1 processo/contêiner
         │
         ├── volume persistente
-        │     ├── atuas.sqlite
-        │     ├── atuas.sqlite-wal
-        │     └── atuas.sqlite-shm
+        │     ├── actuarial.sqlite
+        │     ├── actuarial.sqlite-wal
+        │     └── actuarial.sqlite-shm
         │
         └── storage privado de imports
 ```
@@ -139,14 +160,20 @@ Não se deve colocar o mesmo arquivo SQLite em um filesystem de rede e permitir 
 
 Quando houver necessidade real de múltiplas instâncias simultâneas, failover ativo ou volume elevado de escritores concorrentes, a persistência operacional deve migrar para PostgreSQL. A separação por entidades, serviços e dialeto do Metal-ORM existe justamente para que essa mudança não contamine as regras atuariais.
 
+## Multi-entidade
+
+White-label e multi-tenant são problemas diferentes. A configuração atual permite vários deployments independentes, cada um com nome e entidade próprios, sem fork de código.
+
+Se no futuro uma única instalação precisar hospedar várias entidades simultaneamente, isso deverá entrar como um slice explícito de tenancy, com isolamento de dados, autorização e auditoria por `tenantId`. O core não deve presumir uma organização específica para facilitar essa evolução.
+
 ## Próximos hardenings SaaS
 
-A fundação atual cobre login, sessão, usuários e RBAC básico. Ainda são slices separados:
+A fundação atual cobre login, sessão, usuários, RBAC básico e branding por deployment. Ainda são slices separados:
 
 - recuperação/troca de senha pelo próprio usuário;
 - MFA;
 - auditoria de ações administrativas e atuariais;
 - rate limiting e bloqueio progressivo de tentativas de login;
-- organizações/tenants, caso o produto passe a atender várias entidades isoladas no mesmo deployment;
+- tenancy real, caso uma instalação passe a atender várias entidades ao mesmo tempo;
 - política automatizada de backup e restore testado do SQLite;
 - expurgo periódico de sessões expiradas/revogadas.
