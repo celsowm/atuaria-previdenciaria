@@ -20,7 +20,7 @@ import {
   login,
   logout,
   updateUser,
-  type AtuasAuthUser
+  type ApplicationAuthUser
 } from "../auth/auth-service.js";
 import {
   AuthUserDto,
@@ -52,7 +52,7 @@ export class AuthController {
   @Auth()
   @Returns(AuthUserDto)
   async me(ctx: RequestContext): Promise<AuthUserDto> {
-    const authenticated = getUser<AtuasAuthUser>(ctx.req);
+    const authenticated = getUser<ApplicationAuthUser>(ctx.req);
     if (!authenticated) throw new HttpError(401, "Sessão inválida.");
     const user = (await listUsers()).find((candidate) => candidate.id === authenticated.id);
     if (!user) throw new HttpError(401, "Usuário não encontrado.");
