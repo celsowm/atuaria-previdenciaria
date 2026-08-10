@@ -10,6 +10,7 @@ import HubOutlined from "@mui/icons-material/HubOutlined";
 import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import TableViewOutlined from "@mui/icons-material/TableViewOutlined";
 import { AiProvidersPage } from "./features/ai/AiProvidersPage";
+import { BiometricTablesPage } from "./features/biometrics/BiometricTablesPage";
 import { CritiquePage } from "./features/critique/CritiquePage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { EvaluationPage } from "./features/evaluations/EvaluationPage";
@@ -71,8 +72,9 @@ export default function App() {
         {page === "evaluation" && <EvaluationPage onBack={() => setPage("dashboard")} />}
         {page === "import" && <ImportWizardPage onClose={() => setPage("dashboard")} onCritique={openCritique} />}
         {page === "critique" && critiqueImportJobId && <CritiquePage importJobId={critiqueImportJobId} onBack={() => setPage("import")} />}
+        {page === "assumptions" && <BiometricTablesPage />}
         {page === "ai" && <AiProvidersPage />}
-        {!(["dashboard", "evaluation", "import", "critique", "ai"] as Page[]).includes(page) && <Placeholder title={pageNames[page]} />}
+        {!(["dashboard", "evaluation", "import", "critique", "assumptions", "ai"] as Page[]).includes(page) && <Placeholder title={pageNames[page]} />}
       </Box>
     </Box>
   </Box>;
