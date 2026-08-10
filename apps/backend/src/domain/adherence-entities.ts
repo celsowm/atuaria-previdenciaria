@@ -107,6 +107,9 @@ export class AdherenceCandidateResult {
   @Column(col.notNull(col.int()))
   chiSquareDf!: number;
 
+  @Column(col.notNull(col.decimal(20, 10)))
+  chiSquareCritical!: number;
+
   @Column(col.notNull(col.decimal(18, 12)))
   chiSquareP!: number;
 
@@ -117,6 +120,9 @@ export class AdherenceCandidateResult {
   ksD!: number;
 
   @Column(col.notNull(col.decimal(18, 12)))
+  ksCritical!: number;
+
+  @Column(col.notNull(col.decimal(18, 12)))
   ksP!: number;
 
   @Column(col.notNull(col.int()))
@@ -124,6 +130,9 @@ export class AdherenceCandidateResult {
 
   @Column(col.notNull(col.decimal(18, 12)))
   zStatistic!: number;
+
+  @Column(col.notNull(col.decimal(18, 12)))
+  zCritical!: number;
 
   @Column(col.notNull(col.decimal(18, 12)))
   zP!: number;
