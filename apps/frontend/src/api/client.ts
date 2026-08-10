@@ -22,6 +22,11 @@ export type AdherenceCandidateResult = ApiComponents["schemas"]["AdherenceCandid
 export type AdherenceStudyDetail = ApiComponents["schemas"]["AdherenceStudyDetail"];
 export type AdherenceCandidatePoint = ApiComponents["schemas"]["AdherenceCandidatePoint"];
 export type AdherenceCandidatePoints = ApiComponents["schemas"]["AdherenceCandidatePoints"];
+export type ActuarialParameterizationSummary = ApiComponents["schemas"]["ActuarialParameterizationSummary"];
+export type ActuarialParameterization = ApiComponents["schemas"]["ActuarialParameterization"];
+export type CreateActuarialParameterizationInput = ApiComponents["schemas"]["CreateActuarialParameterization"];
+export type UpdateActuarialParameterizationInput = ApiComponents["schemas"]["UpdateActuarialParameterization"];
+export type SetActuarialParameterValueInput = ApiComponents["schemas"]["SetActuarialParameterValue"];
 export type LlmProvider = ApiComponents["schemas"]["LlmProvider"];
 export type AuthUser = ApiComponents["schemas"]["AuthUser"];
 export type LoginResponse = ApiComponents["schemas"]["LoginResponse"];
@@ -139,6 +144,19 @@ export const api = {
   updatePlan: (id: string, input: UpdatePlanInput) => patchJson<Plan>(`/api/plans/${id}`, input),
   dashboard: () => getJson<DashboardTotals>("/api/dashboard"),
   evaluations: () => getJson<Evaluation[]>("/api/evaluations/"),
+  parameterizations: (evaluationId: number) =>
+    getJson<ActuarialParameterizationSummary[]>(`/api/evaluations/${evaluationId}/parameterizations`),
+  parameterization: (id: string) => getJson<ActuarialParameterization>(`/api/parameterizations/${id}`),
+  createParameterization: (evaluationId: number, input: CreateActuarialParameterizationInput = {}) =>
+    postJson<ActuarialParameterization>(`/api/evaluations/${evaluationId}/parameterizations`, input),
+  updateParameterization: (id: string, input: UpdateActuarialParameterizationInput) =>
+    patchJson<ActuarialParameterization>(`/api/parameterizations/${id}`, input),
+  setActuarialParameters: (id: string, parameters: SetActuarialParameterValueInput[]) =>
+    patchJson<ActuarialParameterization>(`/api/parameterizations/${id}/parameters`, { parameters }),
+  promoteAdherenceCandidate: (id: string, candidateResultId: string) =>
+    postJson<ActuarialParameterization>(`/api/parameterizations/${id}/adherence-candidate`, { candidateResultId }),
+  approveParameterization: (id: string) =>
+    postJson<ActuarialParameterization>(`/api/parameterizations/${id}/approve`, {}),
   mappingProfiles: () => getJson<MappingProfile[]>("/api/mapping-profiles/"),
   matchMappingProfile: (headers: string[], population: string) =>
     postJson<MappingProfileMatch>("/api/mapping-profiles/match", { headers, population }),
