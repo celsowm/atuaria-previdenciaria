@@ -21,17 +21,50 @@ jobs:
         run: npm run typecheck
       - name: Build
         run: npm run build
-      - name: Smoke test API
+      - name: Smoke test API and Data Studio
         shell: bash
         run: |
           node apps/backend/dist/server.js > /tmp/atuas-api.log 2>&1 &
           API_PID=$!
           trap 'kill $API_PID || true' EXIT
+
+          READY=0
           for i in {1..20}; do
-            if curl --fail --silent http://localhost:3001/api/health; then
-              exit 0
+            if curl --fail --silent http://localhost:3001/api/health > /dev/null; then
+              READY=1
+              break
             fi
             sleep 1
           done
-          cat /tmp/atuas-api.log
-          exit 1
+          if [ "$READY" != "1" ]; then
+            cat /tmp/atuas-api.log
+            exit 1
+          fi
+
+          cat > /tmp/atuas-import.csv <<'CSV'
+          MATRIC,DT_NASC,SEXO,SAL_PART
+          000001,25/11/1985,M,"9.321,74"
+          000002,03/04/1990,F,"7.100,00"
+          CSV
+
+          RULES='[{"sources":["MATRIC"],"targets":["participant.registration"],"transform":"auto"},{"sources":["DT_NASC"],"targets":["participant.birthDate"],"transform":"date-br"},{"sources":["SEXO"],"targets":["participant.sex"],"transform":"sex"},{"sources":["SAL_PART"],"targets":["participant.contributionSalary"],"transform":"auto"}]'
+
+          curl --fail --silent --show-error \
+            -X POST http://localhost:3001/api/imports/ \
+            -F 'file=@/tmp/atuas-import.csv;type=text/csv' \
+            -F 'population=Ativos' \
+            -F 'headerRow=1' \
+            -F 'profileName=CI Ativos' \
+            -F 'saveProfile=true' \
+            -F "rulesJson=$RULES" \
+            > /tmp/atuas-import-result.json
+
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-import-result.json","utf8")); if(x.status!=="COMPLETED"||x.rowCount!==2||x.validRows!==2||x.invalidRows!==0||!x.fileSha256) process.exit(1)'
+
+          curl --fail --silent --show-error \
+            -H 'content-type: application/json' \
+            -d '{"population":"Ativos","headers":["MATRIC","DT_NASC","SEXO","SAL_PART"]}' \
+            http://localhost:3001/api/mapping-profiles/match \
+            > /tmp/atuas-match-result.json
+
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-match-result.json","utf8")); if(!x.matched||!x.exact||x.compatibility!==100) process.exit(1)'
