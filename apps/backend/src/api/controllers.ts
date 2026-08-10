@@ -1,7 +1,7 @@
 import { Controller, Get, Returns, t } from "adorn-api";
 import { entityRef, selectFromEntity } from "metal-orm";
 import { createSession } from "../db.js";
-import { Evaluation, LlmProvider, MappingProfile } from "../domain/entities.js";
+import { Evaluation, LlmProvider, LlmProviderCredential, MappingProfile } from "../domain/entities.js";
 import { DashboardDto, EvaluationDto, LlmProviderDto, MappingProfileDto } from "./dtos.js";
 
 type Session = ReturnType<typeof createSession>;
@@ -93,15 +93,16 @@ export class LlmProviderController {
   @Returns(t.array(t.ref(LlmProviderDto)))
   async list(): Promise<LlmProviderDto[]> {
     return withSession(async (session) => {
-      const rows = await selectFromEntity(LlmProvider)
-        .orderBy(providerRef.name, "ASC")
-        .execute(session);
-      return rows.map((row) => ({
+      const [providers, credentials] = await Promise.all([
+        selectFromEntity(LlmProvider).orderBy(providerRef.name, "ASC").execute(session),
+        selectFromEntity(LlmProviderCredential).execute(session)
+      ]);
+      return providers.map((row) => ({
         id: row.id,
         name: row.name,
         baseUrl: row.baseUrl,
         model: row.model,
-        credentialCount: row.credentialCount,
+        credentialCount: credentials.filter((credential) => credential.providerId === row.id && credential.enabled === 1).length,
         enabled: row.enabled === 1
       }));
     });
