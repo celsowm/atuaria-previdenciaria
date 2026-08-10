@@ -1,0 +1,194 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Atuária Previdenciária Parameterization API fragment",
+    "version": "0.0.1"
+  },
+  "tags": [{ "name": "Parameterization" }],
+  "paths": {
+    "/api/evaluations/{evaluationId}/parameterizations": {
+      "get": {
+        "tags": ["Parameterization"],
+        "operationId": "listActuarialParameterizations",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "evaluationId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }],
+        "responses": {
+          "200": {
+            "description": "Versioned parameterizations for one evaluation",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/ActuarialParameterizationSummary" } } } }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Parameterization"],
+        "operationId": "createActuarialParameterization",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "evaluationId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateActuarialParameterization" } } } },
+        "responses": {
+          "201": { "description": "Created draft parameterization", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActuarialParameterization" } } } }
+        }
+      }
+    },
+    "/api/parameterizations/{id}": {
+      "get": {
+        "tags": ["Parameterization"],
+        "operationId": "getActuarialParameterization",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": {
+          "200": { "description": "Complete parameterization", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActuarialParameterization" } } } },
+          "404": { "description": "Parameterization not found" }
+        }
+      },
+      "patch": {
+        "tags": ["Parameterization"],
+        "operationId": "updateActuarialParameterization",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateActuarialParameterization" } } } },
+        "responses": {
+          "200": { "description": "Updated draft metadata", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActuarialParameterization" } } } }
+        }
+      }
+    },
+    "/api/parameterizations/{id}/parameters": {
+      "patch": {
+        "tags": ["Parameterization"],
+        "operationId": "setActuarialParameters",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SetActuarialParameters" } } } },
+        "responses": {
+          "200": { "description": "Updated parameter values", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActuarialParameterization" } } } }
+        }
+      }
+    },
+    "/api/parameterizations/{id}/adherence-candidate": {
+      "post": {
+        "tags": ["Parameterization"],
+        "operationId": "promoteAdherenceCandidate",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PromoteAdherenceCandidate" } } } },
+        "responses": {
+          "200": { "description": "Candidate promoted into snapshot", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActuarialParameterization" } } } }
+        }
+      }
+    },
+    "/api/parameterizations/{id}/approve": {
+      "post": {
+        "tags": ["Parameterization"],
+        "operationId": "approveActuarialParameterization",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": {
+          "200": { "description": "Approved immutable snapshot", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActuarialParameterization" } } } }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActuarialParameterValue": {
+        "type": "object",
+        "required": ["id", "code", "category", "label", "valueType", "valueJson", "unit", "source", "updatedAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "code": { "type": "string" },
+          "category": { "type": "string" },
+          "label": { "type": "string" },
+          "valueType": { "type": "string", "enum": ["NUMBER", "INTEGER", "TEXT", "BOOLEAN"] },
+          "valueJson": { "type": "string" },
+          "unit": { "type": ["string", "null"] },
+          "source": { "type": "string" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ActuarialHypothesisSelection": {
+        "type": "object",
+        "required": ["id", "hypothesisType", "adherenceStudyId", "candidateResultId", "biometricVersionId", "tableCode", "tableName", "versionLabel", "candidateRank", "selectedAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "hypothesisType": { "type": "string" },
+          "adherenceStudyId": { "type": "string", "format": "uuid" },
+          "candidateResultId": { "type": "string", "format": "uuid" },
+          "biometricVersionId": { "type": "string", "format": "uuid" },
+          "tableCode": { "type": "string" },
+          "tableName": { "type": "string" },
+          "versionLabel": { "type": "string" },
+          "candidateRank": { "type": "integer", "minimum": 1 },
+          "selectedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ActuarialParameterizationSummary": {
+        "type": "object",
+        "required": ["id", "evaluationId", "version", "name", "status", "notes", "createdAt", "updatedAt", "approvedAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "evaluationId": { "type": "integer", "minimum": 1 },
+          "version": { "type": "integer", "minimum": 1 },
+          "name": { "type": "string" },
+          "status": { "type": "string", "enum": ["DRAFT", "APPROVED", "SUPERSEDED"] },
+          "notes": { "type": ["string", "null"] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "approvedAt": { "type": ["string", "null"], "format": "date-time" }
+        }
+      },
+      "ActuarialParameterization": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ActuarialParameterizationSummary" },
+          {
+            "type": "object",
+            "required": ["parameters", "hypotheses"],
+            "properties": {
+              "parameters": { "type": "array", "items": { "$ref": "#/components/schemas/ActuarialParameterValue" } },
+              "hypotheses": { "type": "array", "items": { "$ref": "#/components/schemas/ActuarialHypothesisSelection" } }
+            }
+          }
+        ]
+      },
+      "CreateActuarialParameterization": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "notes": { "type": ["string", "null"], "maxLength": 4000 },
+          "copyFromId": { "type": "string", "format": "uuid" }
+        }
+      },
+      "UpdateActuarialParameterization": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "notes": { "type": ["string", "null"], "maxLength": 4000 }
+        }
+      },
+      "SetActuarialParameterValue": {
+        "type": "object",
+        "required": ["code", "category", "label", "valueType", "valueJson"],
+        "properties": {
+          "code": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "category": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "label": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "valueType": { "type": "string", "enum": ["NUMBER", "INTEGER", "TEXT", "BOOLEAN"] },
+          "valueJson": { "type": "string", "minLength": 1 },
+          "unit": { "type": ["string", "null"], "maxLength": 60 },
+          "source": { "type": ["string", "null"], "maxLength": 120 }
+        }
+      },
+      "SetActuarialParameters": {
+        "type": "object",
+        "required": ["parameters"],
+        "properties": {
+          "parameters": { "type": "array", "minItems": 1, "items": { "$ref": "#/components/schemas/SetActuarialParameterValue" } }
+        }
+      },
+      "PromoteAdherenceCandidate": {
+        "type": "object",
+        "required": ["candidateResultId"],
+        "properties": { "candidateResultId": { "type": "string", "format": "uuid" } }
+      }
+    }
+  }
+}
