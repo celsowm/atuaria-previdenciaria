@@ -37,13 +37,16 @@ const kinds = ["Mortalidade geral", "Mortalidade de inválidos", "Entrada em inv
 const sexScopes = ["BOTH", "MALE", "FEMALE", "UNISEX"] as const;
 const importSteps = ["Identificação", "Mapeamento", "Revisão"];
 
-function parseNumber(value: unknown) {
+function parseNumber(value: unknown, percentAsFraction = false) {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  let text = String(value ?? "").trim().replace(/%$/, "");
+  const raw = String(value ?? "").trim();
+  const percentage = /%$/.test(raw);
+  let text = raw.replace(/%$/, "");
   if (!text) return null;
   if (text.includes(",")) text = text.replace(/\./g, "").replace(",", ".");
   const parsed = Number(text);
-  return Number.isFinite(parsed) ? parsed : null;
+  if (!Number.isFinite(parsed)) return null;
+  return percentage && percentAsFraction ? parsed / 100 : parsed;
 }
 
 function normalizeSex(value: unknown, fallback: BiometricPoint["sex"]): BiometricPoint["sex"] | null {
@@ -226,7 +229,7 @@ function ImportTableDialog({ open, onClose, onCreated }: { open: boolean; onClos
     const errors: string[] = [];
     rows.forEach((row, index) => {
       const age = parseNumber(row[ageIndex]);
-      const qx = parseNumber(row[qxIndex]);
+      const qx = parseNumber(row[qxIndex], true);
       const sex = normalizeSex(sexIndex >= 0 ? row[sexIndex] : "", fixedSex);
       if (age === null || !Number.isInteger(age) || age < 0 || age > 130 || qx === null || qx < 0 || qx > 1 || !sex) {
         errors.push(`Linha ${index + 2}: idade, sexo ou qx inválido.`);
