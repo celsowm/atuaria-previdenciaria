@@ -28,11 +28,12 @@ import { CritiquePage } from "./features/critique/CritiquePage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { EvaluationPage } from "./features/evaluations/EvaluationPage";
 import { ImportWizardPage } from "./features/data-studio/ImportWizardPage";
+import { ParameterizationPage } from "./features/parameterization/ParameterizationPage";
 import { PlansPage } from "./features/plans/PlansPage";
 import { navigate, parseRoute, usePathname, type AppRoute } from "./routing";
 
 const nav: Array<{ path: string; label: string; icon: ReactNode; active: AppRoute["name"][] }> = [
-  { path: "/avaliacoes", label: "Avaliações", icon: <AssessmentOutlined />, active: ["evaluations"] },
+  { path: "/avaliacoes", label: "Avaliações", icon: <AssessmentOutlined />, active: ["evaluations", "parameterization"] },
   { path: "/planos", label: "Planos", icon: <ApartmentOutlined />, active: ["plans"] },
   { path: "/data-studio", label: "Data Studio", icon: <TableViewOutlined />, active: ["data-studio", "critique"] },
   { path: "/hipoteses-e-tabuas", label: "Hipóteses & Tábuas", icon: <HubOutlined />, active: ["assumptions"] },
@@ -153,7 +154,8 @@ export default function App() {
     <Box component="main" sx={{ minWidth: 0 }}>
       <Box sx={{ px: { xs: 2, sm: 3, lg: 5 }, py: { xs: 3, lg: 4 }, maxWidth: 1480, mx: "auto" }}>
         {route.name === "evaluations" && route.evaluationId === undefined && <DashboardPage onOpenEvaluation={(id) => navigate(`/avaliacoes/${id}`)} onImport={() => navigate("/data-studio")} />}
-        {route.name === "evaluations" && route.evaluationId !== undefined && <EvaluationPage evaluationId={route.evaluationId} onBack={() => navigate("/avaliacoes")} />}
+        {route.name === "evaluations" && route.evaluationId !== undefined && <EvaluationPage evaluationId={route.evaluationId} onBack={() => navigate("/avaliacoes")} onOpenParameterization={() => navigate(`/avaliacoes/${route.evaluationId}/parametrizacao`)} />}
+        {route.name === "parameterization" && <ParameterizationPage evaluationId={route.evaluationId} parameterizationId={route.parameterizationId} onOpen={(id) => navigate(`/avaliacoes/${route.evaluationId}/parametrizacao/${id}`, { replace: route.parameterizationId === undefined })} onBack={() => navigate(`/avaliacoes/${route.evaluationId}`)} />}
         {route.name === "plans" && <PlansPage planId={route.planId} onOpenPlan={(id) => navigate(`/planos/${id}`)} onBack={() => navigate("/planos")} />}
         {route.name === "data-studio" && <ImportWizardPage onClose={() => navigate("/avaliacoes")} onCritique={(id) => navigate(`/data-studio/criticas/${id}`)} />}
         {route.name === "critique" && <CritiquePage importJobId={route.importJobId} onBack={() => navigate("/data-studio")} />}
