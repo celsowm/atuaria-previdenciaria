@@ -1,0 +1,39 @@
+{
+  "name": "mortality-example",
+  "workbook": "/ABSOLUTE/PRIVATE/PATH/legacy-adherence.xlsx",
+  "alpha": 0.05,
+  "fisherSplitAge": 70,
+  "tolerance": {
+    "absolute": 1e-8,
+    "relative": 1e-6
+  },
+  "matrix": {
+    "sheet": "EXPECTED",
+    "startRow": 2,
+    "endRow": 102,
+    "ageColumn": "A",
+    "sexColumn": "B",
+    "exposureColumn": "C",
+    "observedColumn": "D"
+  },
+  "candidates": [
+    {
+      "label": "candidate-A",
+      "expectedColumn": "E",
+      "summary": {
+        "expectedEvents": { "sheet": "SUMMARY", "cell": "B2" },
+        "chiSquare": { "sheet": "SUMMARY", "cell": "B3" },
+        "chiSquareCritical": { "sheet": "SUMMARY", "cell": "B4" },
+        "chiSquareP": { "sheet": "SUMMARY", "cell": "B5" },
+        "ksD": { "sheet": "SUMMARY", "cell": "B6" },
+        "ksCritical": { "sheet": "SUMMARY", "cell": "B7" },
+        "ksP": { "sheet": "SUMMARY", "cell": "B8" },
+        "zStatistic": { "sheet": "SUMMARY", "cell": "B9" },
+        "zCritical": { "sheet": "SUMMARY", "cell": "B10" },
+        "zP": { "sheet": "SUMMARY", "cell": "B11" },
+        "fisherP": { "sheet": "SUMMARY", "cell": "B12" },
+        "dqm": { "sheet": "SUMMARY", "cell": "B13" }
+      }
+    }
+  ]
+}
