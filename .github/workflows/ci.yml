@@ -77,3 +77,53 @@ jobs:
             > /tmp/atuas-match-result.json
 
           node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-match-result.json","utf8")); if(!x.matched||!x.exact||x.compatibility!==100) process.exit(1)'
+
+          cat > /tmp/atuas-bad.csv <<'CSV'
+          MATRIC,DT_NASC,SEXO,DT_ADMIS,DT_PLANO,SAL_PART
+          000003,31/02/1985,M,01/01/2020,01/01/2010,0
+          000003,25/11/1985,F,01/01/2020,01/01/2021,100
+          CSV
+
+          BAD_RULES='[{"sources":["MATRIC"],"targets":["participant.registration"],"transform":"auto"},{"sources":["DT_NASC"],"targets":["participant.birthDate"],"transform":"date-br"},{"sources":["SEXO"],"targets":["participant.sex"],"transform":"sex"},{"sources":["DT_ADMIS"],"targets":["participant.admissionDate"],"transform":"date-br"},{"sources":["DT_PLANO"],"targets":["participant.planJoinDate"],"transform":"date-br"},{"sources":["SAL_PART"],"targets":["participant.contributionSalary"],"transform":"auto"}]'
+
+          curl --fail --silent --show-error \
+            -X POST http://localhost:3001/api/imports/ \
+            -F 'file=@/tmp/atuas-bad.csv;type=text/csv' \
+            -F 'population=Ativos' \
+            -F 'headerRow=1' \
+            -F 'profileName=CI Ativos Crítica' \
+            -F 'saveProfile=true' \
+            -F "rulesJson=$BAD_RULES" \
+            > /tmp/atuas-bad-import.json
+
+          BAD_JOB_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/atuas-bad-import.json","utf8")).id')
+          curl --fail --silent --show-error \
+            -H 'content-type: application/json' \
+            -d "{\"importJobId\":\"$BAD_JOB_ID\"}" \
+            http://localhost:3001/api/critique/runs \
+            > /tmp/atuas-bad-critique.json
+
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-bad-critique.json","utf8")); if(x.status!=="COMPLETED"||x.totalIssues<4||x.blockingCount<2) process.exit(1)'
+
+          BAD_RUN_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/atuas-bad-critique.json","utf8")).id')
+          curl --fail --silent --show-error \
+            http://localhost:3001/api/critique/runs/$BAD_RUN_ID/issues \
+            > /tmp/atuas-bad-issues.json
+
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-bad-issues.json","utf8")); if(!Array.isArray(x)||x.length<4||!x.some(i=>i.severity==="BLOCKING")) process.exit(1)'
+
+          ISSUE_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/atuas-bad-issues.json","utf8"))[0].id')
+          curl --fail --silent --show-error \
+            http://localhost:3001/api/critique/issues/$ISSUE_ID \
+            > /tmp/atuas-issue-detail.json
+
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-issue-detail.json","utf8")); if(!x.rawJson||!x.normalizedJson||!x.canonicalJson||x.status!=="OPEN") process.exit(1)'
+
+          curl --fail --silent --show-error \
+            -X PATCH \
+            -H 'content-type: application/json' \
+            -d '{"status":"RESOLVED","note":"Corrigido na origem durante o teste de integração."}' \
+            http://localhost:3001/api/critique/issues/$ISSUE_ID \
+            > /tmp/atuas-resolved-issue.json
+
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync("/tmp/atuas-resolved-issue.json","utf8")); if(x.status!=="RESOLVED"||!x.resolutionNote||!x.resolvedAt) process.exit(1)'
