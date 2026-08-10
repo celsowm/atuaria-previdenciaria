@@ -1,5 +1,5 @@
 import { mkdir } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname } from "node:path";
 import sqlite3 from "sqlite3";
 import {
   Orm,
@@ -8,6 +8,7 @@ import {
   type SqliteClientLike
 } from "metal-orm";
 import { seedDemoData, seedReferenceData } from "./database-seed.js";
+import { databaseFilePath } from "./runtime-paths.js";
 import { synchronizeEntitySchema } from "./schema.js";
 
 let database: sqlite3.Database | null = null;
@@ -44,7 +45,7 @@ function sqliteClient(db: sqlite3.Database): SqliteClientLike {
 export async function initializeDatabase() {
   if (database && orm) return databasePath!;
 
-  const file = resolve(process.env.ATUAS_DB_PATH ?? "./data/atuas.sqlite");
+  const file = databaseFilePath();
   await mkdir(dirname(file), { recursive: true });
 
   database = new sqlite3.Database(file);
