@@ -55,9 +55,9 @@ jobs:
             > /tmp/adh-derived.json
 
           V2_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/adh-derived.json","utf8")).version.id')
+          export V1_ID V2_ID
 
           node - <<'NODE' > /tmp/adh-study-request.json
-          const fs = require('fs');
           const v1 = process.env.V1_ID;
           const v2 = process.env.V2_ID;
           process.stdout.write(JSON.stringify({
@@ -107,6 +107,3 @@ jobs:
           if (Math.abs(result.points[0].expectedEvents - 1) > 1e-10) process.exit(1);
           if (Math.abs(result.points[2].residual) > 1e-10) process.exit(1);
           NODE
-        env:
-          V1_ID: ${{ env.V1_ID }}
-          V2_ID: ${{ env.V2_ID }}
