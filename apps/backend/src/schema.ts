@@ -16,6 +16,7 @@ import {
   MappingProfile,
   MappingRule
 } from "./domain/entities.js";
+import { CritiqueIssue, CritiqueRule, CritiqueRun } from "./domain/critique-entities.js";
 
 const entityTypes = [
   Evaluation,
@@ -24,6 +25,9 @@ const entityTypes = [
   ImportFile,
   ImportJob,
   ImportRow,
+  CritiqueRule,
+  CritiqueRun,
+  CritiqueIssue,
   LlmProvider,
   LlmProviderCredential
 ] as const;
