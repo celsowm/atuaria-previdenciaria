@@ -30,6 +30,11 @@ import {
   AdherenceObservation,
   AdherenceStudy
 } from "./domain/adherence-entities.js";
+import {
+  ActuarialHypothesisSelection,
+  ActuarialParameterization,
+  ActuarialParameterValue
+} from "./domain/parameterization-entities.js";
 
 const entityTypes = [
   User,
@@ -51,6 +56,9 @@ const entityTypes = [
   AdherenceObservation,
   AdherenceCandidateResult,
   AdherenceCandidatePoint,
+  ActuarialParameterization,
+  ActuarialParameterValue,
+  ActuarialHypothesisSelection,
   LlmProvider,
   LlmProviderCredential
 ] as const;
