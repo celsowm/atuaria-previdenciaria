@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, join } from "node:path";
 import type { UploadedFileInfo } from "adorn-api";
 import { getTableDefFromEntity, selectFromEntity } from "metal-orm";
 import { createSession } from "../db.js";
@@ -11,6 +11,7 @@ import {
   MappingProfile,
   MappingRule
 } from "../domain/entities.js";
+import { storageRootPath } from "../runtime-paths.js";
 import {
   compareHeaders,
   fingerprintHeaders,
@@ -213,7 +214,7 @@ export async function persistImport(file: UploadedFileInfo, options: ImportOptio
   const fileId = randomUUID();
   const jobId = randomUUID();
   const fileSha256 = createHash("sha256").update(buffer).digest("hex");
-  const storageRoot = resolve(process.env.ATUAS_STORAGE_PATH ?? "./data/storage");
+  const storageRoot = storageRootPath();
   const relativePath = join("imports", fileId, safeName(file.originalName));
   const absolutePath = join(storageRoot, relativePath);
   await mkdir(dirname(absolutePath), { recursive: true });
