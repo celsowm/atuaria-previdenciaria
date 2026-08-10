@@ -1,8 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { basename, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import type { UploadedFileInfo } from "adorn-api";
-import { selectFromEntity } from "metal-orm";
+import { getTableDefFromEntity, selectFromEntity } from "metal-orm";
 import { createSession } from "../db.js";
 import {
   ImportFile,
@@ -37,8 +37,8 @@ type ImportOptions = {
 export type ImportResult = {
   id: string;
   fileId: string;
-  mappingProfileId?: number | null;
-  mappingProfileVersion?: string | null;
+  mappingProfileId: number | null;
+  mappingProfileVersion: string | null;
   fileName: string;
   fileSha256: string;
   population: string;
@@ -56,6 +56,12 @@ async function withSession<T>(handler: (session: ReturnType<typeof createSession
   } finally {
     await session.dispose();
   }
+}
+
+function requireTable(entity: typeof MappingProfile | typeof MappingRule | typeof ImportFile | typeof ImportJob | typeof ImportRow) {
+  const table = getTableDefFromEntity(entity);
+  if (!table) throw new Error(`Metal ORM metadata not bootstrapped for ${entity.name}`);
+  return table;
 }
 
 function parseProfileVersion(version: string) {
@@ -152,11 +158,12 @@ async function resolveProfile(
   profile.updatedAt = new Date().toISOString();
 
   await withSession(async (session) => {
-    await session.persist(profile);
+    session.trackNew(requireTable(MappingProfile), profile, profile.id);
     await session.commit();
   });
 
   await withSession(async (session) => {
+    const table = requireTable(MappingRule);
     for (const [index, input] of options.rules.entries()) {
       const rule = new MappingRule();
       rule.id = randomUUID();
@@ -165,7 +172,7 @@ async function resolveProfile(
       rule.sourcesJson = JSON.stringify(input.sources);
       rule.targetsJson = JSON.stringify(input.targets);
       rule.transform = input.transform;
-      await session.persist(rule);
+      session.trackNew(table, rule, rule.id);
     }
     await session.commit();
   });
@@ -189,6 +196,7 @@ async function markJobFailed(jobId: string) {
     if (!job) return;
     job.status = "FAILED";
     job.completedAt = new Date().toISOString();
+    session.markDirty(job);
     await session.commit();
   });
 }
@@ -208,7 +216,7 @@ export async function persistImport(file: UploadedFileInfo, options: ImportOptio
   const storageRoot = resolve(process.env.ATUAS_STORAGE_PATH ?? "./data/storage");
   const relativePath = join("imports", fileId, safeName(file.originalName));
   const absolutePath = join(storageRoot, relativePath);
-  await mkdir(resolve(absolutePath, ".."), { recursive: true });
+  await mkdir(dirname(absolutePath), { recursive: true });
   await writeFile(absolutePath, buffer);
 
   const createdAt = new Date().toISOString();
@@ -239,8 +247,8 @@ export async function persistImport(file: UploadedFileInfo, options: ImportOptio
   job.completedAt = null;
 
   await withSession(async (session) => {
-    await session.persist(sourceFile);
-    await session.persist(job);
+    session.trackNew(requireTable(ImportFile), sourceFile, sourceFile.id);
+    session.trackNew(requireTable(ImportJob), job, job.id);
     await session.commit();
   });
 
@@ -252,6 +260,7 @@ export async function persistImport(file: UploadedFileInfo, options: ImportOptio
     for (let offset = 0; offset < parsed.rows.length; offset += batchSize) {
       const batch = parsed.rows.slice(offset, offset + batchSize);
       await withSession(async (session) => {
+        const table = requireTable(ImportRow);
         for (const [batchIndex, sourceRow] of batch.entries()) {
           const raw = rowToObject(parsed.headers, sourceRow);
           const normalized = normalizeSourceRow(raw);
@@ -269,7 +278,7 @@ export async function persistImport(file: UploadedFileInfo, options: ImportOptio
           row.canonicalJson = JSON.stringify(canonical);
           row.validationStatus = validationErrors.length ? "INVALID" : "VALID";
           row.validationErrorsJson = JSON.stringify(validationErrors);
-          await session.persist(row);
+          session.trackNew(table, row, row.id);
         }
         await session.commit();
       });
@@ -282,6 +291,7 @@ export async function persistImport(file: UploadedFileInfo, options: ImportOptio
       storedJob.validRows = validRows;
       storedJob.invalidRows = invalidRows;
       storedJob.completedAt = new Date().toISOString();
+      session.markDirty(storedJob);
       await session.commit();
     });
   } catch (error) {
