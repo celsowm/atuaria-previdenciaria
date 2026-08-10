@@ -60,6 +60,60 @@
         }
       }
     },
+    "/api/mapping-profiles/match": {
+      "post": {
+        "tags": ["Data Studio"],
+        "operationId": "matchMappingProfile",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MappingProfileMatchRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Best compatible mapping profile",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MappingProfileMatch" } } }
+          }
+        }
+      }
+    },
+    "/api/imports/": {
+      "post": {
+        "tags": ["Data Studio"],
+        "operationId": "createImport",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file", "population", "headerRow", "rulesJson"],
+                "properties": {
+                  "file": { "type": "string", "format": "binary" },
+                  "population": { "type": "string" },
+                  "evaluationId": { "type": "integer", "minimum": 1 },
+                  "profileId": { "type": "integer", "minimum": 1 },
+                  "profileName": { "type": "string" },
+                  "saveProfile": { "type": "boolean" },
+                  "sheetName": { "type": "string" },
+                  "headerRow": { "type": "integer", "minimum": 1 },
+                  "rulesJson": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Persisted import",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ImportResult" } } }
+          }
+        }
+      }
+    },
     "/api/llm/providers/": {
       "get": {
         "tags": ["AI"],
@@ -119,6 +173,47 @@
           "mappedFields": { "type": "integer" },
           "totalFields": { "type": "integer" },
           "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "MappingProfileMatchRequest": {
+        "type": "object",
+        "required": ["population", "headers"],
+        "properties": {
+          "population": { "type": "string", "minLength": 1 },
+          "headers": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        }
+      },
+      "MappingProfileMatch": {
+        "type": "object",
+        "required": ["matched", "compatibility", "exact", "missingColumns", "newColumns", "rulesJson"],
+        "properties": {
+          "matched": { "type": "boolean" },
+          "profileId": { "type": "integer" },
+          "profileName": { "type": "string" },
+          "version": { "type": "string" },
+          "compatibility": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "exact": { "type": "boolean" },
+          "missingColumns": { "type": "array", "items": { "type": "string" } },
+          "newColumns": { "type": "array", "items": { "type": "string" } },
+          "rulesJson": { "type": "string" }
+        }
+      },
+      "ImportResult": {
+        "type": "object",
+        "required": ["id", "fileId", "mappingProfileId", "mappingProfileVersion", "fileName", "fileSha256", "population", "sheetName", "rowCount", "validRows", "invalidRows", "status"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "fileId": { "type": "string", "format": "uuid" },
+          "mappingProfileId": { "type": ["integer", "null"] },
+          "mappingProfileVersion": { "type": ["string", "null"] },
+          "fileName": { "type": "string" },
+          "fileSha256": { "type": "string" },
+          "population": { "type": "string" },
+          "sheetName": { "type": "string" },
+          "rowCount": { "type": "integer", "minimum": 0 },
+          "validRows": { "type": "integer", "minimum": 0 },
+          "invalidRows": { "type": "integer", "minimum": 0 },
+          "status": { "type": "string" }
         }
       },
       "LlmProvider": {
