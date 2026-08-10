@@ -15,10 +15,10 @@ export class Plan {
   modality!: string;
 
   @Column(col.text())
-  sponsorName?: string | null;
+  sponsorName!: string | null;
 
   @Column(col.text())
-  cnpj?: string | null;
+  cnpj!: string | null;
 
   @Column(col.notNull(col.text()))
   status!: string;
