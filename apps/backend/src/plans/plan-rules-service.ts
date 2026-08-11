@@ -219,12 +219,8 @@ export async function createPlanRulesVersion(
     }
 
     const versionNumber = (existing[0]?.version ?? 0) + 1;
-    const effectiveFrom = input.effectiveFrom !== undefined
-      ? normalizeDate(input.effectiveFrom)
-      : copyFrom?.effectiveFrom ?? null;
-    const effectiveTo = input.effectiveTo !== undefined
-      ? normalizeDate(input.effectiveTo)
-      : copyFrom?.effectiveTo ?? null;
+    const effectiveFrom = input.effectiveFrom !== undefined ? normalizeDate(input.effectiveFrom) : null;
+    const effectiveTo = input.effectiveTo !== undefined ? normalizeDate(input.effectiveTo) : null;
     validatePeriod(effectiveFrom, effectiveTo);
 
     const now = new Date().toISOString();
