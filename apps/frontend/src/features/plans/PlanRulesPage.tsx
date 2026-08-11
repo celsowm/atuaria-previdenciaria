@@ -137,6 +137,12 @@ export function PlanRulesPage({
     return modality ? [...commonRules, ...modalityRules[modality]] : commonRules;
   }, [detail?.modality, plan?.modality]);
 
+  const knownCodes = useMemo(() => new Set(specs.map((spec) => spec.code)), [specs]);
+  const additionalRules = useMemo(
+    () => (detail?.rules ?? []).filter((rule) => !knownCodes.has(rule.code)),
+    [detail?.rules, knownCodes]
+  );
+
   const loadVersions = async () => {
     const rows = await api.planRulesVersions(planId);
     setVersions(rows);
@@ -189,7 +195,7 @@ export function PlanRulesPage({
   };
 
   const buildRules = (): SetPlanRuleValueInput[] => {
-    return specs.flatMap((spec) => {
+    const catalogRules = specs.flatMap<SetPlanRuleValueInput>((spec) => {
       const raw = values[spec.code]?.trim() ?? "";
       if (!raw) return [];
 
@@ -201,7 +207,7 @@ export function PlanRulesPage({
         parsed = Number(raw);
         if (!Number.isInteger(parsed)) throw new Error(`${spec.label}: informe um número inteiro.`);
       } else if (spec.valueType === "BOOLEAN") {
-        if (!['true', 'false'].includes(raw)) throw new Error(`${spec.label}: selecione Sim ou Não.`);
+        if (!["true", "false"].includes(raw)) throw new Error(`${spec.label}: selecione Sim ou Não.`);
         parsed = raw === "true";
       } else {
         parsed = raw;
@@ -217,6 +223,18 @@ export function PlanRulesPage({
         source: "PLAN_REGULATION"
       }];
     });
+
+    const preservedExtensions: SetPlanRuleValueInput[] = additionalRules.map((rule) => ({
+      code: rule.code,
+      category: rule.category,
+      label: rule.label,
+      valueType: rule.valueType as SetPlanRuleValueInput["valueType"],
+      valueJson: rule.valueJson,
+      unit: rule.unit,
+      source: rule.source
+    }));
+
+    return [...catalogRules, ...preservedExtensions];
   };
 
   const persistDraft = async () => {
@@ -376,6 +394,23 @@ export function PlanRulesPage({
           })}
         </Box>
       </Paper>)}
+
+      {additionalRules.length > 0 && <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider" }}>
+        <Typography variant="h6">Regras adicionais</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: .5, mb: 1.5 }}>
+          Extensões fora do catálogo visual são preservadas integralmente ao salvar este formulário. A edição dessas regras continua disponível pela API até que ganhem um componente específico na interface.
+        </Typography>
+        <Stack divider={<Divider />}>
+          {additionalRules.map((rule) => <Box key={rule.id} sx={{ py: 1.25 }}>
+            <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={1}>
+              <Box><Typography fontWeight={700}>{rule.label}</Typography><Typography variant="body2" color="text.secondary">{rule.code} · {rule.category}</Typography></Box>
+              <Chip size="small" variant="outlined" label={rule.valueType} />
+            </Stack>
+            <Typography variant="body2" sx={{ mt: .75, fontFamily: "monospace", overflowWrap: "anywhere" }}>{rule.valueJson}{rule.unit ? ` · ${rule.unit}` : ""}</Typography>
+            <Typography variant="caption" color="text.secondary">Origem: {rule.source}</Typography>
+          </Box>)}
+        </Stack>
+      </Paper>}
 
       {detail.rulesFingerprint && <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider" }}>
         <Stack direction="row" spacing={1} alignItems="center"><FingerprintRounded color="primary" /><Typography variant="h6">Fingerprint das regras</Typography></Stack>
