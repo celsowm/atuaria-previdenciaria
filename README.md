@@ -28,6 +28,7 @@ A base funcional inclui:
 - Hypothesis Lab com observado × esperado, χ², KS, Z, Fisher e DQM;
 - ranking persistido das versões biométricas candidatas;
 - Parametrização Atuarial versionada, com promoção de hipóteses, parâmetros tipados e snapshot aprovado imutável;
+- Motor de Cálculo com `CalculationRun` imutável, registry de engines, inputs congelados e fingerprints reproduzíveis;
 - fundação para providers LLM OpenAI-compatible.
 
 ## Produto e organização
@@ -215,6 +216,39 @@ URLs:
 
 Detalhes do contrato estão em `docs/PARAMETERIZATION.md`.
 
+## Motor de Cálculo
+
+O cálculo não consulta estado mutável depois de iniciado. Cada `CalculationRun` referencia uma parametrização `APPROVED`, congela o import mais recente de cada população e persiste fingerprints de parâmetros, dados, input completo e resultado.
+
+```text
+APPROVED Parameterization
+          +
+COMPLETED imports
+          ↓
+CalculationRun
+  ├─ CalculationInput 1:N
+  └─ CalculationResultMetric 1:N
+```
+
+O registry `CalculationEngine` permite adicionar novos motores sem um `switch` central por modalidade ou versão. O motor inicial é:
+
+```text
+CORE_PRECALCULATION / core-precalculation-v1
+```
+
+Ele é classificado como `PRECALCULATION`: produz consolidação cadastral, idade média, composição por sexo e fatores de desconto quando existe taxa real de juros parametrizada. Ele deliberadamente **não** declara reservas, provisões, déficit ou superávit como resultado oficial enquanto as regras versionadas de benefício/contribuição do plano ainda não estiverem modeladas.
+
+Solicitar novamente o mesmo engine com exatamente os mesmos inputs reutiliza o `CalculationRun` concluído pelo `inputFingerprint`.
+
+URLs:
+
+```text
+/avaliacoes/:id/calculos
+/avaliacoes/:id/calculos/:calculationId
+```
+
+Detalhes estão em `docs/CALCULATION_ENGINE.md`.
+
 ## OpenAPI e frontend
 
 Os contratos ficam em `openapi/`, com um snapshot base e fragmentos independentes por domínio. O script `apps/frontend/scripts/generate-api.mjs` mescla os fragmentos antes de executar `better-openapi-typescript`.
@@ -258,6 +292,10 @@ PATCH /api/parameterizations/:id/parameters
 POST  /api/parameterizations/:id/adherence-candidate
 POST  /api/parameterizations/:id/hypothesis/remove
 POST  /api/parameterizations/:id/approve
+GET   /api/calculation-engines
+GET   /api/evaluations/:evaluationId/calculations
+POST  /api/evaluations/:evaluationId/calculations
+GET   /api/calculations/:id
 POST  /api/imports/
 POST  /api/mapping-profiles/match
 POST  /api/critique/runs
@@ -345,6 +383,8 @@ O diretório `/data/` inteiro é ignorado pelo Git. SQLite é adequado enquanto 
 
 ## Próximo slice
 
-A Parametrização agora estabelece o contrato de entrada do **Motor de Cálculo**. O próximo módulo deve criar `CalculationRun` referenciando explicitamente uma parametrização `APPROVED`, registrar versão do motor, fingerprints dos inputs, execução e resultados reproduzíveis.
+A infraestrutura de cálculo está pronta. Para o primeiro engine `ACTUARIAL` oficial, o cadastro de Plano precisa ganhar **regras versionadas de benefício, contribuição e elegibilidade** (`PlanRulesVersion`), permitindo que os motores BD/CD/CV consumam regras congeladas da mesma forma que já consomem parâmetros e massas.
+
+Depois disso, o **Fechamento Atuarial** poderá selecionar explicitamente um `CalculationRun` concluído, reconciliar resultados e congelar a rodada final.
 
 Detalhes adicionais da fundação SaaS estão em `docs/SAAS_FOUNDATION.md`.
