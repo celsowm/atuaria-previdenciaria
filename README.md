@@ -27,6 +27,7 @@ A base funcional inclui:
 - derivação imutável por escala de qx e deslocamento etário;
 - Hypothesis Lab com observado × esperado, χ², KS, Z, Fisher e DQM;
 - ranking persistido das versões biométricas candidatas;
+- Parametrização Atuarial versionada, com promoção de hipóteses, parâmetros tipados e snapshot aprovado imutável;
 - fundação para providers LLM OpenAI-compatible.
 
 ## Produto e organização
@@ -189,6 +190,31 @@ O ranking inicial usa:
 
 O ranking é auxílio operacional e não aprova automaticamente uma hipótese.
 
+## Parametrização Atuarial
+
+Cada avaliação pode possuir uma sequência versionada de parametrizações. Existe no máximo um `DRAFT`; após aprovação, a versão vira um snapshot imutável e a aprovada anterior passa para `SUPERSEDED`.
+
+```text
+ActuarialParameterization
+  ├─ ActuarialParameterValue 1:N
+  └─ ActuarialHypothesisSelection 1:N
+```
+
+A primeira UI cobre taxa real de juros, crescimento real de salários, crescimento real de benefícios, rotatividade e método de financiamento. O modelo de valores é tipado e extensível para não transformar a tabela em uma lista fixa de colunas.
+
+Candidatos dos Estudos de Aderência podem ser promovidos explicitamente para o snapshot. A seleção persiste o estudo, resultado candidato, versão biométrica, tábua e posição no ranking. Um estudo sem avaliação ainda pode ser associado na promoção; um estudo de outra avaliação é rejeitado.
+
+Versões aprovadas não podem ser editadas. Uma nova versão pode copiar a anterior, alterar/remover parâmetros e hipóteses enquanto estiver em rascunho e então ser aprovada novamente.
+
+URLs:
+
+```text
+/avaliacoes/:id/parametrizacao
+/avaliacoes/:id/parametrizacao/:parameterizationId
+```
+
+Detalhes do contrato estão em `docs/PARAMETERIZATION.md`.
+
 ## OpenAPI e frontend
 
 Os contratos ficam em `openapi/`, com um snapshot base e fragmentos independentes por domínio. O script `apps/frontend/scripts/generate-api.mjs` mescla os fragmentos antes de executar `better-openapi-typescript`.
@@ -225,6 +251,13 @@ GET   /api/plans/
 POST  /api/plans/
 GET   /api/dashboard
 GET   /api/evaluations/
+GET   /api/evaluations/:evaluationId/parameterizations
+POST  /api/evaluations/:evaluationId/parameterizations
+GET   /api/parameterizations/:id
+PATCH /api/parameterizations/:id/parameters
+POST  /api/parameterizations/:id/adherence-candidate
+POST  /api/parameterizations/:id/hypothesis/remove
+POST  /api/parameterizations/:id/approve
 POST  /api/imports/
 POST  /api/mapping-profiles/match
 POST  /api/critique/runs
@@ -310,4 +343,8 @@ motor determinístico → fatos estruturados → LLM → explicação/minuta/rev
 
 O diretório `/data/` inteiro é ignorado pelo Git. SQLite é adequado enquanto cada deployment operar com uma única instância escritora e volume persistente. Escala horizontal com múltiplos writers deve migrar a persistência operacional para PostgreSQL, sem contaminar as regras atuariais.
 
-Detalhes adicionais estão em `docs/SAAS_FOUNDATION.md`.
+## Próximo slice
+
+A Parametrização agora estabelece o contrato de entrada do **Motor de Cálculo**. O próximo módulo deve criar `CalculationRun` referenciando explicitamente uma parametrização `APPROVED`, registrar versão do motor, fingerprints dos inputs, execução e resultados reproduzíveis.
+
+Detalhes adicionais da fundação SaaS estão em `docs/SAAS_FOUNDATION.md`.
