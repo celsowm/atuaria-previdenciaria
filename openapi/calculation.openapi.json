@@ -1,0 +1,148 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Atuária Previdenciária Calculation API fragment",
+    "version": "0.0.1"
+  },
+  "tags": [{ "name": "Calculation" }],
+  "paths": {
+    "/api/calculation-engines": {
+      "get": {
+        "tags": ["Calculation"],
+        "operationId": "listCalculationEngines",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Registered calculation engines",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/CalculationEngine" } } } }
+          }
+        }
+      }
+    },
+    "/api/evaluations/{evaluationId}/calculations": {
+      "get": {
+        "tags": ["Calculation"],
+        "operationId": "listCalculationRuns",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "evaluationId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }],
+        "responses": {
+          "200": {
+            "description": "Calculation runs for an evaluation",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/CalculationRunSummary" } } } }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Calculation"],
+        "operationId": "createCalculationRun",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "evaluationId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateCalculationRun" } } } },
+        "responses": {
+          "201": { "description": "Executed or reused deterministic calculation run", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CalculationRun" } } } }
+        }
+      }
+    },
+    "/api/calculations/{id}": {
+      "get": {
+        "tags": ["Calculation"],
+        "operationId": "getCalculationRun",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": {
+          "200": { "description": "Complete immutable calculation run", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CalculationRun" } } } },
+          "404": { "description": "Calculation run not found" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CalculationEngine": {
+        "type": "object",
+        "required": ["code", "version", "label", "description", "resultKind"],
+        "properties": {
+          "code": { "type": "string" },
+          "version": { "type": "string" },
+          "label": { "type": "string" },
+          "description": { "type": "string" },
+          "resultKind": { "type": "string", "enum": ["PRECALCULATION", "ACTUARIAL"] }
+        }
+      },
+      "CalculationRunSummary": {
+        "type": "object",
+        "required": ["id", "evaluationId", "parameterizationId", "engineCode", "engineVersion", "status", "inputFingerprint", "resultFingerprint", "inputImportCount", "inputRowCount", "validRowCount", "invalidRowCount", "createdAt", "completedAt", "errorMessage"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "evaluationId": { "type": "integer", "minimum": 1 },
+          "parameterizationId": { "type": "string", "format": "uuid" },
+          "engineCode": { "type": "string" },
+          "engineVersion": { "type": "string" },
+          "status": { "type": "string", "enum": ["PROCESSING", "COMPLETED", "FAILED"] },
+          "inputFingerprint": { "type": "string" },
+          "resultFingerprint": { "type": ["string", "null"] },
+          "inputImportCount": { "type": "integer", "minimum": 0 },
+          "inputRowCount": { "type": "integer", "minimum": 0 },
+          "validRowCount": { "type": "integer", "minimum": 0 },
+          "invalidRowCount": { "type": "integer", "minimum": 0 },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "completedAt": { "type": ["string", "null"], "format": "date-time" },
+          "errorMessage": { "type": ["string", "null"] }
+        }
+      },
+      "CalculationInput": {
+        "type": "object",
+        "required": ["id", "importJobId", "population", "fileSha256", "schemaFingerprint", "canonicalFingerprint", "rowCount", "validRows", "invalidRows", "importedAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "importJobId": { "type": "string", "format": "uuid" },
+          "population": { "type": "string" },
+          "fileSha256": { "type": "string" },
+          "schemaFingerprint": { "type": "string" },
+          "canonicalFingerprint": { "type": "string" },
+          "rowCount": { "type": "integer", "minimum": 0 },
+          "validRows": { "type": "integer", "minimum": 0 },
+          "invalidRows": { "type": "integer", "minimum": 0 },
+          "importedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CalculationResultMetric": {
+        "type": "object",
+        "required": ["id", "code", "category", "label", "valueType", "valueJson", "unit", "ordinal"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "code": { "type": "string" },
+          "category": { "type": "string" },
+          "label": { "type": "string" },
+          "valueType": { "type": "string", "enum": ["NUMBER", "INTEGER", "TEXT", "BOOLEAN"] },
+          "valueJson": { "type": "string" },
+          "unit": { "type": ["string", "null"] },
+          "ordinal": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "CalculationRun": {
+        "allOf": [
+          { "$ref": "#/components/schemas/CalculationRunSummary" },
+          {
+            "type": "object",
+            "required": ["parameterFingerprint", "dataFingerprint", "inputs", "metrics"],
+            "properties": {
+              "parameterFingerprint": { "type": "string" },
+              "dataFingerprint": { "type": "string" },
+              "inputs": { "type": "array", "items": { "$ref": "#/components/schemas/CalculationInput" } },
+              "metrics": { "type": "array", "items": { "$ref": "#/components/schemas/CalculationResultMetric" } }
+            }
+          }
+        ]
+      },
+      "CreateCalculationRun": {
+        "type": "object",
+        "required": ["parameterizationId"],
+        "properties": {
+          "parameterizationId": { "type": "string", "format": "uuid" },
+          "engineCode": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
