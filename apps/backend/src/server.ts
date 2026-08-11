@@ -3,6 +3,7 @@ import { getApplicationName } from "./application-config.js";
 import { bootstrapAdminFromEnvironment, verifyBearerToken } from "./auth/auth-service.js";
 import { AuthController, UserController } from "./api/auth-controller.js";
 import { PlanController } from "./api/plan-controller.js";
+import { PlanRulesController } from "./api/plan-rules-controller.js";
 import { ParameterizationController } from "./api/parameterization-controller.js";
 import { CalculationController } from "./api/calculation-controller.js";
 import {
@@ -28,6 +29,7 @@ async function start() {
       UserController,
       SystemController,
       PlanController,
+      PlanRulesController,
       EvaluationController,
       ParameterizationController,
       CalculationController,
@@ -52,7 +54,7 @@ async function start() {
       info: {
         title: `${applicationName} API`,
         version: "0.0.1",
-        description: "Actuarial valuation, pension plans, data studio, biometrics, adherence studies, parameterization, deterministic calculation, drafting and AI orchestration API."
+        description: "Actuarial valuation, pension plans, versioned plan rules, data studio, biometrics, adherence studies, parameterization, deterministic calculation, drafting and AI orchestration API."
       },
       path: "/openapi.json",
       docs: { path: "/docs" }
