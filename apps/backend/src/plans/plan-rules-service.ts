@@ -45,6 +45,11 @@ function normalizeCode(value: string) {
   return value.trim().toUpperCase().replace(/\s+/g, "_");
 }
 
+function compareCanonicalCode(a: { code: string }, b: { code: string }) {
+  if (a.code === b.code) return 0;
+  return a.code < b.code ? -1 : 1;
+}
+
 function normalizeDate(value: string | null | undefined) {
   const normalized = normalizeOptional(value);
   if (!normalized) return null;
@@ -118,7 +123,7 @@ async function valuesFor(session: Session, planRulesVersionId: string) {
   const rows = await allValuesFor(session, planRulesVersionId);
   return rows
     .filter((row) => row.active !== 0)
-    .sort((a, b) => a.category.localeCompare(b.category, "pt-BR") || a.code.localeCompare(b.code));
+    .sort(compareCanonicalCode);
 }
 
 async function requireDraft(session: Session, id: string) {
