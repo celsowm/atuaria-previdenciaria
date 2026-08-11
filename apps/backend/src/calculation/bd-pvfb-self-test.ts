@@ -112,7 +112,7 @@ const context: CalculationEngineContext = {
         "participant.registration": "000001",
         "participant.birthDate": "1961-12-31",
         "participant.sex": "MALE",
-        "participant.contributionSalary": 1000
+        "participant.contributionSalary": "1.000,00"
       }
     }
   ],
@@ -128,6 +128,7 @@ const metric = (code: string) => {
 };
 
 assert.equal(metric("BD.PVFB.ACTIVE_PARTICIPANTS"), 1);
+assert.equal(metric("BD.PVFB.CURRENT_MONTHLY_SALARY_TOTAL"), 1000);
 assert.equal(metric("BD.PVFB.PROJECTED_MONTHLY_BENEFIT_TOTAL"), 500);
 assert.equal(metric("BD.PVFB.TOTAL"), 9000);
 assert.equal(metric("BD.PVFB.AVERAGE"), 9000);
