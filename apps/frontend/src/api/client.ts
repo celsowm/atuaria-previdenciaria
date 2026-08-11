@@ -155,6 +155,8 @@ export const api = {
     patchJson<ActuarialParameterization>(`/api/parameterizations/${id}/parameters`, { parameters }),
   promoteAdherenceCandidate: (id: string, candidateResultId: string) =>
     postJson<ActuarialParameterization>(`/api/parameterizations/${id}/adherence-candidate`, { candidateResultId }),
+  removeActuarialHypothesis: (id: string, selectionId: string) =>
+    postJson<ActuarialParameterization>(`/api/parameterizations/${id}/hypothesis/remove`, { selectionId }),
   approveParameterization: (id: string) =>
     postJson<ActuarialParameterization>(`/api/parameterizations/${id}/approve`, {}),
   mappingProfiles: () => getJson<MappingProfile[]>("/api/mapping-profiles/"),
