@@ -54,6 +54,22 @@
           "404": { "description": "Calculation run not found" }
         }
       }
+    },
+    "/api/calculations/{id}/participants": {
+      "get": {
+        "tags": ["Calculation"],
+        "operationId": "listCalculationParticipantResults",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "pageSize", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 200 } }
+        ],
+        "responses": {
+          "200": { "description": "Paged participant reconciliation results", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CalculationParticipantResultPage" } } } },
+          "404": { "description": "Calculation run not found" }
+        }
+      }
     }
   },
   "components": {
@@ -77,7 +93,7 @@
       },
       "CalculationRunSummary": {
         "type": "object",
-        "required": ["id", "evaluationId", "parameterizationId", "planRulesVersionId", "planRulesFingerprint", "engineCode", "engineVersion", "status", "inputFingerprint", "resultFingerprint", "inputImportCount", "inputRowCount", "validRowCount", "invalidRowCount", "createdAt", "completedAt", "errorMessage"],
+        "required": ["id", "evaluationId", "parameterizationId", "planRulesVersionId", "planRulesFingerprint", "engineCode", "engineVersion", "status", "inputFingerprint", "resultFingerprint", "inputImportCount", "inputRowCount", "validRowCount", "invalidRowCount", "participantResultCount", "createdAt", "completedAt", "errorMessage"],
         "properties": {
           "id": { "type": "string", "format": "uuid" },
           "evaluationId": { "type": "integer", "minimum": 1 },
@@ -93,6 +109,7 @@
           "inputRowCount": { "type": "integer", "minimum": 0 },
           "validRowCount": { "type": "integer", "minimum": 0 },
           "invalidRowCount": { "type": "integer", "minimum": 0 },
+          "participantResultCount": { "type": "integer", "minimum": 0 },
           "createdAt": { "type": "string", "format": "date-time" },
           "completedAt": { "type": ["string", "null"], "format": "date-time" },
           "errorMessage": { "type": ["string", "null"] }
@@ -126,6 +143,29 @@
           "valueJson": { "type": "string" },
           "unit": { "type": ["string", "null"] },
           "ordinal": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "CalculationParticipantResult": {
+        "type": "object",
+        "required": ["id", "importJobId", "population", "sourceRowNumber", "participantRegistration", "resultJson", "ordinal"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "importJobId": { "type": "string", "format": "uuid" },
+          "population": { "type": "string" },
+          "sourceRowNumber": { "type": "integer", "minimum": 1 },
+          "participantRegistration": { "type": ["string", "null"] },
+          "resultJson": { "type": "string" },
+          "ordinal": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "CalculationParticipantResultPage": {
+        "type": "object",
+        "required": ["items", "totalItems", "page", "pageSize"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/CalculationParticipantResult" } },
+          "totalItems": { "type": "integer", "minimum": 0 },
+          "page": { "type": "integer", "minimum": 1 },
+          "pageSize": { "type": "integer", "minimum": 1, "maximum": 200 }
         }
       },
       "CalculationRun": {
