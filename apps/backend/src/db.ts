@@ -7,7 +7,7 @@ import {
   createSqliteExecutor,
   type SqliteClientLike
 } from "metal-orm";
-import { seedDemoData, seedReferenceData } from "./database-seed.js";
+import { linkLegacyEvaluationsToPlans, seedDemoData, seedReferenceData } from "./database-seed.js";
 import { databaseFilePath } from "./runtime-paths.js";
 import { synchronizeEntitySchema } from "./schema.js";
 
@@ -60,6 +60,7 @@ export async function initializeDatabase() {
   await synchronizeEntitySchema(executor);
   await seedReferenceData(database);
   await seedDemoData(database);
+  await linkLegacyEvaluationsToPlans(database);
 
   orm = new Orm({
     dialect: new SqliteDialect(),
