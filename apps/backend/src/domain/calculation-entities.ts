@@ -62,6 +62,9 @@ export class CalculationRun {
   @Column(col.notNull(col.int()))
   invalidRowCount!: number;
 
+  @Column(col.int())
+  participantResultCount?: number | null;
+
   @Column(col.notNull(col.text()))
   createdAt!: string;
 
@@ -145,6 +148,41 @@ export class CalculationResultMetric {
 
   @Column(col.text())
   unit?: string | null;
+
+  @Column(col.notNull(col.int()))
+  ordinal!: number;
+}
+
+@Entity({ tableName: "calculation_participant_results" })
+export class CalculationParticipantResult {
+  @PrimaryKey(col.text())
+  id!: string;
+
+  @Column(col.notNull(col.references(col.text(), {
+    table: "calculation_runs",
+    column: "id",
+    onDelete: "CASCADE"
+  })))
+  calculationRunId!: string;
+
+  @Column(col.notNull(col.references(col.text(), {
+    table: "import_jobs",
+    column: "id",
+    onDelete: "RESTRICT"
+  })))
+  importJobId!: string;
+
+  @Column(col.notNull(col.text()))
+  population!: string;
+
+  @Column(col.notNull(col.int()))
+  sourceRowNumber!: number;
+
+  @Column(col.text())
+  participantRegistration?: string | null;
+
+  @Column(col.notNull(col.text()))
+  resultJson!: string;
 
   @Column(col.notNull(col.int()))
   ordinal!: number;
