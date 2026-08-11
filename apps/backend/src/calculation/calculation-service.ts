@@ -74,6 +74,10 @@ function isModality(value: string): value is "BD" | "CD" | "CV" {
   return value === "BD" || value === "CD" || value === "CV";
 }
 
+function isImmutableApprovedSnapshot(status: string) {
+  return status === "APPROVED" || status === "SUPERSEDED";
+}
+
 function runSummary(row: CalculationRun) {
   return {
     id: row.id,
@@ -188,7 +192,7 @@ async function loadPlanRules(
     throw new Error("O motor atuarial exige que a avaliação esteja vinculada a um plano por planId.");
   }
   if (!planRulesVersionId) {
-    throw new Error(`O motor ${engine.code} exige planRulesVersionId aprovado.`);
+    throw new Error(`O motor ${engine.code} exige planRulesVersionId de um snapshot aprovado e imutável.`);
   }
 
   const plan = await session.find(Plan, evaluation.planId);
@@ -202,8 +206,8 @@ async function loadPlanRules(
   if (!version || version.planId !== plan.id) {
     throw new Error("A versão de regras informada não pertence ao plano desta avaliação.");
   }
-  if (version.status !== "APPROVED") {
-    throw new Error("O motor atuarial exige uma versão de regras do plano APPROVED e imutável.");
+  if (!isImmutableApprovedSnapshot(version.status)) {
+    throw new Error("O motor atuarial exige uma versão de regras APPROVED ou SUPERSEDED, ambas imutáveis após aprovação.");
   }
   if (version.modality !== plan.modality) {
     throw new Error("A modalidade congelada na versão de regras diverge da modalidade do plano.");
@@ -261,8 +265,8 @@ export async function executeCalculation(
     if (!parameterization || parameterization.evaluationId !== evaluationId) {
       throw new Error("A parametrização não pertence a esta avaliação.");
     }
-    if (parameterization.status !== "APPROVED") {
-      throw new Error("O cálculo exige uma parametrização APPROVED e imutável.");
+    if (!isImmutableApprovedSnapshot(parameterization.status)) {
+      throw new Error("O cálculo exige uma parametrização APPROVED ou SUPERSEDED, ambas imutáveis após aprovação.");
     }
 
     const engine = getCalculationEngine(input.engineCode ?? "CORE_PRECALCULATION");
