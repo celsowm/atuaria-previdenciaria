@@ -8,6 +8,8 @@ import {
   type CalculationPlanRule
 } from "./calculation-engine.js";
 
+const millisecondsPerActuarialYear = 365.2425 * 24 * 60 * 60 * 1000;
+
 function parseIsoDate(value: unknown) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const date = new Date(`${value}T00:00:00.000Z`);
@@ -38,6 +40,15 @@ function addYears(date: Date, years: number) {
 
 function laterDate(...dates: Date[]) {
   return dates.reduce((latest, current) => current > latest ? current : latest);
+}
+
+function annualStepsUntil(from: Date, to: Date) {
+  if (to <= from) return 0;
+  return Math.ceil((to.getTime() - from.getTime()) / millisecondsPerActuarialYear);
+}
+
+function isoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
 }
 
 function parseJson(rule: { code: string; valueJson: string }) {
@@ -236,9 +247,9 @@ export async function executeBdPvfb(context: CalculationEngineContext): Promise<
     if (minimumSponsorYears !== null) {
       eligibleDates.push(addYears(canonicalDate(row.rowNumber, row.data, "participant.admissionDate"), minimumSponsorYears));
     }
-    const retirementDate = laterDate(...eligibleDates);
-    const retirementAge = Math.max(currentAge, ageAt(retirementDate, birth));
-    const yearsToRetirement = Math.max(0, retirementAge - currentAge);
+    const eligibilityDate = laterDate(...eligibleDates);
+    const yearsToRetirement = annualStepsUntil(referenceDate, eligibilityDate);
+    const retirementAge = currentAge + yearsToRetirement;
 
     const maxAge = maximumAgeFor(mortality.points, sex);
     const terminalQx = qxAt(mortality.points, maxAge, sex);
@@ -283,6 +294,7 @@ export async function executeBdPvfb(context: CalculationEngineContext): Promise<
       participantRegistration: String(row.data["participant.registration"] ?? "").trim() || null,
       result: {
         currentAge,
+        eligibilityDate: isoDate(eligibilityDate),
         retirementAge,
         yearsToRetirement,
         currentMonthlySalary: salary,
