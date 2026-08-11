@@ -1,17 +1,10 @@
+import { normalizeToken, parsePtNumber } from "../data-studio/mapping.js";
 import {
   registerCalculationEngine,
   type CalculationEngineContext,
   type CalculationMetric,
   type CalculationPlanRule
 } from "./calculation-engine.js";
-
-function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9]/g, "")
-    .toUpperCase();
-}
 
 function parseIsoDate(value: unknown) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
@@ -110,10 +103,8 @@ function parameterNumber(context: CalculationEngineContext, code: string) {
 }
 
 function canonicalNumber(rowNumber: number, data: Record<string, unknown>, field: string) {
-  const raw = data[field];
-  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
-  const parsed = typeof raw === "string" && raw.trim() ? Number(raw.replace(",", ".")) : Number.NaN;
-  if (!Number.isFinite(parsed)) throw new Error(`Linha ${rowNumber}: ${field} é obrigatório e precisa ser numérico.`);
+  const parsed = parsePtNumber(data[field]);
+  if (parsed === null) throw new Error(`Linha ${rowNumber}: ${field} é obrigatório e precisa ser numérico.`);
   return parsed;
 }
 
@@ -206,7 +197,7 @@ export async function executeBdPvfb(context: CalculationEngineContext): Promise<
   const referenceDate = parseIsoDate(context.evaluation.referenceDate);
   if (!referenceDate) throw new Error("A data-base da avaliação é inválida.");
 
-  const activeRows = context.rows.filter((row) => normalize(row.population) === "ATIVOS");
+  const activeRows = context.rows.filter((row) => normalizeToken(row.population) === "ATIVOS");
   if (!activeRows.length) throw new Error("BD_PVFB exige ao menos uma linha válida da população Ativos.");
 
   const interestRate = realInterestPercent / 100;
