@@ -207,6 +207,22 @@ export function ParameterizationPage({
     }
   };
 
+  const removeHypothesis = async (selectionId: string) => {
+    if (!parameterization) return;
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const updated = await api.removeActuarialHypothesis(parameterization.id, selectionId);
+      setParameterization(updated);
+      setSuccess("Hipótese removida do rascunho.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Não foi possível remover a hipótese.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const approve = async () => {
     if (!parameterization) return;
     setSaving(true);
@@ -269,7 +285,7 @@ export function ParameterizationPage({
           <Stack direction="row" spacing={1} alignItems="center"><Typography variant="h5">{parameterization.name}</Typography><Chip size="small" color={statusColor(parameterization.status)} label={statusLabel(parameterization.status)} /></Stack>
           <Typography variant="body2" color="text.secondary" sx={{ mt: .75 }}>Versão {parameterization.version} · atualizada em {new Date(parameterization.updatedAt).toLocaleString("pt-BR")}</Typography>
         </Box>
-        {parameterization.status === "DRAFT" && <Button variant="contained" color="success" disabled={saving} onClick={() => void approve()} startIcon={<CheckCircleRounded />}>Aprovar e congelar</Button>}
+        {parameterization.status === "DRAFT" && <Stack alignItems={{ md: "flex-end" }}><Button variant="contained" color="success" disabled={saving} onClick={() => void approve()} startIcon={<CheckCircleRounded />}>Aprovar snapshot salvo</Button><Typography variant="caption" color="text.secondary">Salve alterações de parâmetros antes de aprovar.</Typography></Stack>}
       </Stack>
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", xl: "minmax(0, 1.15fr) minmax(420px, .85fr)" }, gap: 3 }}>
@@ -316,7 +332,10 @@ export function ParameterizationPage({
             <Typography variant="body2" color="text.secondary" sx={{ mt: .5, mb: 2 }}>A promoção registra exatamente o estudo, candidato e versão biométrica utilizados.</Typography>
             {parameterization.hypotheses.length === 0 ? <Typography color="text.secondary">Nenhuma hipótese de aderência foi promovida.</Typography> : <Stack divider={<Divider flexItem />}>
               {parameterization.hypotheses.map((selection) => <Box key={selection.id} sx={{ py: 1.5 }}>
-                <Stack direction="row" justifyContent="space-between" gap={2}><Box><Typography fontWeight={750}>{selection.hypothesisType}</Typography><Typography variant="body2" color="text.secondary">{selection.tableName} · {selection.versionLabel}</Typography></Box><Chip size="small" label={`rank #${selection.candidateRank}`} /></Stack>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2}>
+                  <Box><Typography fontWeight={750}>{selection.hypothesisType}</Typography><Typography variant="body2" color="text.secondary">{selection.tableName} · {selection.versionLabel}</Typography></Box>
+                  <Stack direction="row" spacing={1} alignItems="center"><Chip size="small" label={`rank #${selection.candidateRank}`} />{parameterization.status === "DRAFT" && <Button size="small" color="error" disabled={saving} onClick={() => void removeHypothesis(selection.id)}>Remover</Button>}</Stack>
+                </Stack>
               </Box>)}
             </Stack>}
           </Paper>
