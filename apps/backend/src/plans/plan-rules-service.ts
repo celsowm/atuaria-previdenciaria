@@ -1,8 +1,9 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { entityRef, eq, getTableDefFromEntity, selectFromEntity } from "metal-orm";
 import { createSession } from "../db.js";
 import { Plan } from "../domain/plan-entities.js";
 import { PlanRuleValue, PlanRulesVersion } from "../domain/plan-rule-entities.js";
+import { calculatePlanRulesFingerprint, comparePlanRuleCode } from "./plan-rules-fingerprint.js";
 
 const versionRef = entityRef(PlanRulesVersion);
 const valueRef = entityRef(PlanRuleValue);
@@ -43,11 +44,6 @@ function normalizeOptional(value: string | null | undefined) {
 
 function normalizeCode(value: string) {
   return value.trim().toUpperCase().replace(/\s+/g, "_");
-}
-
-function compareCanonicalCode(a: { code: string }, b: { code: string }) {
-  if (a.code === b.code) return 0;
-  return a.code < b.code ? -1 : 1;
 }
 
 function normalizeDate(value: string | null | undefined) {
@@ -123,7 +119,7 @@ async function valuesFor(session: Session, planRulesVersionId: string) {
   const rows = await allValuesFor(session, planRulesVersionId);
   return rows
     .filter((row) => row.active !== 0)
-    .sort(compareCanonicalCode);
+    .sort(comparePlanRuleCode);
 }
 
 async function requireDraft(session: Session, id: string) {
@@ -365,7 +361,7 @@ export async function approvePlanRulesVersion(id: string) {
     validatePeriod(row.effectiveFrom, row.effectiveTo ?? null);
     if (!rules.length) throw new Error("Não é possível aprovar uma versão de regras vazia.");
 
-    const fingerprintPayload = {
+    const fingerprint = calculatePlanRulesFingerprint({
       planId: row.planId,
       version: row.version,
       modality: row.modality,
@@ -380,10 +376,7 @@ export async function approvePlanRulesVersion(id: string) {
         unit: rule.unit ?? null,
         source: rule.source
       }))
-    };
-    const fingerprint = createHash("sha256")
-      .update(JSON.stringify(fingerprintPayload))
-      .digest("hex");
+    });
 
     const now = new Date().toISOString();
     const siblings = await selectFromEntity(PlanRulesVersion)
