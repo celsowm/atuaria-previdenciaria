@@ -5,6 +5,7 @@ import {
   getParameterization,
   listParameterizations,
   promoteAdherenceCandidate,
+  removeHypothesisSelection,
   setParameterValues,
   updateParameterizationMetadata
 } from "../parameterization/parameterization-service.js";
@@ -15,6 +16,7 @@ import {
   CreateActuarialParameterizationDto,
   EvaluationParameterizationParamsDto,
   PromoteAdherenceCandidateDto,
+  RemoveActuarialHypothesisSelectionDto,
   SetActuarialParametersDto,
   UpdateActuarialParameterizationDto
 } from "./parameterization-dtos.js";
@@ -97,6 +99,20 @@ export class ParameterizationController {
   ): Promise<ActuarialParameterizationDto> {
     try {
       return await promoteAdherenceCandidate(ctx.params.id, ctx.body.candidateResultId);
+    } catch (error) {
+      return badRequest(error);
+    }
+  }
+
+  @Post("/parameterizations/:id/hypothesis/remove")
+  @Params(ActuarialParameterizationParamsDto)
+  @Body(RemoveActuarialHypothesisSelectionDto)
+  @Returns(ActuarialParameterizationDto)
+  async removeHypothesis(
+    ctx: RequestContext<RemoveActuarialHypothesisSelectionDto, undefined, { id: string }>
+  ): Promise<ActuarialParameterizationDto> {
+    try {
+      return await removeHypothesisSelection(ctx.params.id, ctx.body.selectionId);
     } catch (error) {
       return badRequest(error);
     }
