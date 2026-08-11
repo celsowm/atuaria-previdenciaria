@@ -120,12 +120,26 @@ export function normalizeSourceRow(raw: Record<string, unknown>) {
 }
 
 export function parsePtNumber(value: unknown) {
-  if (typeof value === "number") return value;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
   const text = String(value ?? "")
     .trim()
     .replace(/R\$\s?/gi, "")
+    .replace(/\s/g, "")
     .replace(/\./g, "")
     .replace(",", ".");
+  if (!text) return null;
+  const parsed = Number(text);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function parseCanonicalNumber(value: unknown) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const text = String(value ?? "")
+    .trim()
+    .replace(/R\$\s?/gi, "")
+    .replace(/\s/g, "");
+  if (!text) return null;
+  if (text.includes(",")) return parsePtNumber(text);
   const parsed = Number(text);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -217,6 +231,14 @@ export function validateCanonicalRow(row: Record<string, unknown>) {
     !["MALE", "FEMALE"].includes(String(row["participant.sex"]))
   ) {
     errors.push("participant.sex: valor não normalizado");
+  }
+  if (
+    row["participant.contributionSalary"] !== undefined &&
+    row["participant.contributionSalary"] !== null &&
+    String(row["participant.contributionSalary"]).trim() !== "" &&
+    parseCanonicalNumber(row["participant.contributionSalary"]) === null
+  ) {
+    errors.push("participant.contributionSalary: número inválido");
   }
   return errors;
 }
