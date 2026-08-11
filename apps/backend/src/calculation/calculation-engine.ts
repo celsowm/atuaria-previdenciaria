@@ -62,11 +62,39 @@ export type CalculationEngine = {
 
 const engines = new Map<string, CalculationEngine>();
 
-export function registerCalculationEngine(engine: CalculationEngine) {
-  if (engines.has(engine.code)) {
-    throw new Error(`Motor de cálculo duplicado: ${engine.code}.`);
+export function validateCalculationMetrics(metrics: CalculationMetric[]) {
+  const codes = new Set<string>();
+  for (const metric of metrics) {
+    const code = metric.code.trim();
+    if (!code) throw new Error("O motor retornou uma métrica sem código.");
+    if (codes.has(code)) throw new Error(`O motor retornou a métrica duplicada ${code}.`);
+    codes.add(code);
+    if (!metric.category.trim()) throw new Error(`A métrica ${code} não possui categoria.`);
+    if (!metric.label.trim()) throw new Error(`A métrica ${code} não possui rótulo.`);
+    if (metric.valueType === "NUMBER" && (typeof metric.value !== "number" || !Number.isFinite(metric.value))) {
+      throw new Error(`A métrica ${code} deve possuir número finito.`);
+    }
+    if (metric.valueType === "INTEGER" && (typeof metric.value !== "number" || !Number.isInteger(metric.value))) {
+      throw new Error(`A métrica ${code} deve possuir valor inteiro.`);
+    }
+    if (metric.valueType === "TEXT" && typeof metric.value !== "string") {
+      throw new Error(`A métrica ${code} deve possuir valor textual.`);
+    }
+    if (metric.valueType === "BOOLEAN" && typeof metric.value !== "boolean") {
+      throw new Error(`A métrica ${code} deve possuir valor booleano.`);
+    }
   }
-  engines.set(engine.code, engine);
+  return metrics;
+}
+
+export function registerCalculationEngine(engine: CalculationEngine) {
+  const code = engine.code.trim();
+  const version = engine.version.trim();
+  if (!code || !version) throw new Error("Motor de cálculo precisa de code e version.");
+  if (engines.has(code)) {
+    throw new Error(`Motor de cálculo duplicado: ${code}.`);
+  }
+  engines.set(code, engine);
 }
 
 export function listCalculationEngines() {
