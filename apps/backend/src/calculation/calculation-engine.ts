@@ -8,6 +8,12 @@ export type CalculationParameter = {
   source: string;
 };
 
+export type CalculationBiometricPoint = {
+  age: number;
+  sex: string;
+  qx: number;
+};
+
 export type CalculationHypothesis = {
   hypothesisType: string;
   adherenceStudyId: string;
@@ -17,6 +23,17 @@ export type CalculationHypothesis = {
   tableName: string;
   versionLabel: string;
   candidateRank: number;
+  points: CalculationBiometricPoint[];
+};
+
+export type CalculationPlanRule = {
+  code: string;
+  category: string;
+  label: string;
+  valueType: string;
+  valueJson: string;
+  unit: string | null;
+  source: string;
 };
 
 export type CalculationCanonicalRow = {
@@ -28,9 +45,19 @@ export type CalculationCanonicalRow = {
 export type CalculationEngineContext = {
   evaluation: {
     id: number;
+    planId: string | null;
     planName: string;
     referenceDate: string;
   };
+  planRules: {
+    id: string;
+    version: number;
+    modality: "BD" | "CD" | "CV";
+    effectiveFrom: string;
+    effectiveTo: string | null;
+    fingerprint: string;
+    rules: CalculationPlanRule[];
+  } | null;
   parameterization: {
     id: string;
     version: number;
@@ -57,6 +84,8 @@ export type CalculationEngine = {
   label: string;
   description: string;
   resultKind: "PRECALCULATION" | "ACTUARIAL";
+  requiresPlanRules: boolean;
+  supportedModalities: Array<"BD" | "CD" | "CV">;
   execute(context: CalculationEngineContext): Promise<CalculationMetric[]>;
 };
 
@@ -91,6 +120,10 @@ export function registerCalculationEngine(engine: CalculationEngine) {
   const code = engine.code.trim();
   const version = engine.version.trim();
   if (!code || !version) throw new Error("Motor de cálculo precisa de code e version.");
+  if (!engine.supportedModalities.length) throw new Error(`Motor ${code} precisa declarar ao menos uma modalidade.`);
+  if (engine.resultKind === "ACTUARIAL" && !engine.requiresPlanRules) {
+    throw new Error(`Motor atuarial ${code} precisa exigir uma versão aprovada das regras do plano.`);
+  }
   if (engines.has(code)) {
     throw new Error(`Motor de cálculo duplicado: ${code}.`);
   }
@@ -98,12 +131,14 @@ export function registerCalculationEngine(engine: CalculationEngine) {
 }
 
 export function listCalculationEngines() {
-  return [...engines.values()].map(({ code, version, label, description, resultKind }) => ({
+  return [...engines.values()].map(({ code, version, label, description, resultKind, requiresPlanRules, supportedModalities }) => ({
     code,
     version,
     label,
     description,
-    resultKind
+    resultKind,
+    requiresPlanRules,
+    supportedModalities
   }));
 }
 
