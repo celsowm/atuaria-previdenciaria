@@ -11,7 +11,8 @@
     "adherence:golden:inspect": "tsx src/adherence/golden-master.ts inspect",
     "adherence:golden:compare": "tsx src/adherence/golden-master.ts compare",
     "adherence:golden:self-test": "tsx src/adherence/golden-master.ts self-test",
-    "calculation:self-test": "tsx src/calculation/self-test.ts"
+    "calculation:self-test": "tsx src/calculation/self-test.ts",
+    "plan-rules:self-test": "tsx src/plans/plan-rules-self-test.ts"
   },
   "dependencies": {
     "adorn-api": "^1.1.19",
