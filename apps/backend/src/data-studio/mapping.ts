@@ -139,8 +139,20 @@ export function parseCanonicalNumber(value: unknown) {
     .replace(/R\$\s?/gi, "")
     .replace(/\s/g, "");
   if (!text) return null;
-  if (text.includes(",")) return parsePtNumber(text);
-  const parsed = Number(text);
+
+  const lastComma = text.lastIndexOf(",");
+  const lastDot = text.lastIndexOf(".");
+  let normalized = text;
+
+  if (lastComma >= 0 && lastDot >= 0) {
+    normalized = lastComma > lastDot
+      ? text.replace(/\./g, "").replace(",", ".")
+      : text.replace(/,/g, "");
+  } else if (lastComma >= 0) {
+    normalized = text.replace(/\./g, "").replace(",", ".");
+  }
+
+  const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
