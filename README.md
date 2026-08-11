@@ -2,7 +2,7 @@
 
 Plataforma web para conduzir o ciclo de avaliações atuariais de previdência complementar, substituindo progressivamente aplicações legadas, planilhas operacionais, cálculos estatísticos manuais e fluxos documentais dispersos.
 
-**Atuária Previdenciária** é o nome do produto e corresponde ao nome do repositório `atuaria-previdenciaria`. Uma implantação pode identificar a UE/entidade que a opera, mas isso não renomeia o sistema.
+**Atuária Previdenciária** é o nome do produto e corresponde ao repositório `atuaria-previdenciaria`. Uma implantação pode identificar a UE/entidade que a opera, mas isso não renomeia o sistema.
 
 ## Fundação atual
 
@@ -31,6 +31,8 @@ A base funcional inclui:
 - ranking persistido das versões biométricas candidatas;
 - Parametrização Atuarial versionada, com promoção de hipóteses, parâmetros tipados e snapshot aprovado imutável;
 - Motor de Cálculo com `CalculationRun` imutável, registry de engines, inputs congelados e fingerprints reproduzíveis;
+- `CORE_PRECALCULATION` para consolidação determinística comum a BD/CD/CV;
+- primeiro engine `ACTUARIAL`, `BD_PVFB`, para valor presente dos benefícios futuros de aposentadoria de Ativos em plano BD;
 - fundação para providers LLM OpenAI-compatible.
 
 ## Produto e organização
@@ -122,7 +124,7 @@ SAL_BASE + GRATIFICACAO + ADICIONAL
         Salário de contribuição
 ```
 
-O browser exibe preview, mas o resultado oficial é recalculado no backend a partir do arquivo original.
+O browser exibe preview, mas o resultado oficial da importação é recalculado no backend a partir do arquivo original.
 
 ```text
 arquivo original
@@ -140,6 +142,8 @@ arquivo original
       ↓
  crítica cadastral
 ```
+
+O backend compartilha o mesmo parser numérico entre o Data Studio e os engines de cálculo para evitar interpretações divergentes de valores como `9.321,74` e `9321.74`.
 
 ## Crítica Cadastral
 
@@ -205,7 +209,13 @@ Plan
         └─ PlanRuleValue 1:N
 ```
 
-Cada versão congela a modalidade `BD/CD/CV`, vigência, valores tipados e fingerprint SHA-256. O fluxo é `DRAFT → APPROVED → SUPERSEDED`; uma versão aprovada não pode ser editada.
+Cada versão congela a modalidade `BD/CD/CV`, vigência, valores tipados e fingerprint SHA-256. O fluxo é:
+
+```text
+DRAFT → APPROVED → SUPERSEDED
+```
+
+`APPROVED` e `SUPERSEDED` são snapshots imutáveis. `SUPERSEDED` significa apenas que uma versão mais nova foi aprovada; a versão antiga continua válida para reprodução histórica quando sua vigência cobre a data-base da avaliação.
 
 A UI oferece um catálogo inicial sem qualquer valor regulatório default. Valores devem ser transcritos do regulamento/nota técnica. Uma nova versão pode copiar os valores da anterior, mas a vigência é deliberadamente zerada para exigir confirmação explícita antes da aprovação.
 
@@ -216,7 +226,7 @@ URLs:
 /planos/:id/regras/:rulesVersionId
 ```
 
-`Evaluation` agora possui `planId` com FK opcional para o cadastro mestre. Bases anteriores só são ligadas automaticamente quando existe exatamente um plano com o mesmo nome histórico; casos ambíguos permanecem sem vínculo.
+`Evaluation` possui `planId` com FK opcional para o cadastro mestre. Bases anteriores só são ligadas automaticamente quando existe exatamente um plano com o mesmo nome histórico; casos ambíguos permanecem sem vínculo.
 
 Detalhes estão em `docs/PLAN_RULES.md`.
 
@@ -230,11 +240,11 @@ ActuarialParameterization
   └─ ActuarialHypothesisSelection 1:N
 ```
 
-A primeira UI cobre taxa real de juros, crescimento real de salários, crescimento real de benefícios, rotatividade e método de financiamento. O modelo de valores é tipado e extensível para não transformar a tabela em uma lista fixa de colunas.
+A UI cobre taxa real de juros, crescimento real de salários, crescimento real de benefícios, rotatividade e método de financiamento. O modelo de valores é tipado e extensível.
 
-Candidatos dos Estudos de Aderência podem ser promovidos explicitamente para o snapshot. A seleção persiste o estudo, resultado candidato, versão biométrica, tábua e posição no ranking. Um estudo sem avaliação ainda pode ser associado na promoção; um estudo de outra avaliação é rejeitado.
+Candidatos dos Estudos de Aderência podem ser promovidos explicitamente para o snapshot. A seleção persiste estudo, resultado candidato, versão biométrica, tábua e posição no ranking.
 
-Versões aprovadas não podem ser editadas. Uma nova versão pode copiar a anterior, alterar/remover parâmetros e hipóteses enquanto estiver em rascunho e então ser aprovada novamente.
+No cálculo, a parametrização congelada incorpora ao fingerprint também os pontos `age / sex / qx` efetivamente lidos da versão biométrica selecionada. Portanto o hash não depende apenas de um UUID.
 
 URLs:
 
@@ -243,31 +253,78 @@ URLs:
 /avaliacoes/:id/parametrizacao/:parameterizationId
 ```
 
-Detalhes do contrato estão em `docs/PARAMETERIZATION.md`.
+Detalhes estão em `docs/PARAMETERIZATION.md`.
 
 ## Motor de Cálculo
 
-O cálculo não consulta estado mutável depois de iniciado. Cada `CalculationRun` referencia uma parametrização `APPROVED`, congela o import mais recente de cada população e persiste fingerprints de parâmetros, dados, input completo e resultado.
+O cálculo não consulta estado mutável depois de iniciado.
 
 ```text
-APPROVED Parameterization
-          +
-COMPLETED imports
-          ↓
-CalculationRun
-  ├─ CalculationInput 1:N
-  └─ CalculationResultMetric 1:N
+PlanRulesVersion APPROVED/SUPERSEDED   # engines atuariais
+                  +
+ActuarialParameterization APPROVED/SUPERSEDED
+                  +
+frozen canonical imports
+                  ↓
+            CalculationRun
+              ├─ CalculationInput 1:N
+              └─ CalculationResultMetric 1:N
 ```
 
-O registry `CalculationEngine` permite adicionar novos motores sem um `switch` central por modalidade ou versão. O motor inicial é:
+Cada `CalculationRun` guarda, conforme o engine:
+
+- avaliação e data-base;
+- parametrização imutável;
+- versão de regras do plano e `planRulesFingerprint` para engines atuariais;
+- engine code/version;
+- imports congelados;
+- fingerprint dos parâmetros + qx;
+- fingerprint dos dados canônicos;
+- fingerprint completo do input;
+- fingerprint dos resultados.
+
+O registry `CalculationEngine` evita `switch` por modalidade. Cada engine declara `resultKind`, se exige regras do plano e quais modalidades suporta.
+
+### CORE_PRECALCULATION
 
 ```text
 CORE_PRECALCULATION / core-precalculation-v1
+PRECALCULATION · BD/CD/CV
 ```
 
-Ele é classificado como `PRECALCULATION`: produz consolidação cadastral, idade média, composição por sexo e fatores de desconto quando existe taxa real de juros parametrizada. Ele deliberadamente **não** declara reservas, provisões, déficit ou superávit como resultado oficial.
+Produz consolidação cadastral, idade média, composição por sexo e fatores de desconto. Não produz resultado de benefício ou provisão.
 
-Solicitar novamente o mesmo engine com exatamente os mesmos inputs reutiliza o `CalculationRun` concluído pelo `inputFingerprint`.
+### BD_PVFB
+
+```text
+BD_PVFB / bd-pvfb-v1
+ACTUARIAL · BD
+```
+
+Calcula deterministicamente o **Valor Presente dos Benefícios Futuros (PVFB)** da renda de aposentadoria da população `Ativos`, usando:
+
+- regras BD versionadas e vigentes;
+- taxa real de juros;
+- crescimento real dos salários;
+- crescimento real dos benefícios;
+- hipótese biométrica selecionada com seus `qx`;
+- massa CANONICAL congelada.
+
+O v1 implementa explicitamente `BENEFIT.CALCULATION_BASIS = FINAL_SALARY`.
+
+**PVFB não é reserva matemática nem provisão técnica.** O engine ainda não apropria o valor presente por serviço passado/futuro segundo método de financiamento, não calcula contribuições futuras e não determina déficit ou superávit.
+
+Solicitar novamente o mesmo engine com exatamente os mesmos inputs reutiliza o `CalculationRun COMPLETED` pelo `inputFingerprint`.
+
+Self-tests determinísticos:
+
+```bash
+npm run calculation:self-test
+npm run bd-pvfb:self-test
+npm run plan-rules:self-test
+```
+
+O self-test do BD contém um caso fechado com `PVFB = 9.000`.
 
 URLs:
 
@@ -276,7 +333,7 @@ URLs:
 /avaliacoes/:id/calculos/:calculationId
 ```
 
-Detalhes estão em `docs/CALCULATION_ENGINE.md`.
+Detalhes e fórmulas estão em `docs/CALCULATION_ENGINE.md`.
 
 ## OpenAPI e frontend
 
@@ -418,16 +475,10 @@ O diretório `/data/` inteiro é ignorado pelo Git. SQLite é adequado enquanto 
 
 ## Próximo slice
 
-Agora existem os três snapshots necessários para um cálculo oficial reproduzível:
+O primeiro engine `ACTUARIAL` já existe, mas ele produz **PVFB**, não reserva matemática.
 
-```text
-PlanRulesVersion APPROVED
-+ ActuarialParameterization APPROVED
-+ frozen canonical imports
-```
+O próximo passo técnico é modelar a apropriação do passivo de um plano BD segundo um **método de financiamento explicitamente suportado e validado**, começando por uma implementação concreta — por exemplo `PROJECTED_UNIT_CREDIT` — e persistir também resultados suficientemente detalhados para reconciliação atuarial.
 
-O próximo passo é fazer o primeiro `CalculationEngine` de `resultKind: ACTUARIAL`, exigindo explicitamente `planRulesVersionId` no `CalculationRun`. Os motores por modalidade devem ser implementações separadas do registry e começar por uma modalidade com fórmula validada contra golden master/legado, em vez de inventar reservas genéricas.
-
-Depois disso, o **Fechamento Atuarial** poderá selecionar explicitamente um `CalculationRun` concluído, reconciliar resultados e congelar a rodada final.
+Somente depois de existir uma rodada de cálculo com passivo/provisão validável o módulo de **Fechamento Atuarial** deve selecionar explicitamente um `CalculationRun COMPLETED`, reconciliar valores e congelar a rodada final.
 
 Detalhes adicionais da fundação SaaS estão em `docs/SAAS_FOUNDATION.md`.
