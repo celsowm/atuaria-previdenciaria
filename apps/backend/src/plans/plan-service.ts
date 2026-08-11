@@ -2,8 +2,10 @@ import { randomUUID } from "node:crypto";
 import { entityRef, eq, getTableDefFromEntity, selectFromEntity } from "metal-orm";
 import { createSession } from "../db.js";
 import { Plan } from "../domain/plan-entities.js";
+import { PlanRulesVersion } from "../domain/plan-rule-entities.js";
 
 const planRef = entityRef(Plan);
+const rulesVersionRef = entityRef(PlanRulesVersion);
 const modalities = new Set(["BD", "CD", "CV"]);
 const statuses = new Set(["ACTIVE", "INACTIVE", "CLOSED"]);
 
@@ -115,7 +117,18 @@ export async function updatePlan(id: string, input: {
       if (!name) throw new Error("Nome do plano é obrigatório.");
       plan.name = name;
     }
-    if (input.modality !== undefined) plan.modality = validateModality(input.modality);
+    if (input.modality !== undefined) {
+      const modality = validateModality(input.modality);
+      if (modality !== plan.modality) {
+        const versions = await selectFromEntity(PlanRulesVersion)
+          .where(eq(rulesVersionRef.planId, id))
+          .execute(session);
+        if (versions.length > 0) {
+          throw new Error("A modalidade não pode ser alterada depois que o plano possui versões de regras atuariais.");
+        }
+      }
+      plan.modality = modality;
+    }
     if (input.sponsorName !== undefined) plan.sponsorName = normalizeOptional(input.sponsorName);
     if (input.cnpj !== undefined) plan.cnpj = normalizeOptional(input.cnpj);
     if (input.status !== undefined) plan.status = validateStatus(input.status);
