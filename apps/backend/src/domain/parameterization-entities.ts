@@ -122,6 +122,9 @@ export class ActuarialHypothesisSelection {
   @Column(col.notNull(col.int()))
   candidateRank!: number;
 
+  @Column(col.int())
+  active?: number | null;
+
   @Column(col.notNull(col.text()))
   selectedAt!: string;
 }
