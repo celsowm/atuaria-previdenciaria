@@ -1,0 +1,26 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Evaluations API fragment",
+    "version": "0.0.1"
+  },
+  "components": {
+    "schemas": {
+      "Evaluation": {
+        "type": "object",
+        "required": ["id", "planId", "planName", "referenceDate", "status", "stage", "progress", "blockingIssues", "updatedAt"],
+        "properties": {
+          "id": { "type": "integer" },
+          "planId": { "type": ["string", "null"], "format": "uuid" },
+          "planName": { "type": "string" },
+          "referenceDate": { "type": "string", "format": "date" },
+          "status": { "type": "string" },
+          "stage": { "type": "string" },
+          "progress": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "blockingIssues": { "type": "integer", "minimum": 0 },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}
