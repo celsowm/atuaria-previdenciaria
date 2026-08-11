@@ -20,6 +20,7 @@ import {
   CalculationResultMetric,
   CalculationRun
 } from "../domain/calculation-entities.js";
+import { calculatePlanRulesFingerprint, comparePlanRuleCode } from "../plans/plan-rules-fingerprint.js";
 import "./core-precalculation-engine.js";
 import "./bd-pvfb-engine.js";
 import {
@@ -227,7 +228,7 @@ async function loadPlanRules(
     .execute(session);
   const rules = storedRules
     .filter((item) => item.active !== 0)
-    .sort((a, b) => a.code < b.code ? -1 : a.code > b.code ? 1 : 0)
+    .sort(comparePlanRuleCode)
     .map((item) => ({
       code: item.code,
       category: item.category,
@@ -239,13 +240,25 @@ async function loadPlanRules(
     }));
   if (!rules.length) throw new Error("A versão aprovada das regras do plano não possui regras ativas.");
 
+  const recalculatedFingerprint = calculatePlanRulesFingerprint({
+    planId: version.planId,
+    version: version.version,
+    modality: version.modality,
+    effectiveFrom: version.effectiveFrom,
+    effectiveTo: version.effectiveTo ?? null,
+    rules
+  });
+  if (recalculatedFingerprint !== version.rulesFingerprint) {
+    throw new Error("A integridade da versão de regras do plano falhou: o conteúdo atual não corresponde ao fingerprint aprovado.");
+  }
+
   return {
     id: version.id,
     version: version.version,
     modality: plan.modality,
     effectiveFrom: version.effectiveFrom,
     effectiveTo: version.effectiveTo ?? null,
-    fingerprint: version.rulesFingerprint,
+    fingerprint: recalculatedFingerprint,
     rules
   };
 }
