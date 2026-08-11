@@ -2,7 +2,9 @@ import { normalizeToken, parseCanonicalNumber } from "../data-studio/mapping.js"
 import {
   registerCalculationEngine,
   type CalculationEngineContext,
+  type CalculationEngineOutput,
   type CalculationMetric,
+  type CalculationParticipantOutput,
   type CalculationPlanRule
 } from "./calculation-engine.js";
 
@@ -152,7 +154,7 @@ function textMetric(code: string, label: string, value: string): CalculationMetr
   return { code, category: "BD · PVFB", label, valueType: "TEXT", value };
 }
 
-export async function executeBdPvfb(context: CalculationEngineContext): Promise<CalculationMetric[]> {
+export async function executeBdPvfb(context: CalculationEngineContext): Promise<CalculationEngineOutput> {
   if (!context.planRules) throw new Error("BD_PVFB exige uma versão aprovada das regras do plano.");
   if (context.planRules.modality !== "BD") throw new Error("BD_PVFB só aceita regras de plano da modalidade BD.");
 
@@ -211,6 +213,7 @@ export async function executeBdPvfb(context: CalculationEngineContext): Promise<
   let totalPvfb = 0;
   let totalYearsToRetirement = 0;
   let totalSurvivalToRetirement = 0;
+  const participantResults: CalculationParticipantOutput[] = [];
 
   for (const row of activeRows) {
     const birth = canonicalDate(row.rowNumber, row.data, "participant.birthDate");
@@ -272,10 +275,27 @@ export async function executeBdPvfb(context: CalculationEngineContext): Promise<
     totalPvfb += pvfb;
     totalYearsToRetirement += yearsToRetirement;
     totalSurvivalToRetirement += survivalToRetirement;
+
+    participantResults.push({
+      importJobId: row.importJobId,
+      population: row.population,
+      sourceRowNumber: row.rowNumber,
+      participantRegistration: String(row.data["participant.registration"] ?? "").trim() || null,
+      result: {
+        currentAge,
+        retirementAge,
+        yearsToRetirement,
+        currentMonthlySalary: salary,
+        projectedMonthlySalary,
+        projectedMonthlyBenefit,
+        survivalToRetirement,
+        pvfb
+      }
+    });
   }
 
   const count = activeRows.length;
-  return [
+  const metrics: CalculationMetric[] = [
     textMetric("BD.PVFB.SCOPE", "Escopo", "PVFB da renda de aposentadoria dos Ativos; não representa reserva matemática ou provisão técnica."),
     integerMetric("BD.PVFB.ACTIVE_PARTICIPANTS", "Participantes ativos calculados", count),
     numberMetric("BD.PVFB.CURRENT_MONTHLY_SALARY_TOTAL", "Salário de contribuição mensal atual total", totalCurrentMonthlySalary, currency),
@@ -290,6 +310,8 @@ export async function executeBdPvfb(context: CalculationEngineContext): Promise<
     numberMetric("BD.PVFB.REPLACEMENT_RATE", "Taxa de reposição", replacementRatePercent, "%"),
     integerMetric("BD.PVFB.PAYMENTS_PER_YEAR", "Pagamentos de benefício por ano", paymentsPerYear)
   ];
+
+  return { metrics, participantResults };
 }
 
 registerCalculationEngine({
