@@ -38,6 +38,7 @@ import {
 } from "./domain/parameterization-entities.js";
 import {
   CalculationInput,
+  CalculationParticipantResult,
   CalculationResultMetric,
   CalculationRun
 } from "./domain/calculation-entities.js";
@@ -70,6 +71,7 @@ const entityTypes = [
   CalculationRun,
   CalculationInput,
   CalculationResultMetric,
+  CalculationParticipantResult,
   LlmProvider,
   LlmProviderCredential
 ] as const;
