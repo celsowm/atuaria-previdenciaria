@@ -4,6 +4,7 @@ export type AppRoute =
   | { name: "login" }
   | { name: "evaluations"; evaluationId?: number }
   | { name: "parameterization"; evaluationId: number; parameterizationId?: string }
+  | { name: "calculation"; evaluationId: number; calculationId?: string }
   | { name: "plans"; planId?: string }
   | { name: "data-studio" }
   | { name: "critique"; importJobId: string }
@@ -29,6 +30,11 @@ export function parseRoute(pathname: string): AppRoute {
   if (match) return { name: "parameterization", evaluationId: Number(match[1]) };
   match = /^\/avaliacoes\/(\d+)\/parametrizacao\/([0-9a-f-]+)$/i.exec(path);
   if (match) return { name: "parameterization", evaluationId: Number(match[1]), parameterizationId: match[2] };
+
+  match = /^\/avaliacoes\/(\d+)\/calculos$/.exec(path);
+  if (match) return { name: "calculation", evaluationId: Number(match[1]) };
+  match = /^\/avaliacoes\/(\d+)\/calculos\/([0-9a-f-]+)$/i.exec(path);
+  if (match) return { name: "calculation", evaluationId: Number(match[1]), calculationId: match[2] };
 
   match = /^\/avaliacoes\/(\d+)$/.exec(path);
   if (match) return { name: "evaluations", evaluationId: Number(match[1]) };
