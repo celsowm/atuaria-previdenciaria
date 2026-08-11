@@ -27,6 +27,7 @@ export class CalculationRunSummaryDto {
   @Field(t.integer({ minimum: 0 })) inputRowCount!: number;
   @Field(t.integer({ minimum: 0 })) validRowCount!: number;
   @Field(t.integer({ minimum: 0 })) invalidRowCount!: number;
+  @Field(t.integer({ minimum: 0 })) participantResultCount!: number;
   @Field(t.string({ format: "date-time" })) createdAt!: string;
   @Field(t.nullable(t.string({ format: "date-time" }))) completedAt!: string | null;
   @Field(t.nullable(t.string())) errorMessage!: string | null;
@@ -58,7 +59,32 @@ export class CalculationResultMetricDto {
   @Field(t.integer({ minimum: 0 })) ordinal!: number;
 }
 
-@Dto({ name: "CalculationRun", description: "Complete immutable calculation run with frozen inputs and metrics." })
+@Dto({ name: "CalculationParticipantResult", description: "Participant-level result for actuarial reconciliation." })
+export class CalculationParticipantResultDto {
+  @Field(t.string({ format: "uuid" })) id!: string;
+  @Field(t.string({ format: "uuid" })) importJobId!: string;
+  @Field(t.string()) population!: string;
+  @Field(t.integer({ minimum: 1 })) sourceRowNumber!: number;
+  @Field(t.nullable(t.string())) participantRegistration!: string | null;
+  @Field(t.string()) resultJson!: string;
+  @Field(t.integer({ minimum: 0 })) ordinal!: number;
+}
+
+@Dto({ name: "CalculationParticipantResultPage", description: "Paged participant-level calculation results." })
+export class CalculationParticipantResultPageDto {
+  @Field(t.array(t.ref(CalculationParticipantResultDto))) items!: CalculationParticipantResultDto[];
+  @Field(t.integer({ minimum: 0 })) totalItems!: number;
+  @Field(t.integer({ minimum: 1 })) page!: number;
+  @Field(t.integer({ minimum: 1, maximum: 200 })) pageSize!: number;
+}
+
+@Dto({ name: "CalculationParticipantQuery" })
+export class CalculationParticipantQueryDto {
+  @Field(t.optional(t.integer({ minimum: 1 }))) page?: number;
+  @Field(t.optional(t.integer({ minimum: 1, maximum: 200 }))) pageSize?: number;
+}
+
+@Dto({ name: "CalculationRun", description: "Complete immutable calculation run with frozen inputs and aggregate metrics." })
 export class CalculationRunDto extends CalculationRunSummaryDto {
   @Field(t.string()) parameterFingerprint!: string;
   @Field(t.string()) dataFingerprint!: string;
