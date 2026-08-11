@@ -5,6 +5,13 @@ export class Evaluation {
   @PrimaryKey(col.autoIncrement(col.int()))
   id!: number;
 
+  @Column(col.references(col.text(), {
+    table: "plans",
+    column: "id",
+    onDelete: "RESTRICT"
+  }))
+  planId?: string | null;
+
   @Column(col.notNull(col.text()))
   planName!: string;
 
