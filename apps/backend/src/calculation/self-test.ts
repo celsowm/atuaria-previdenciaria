@@ -1,11 +1,11 @@
 import "./core-precalculation-engine.js";
-import { getCalculationEngine, validateCalculationMetrics } from "./calculation-engine.js";
+import { getCalculationEngine, validateCalculationOutput } from "./calculation-engine.js";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
-function metricNumber(metrics: ReturnType<typeof validateCalculationMetrics>, code: string) {
+function metricNumber(metrics: ReturnType<typeof validateCalculationOutput>["metrics"], code: string) {
   const metric = metrics.find((item) => item.code === code);
   assert(metric, `Métrica ausente: ${code}`);
   assert(typeof metric.value === "number", `Métrica ${code} não é numérica.`);
@@ -13,7 +13,7 @@ function metricNumber(metrics: ReturnType<typeof validateCalculationMetrics>, co
 }
 
 const engine = getCalculationEngine("CORE_PRECALCULATION");
-const metrics = validateCalculationMetrics(await engine.execute({
+const output = validateCalculationOutput(await engine.execute({
   evaluation: {
     id: 1,
     planId: null,
@@ -37,6 +37,7 @@ const metrics = validateCalculationMetrics(await engine.execute({
   },
   rows: [
     {
+      importJobId: "10000000-0000-4000-8000-000000000001",
       population: "Ativos",
       rowNumber: 2,
       data: {
@@ -46,6 +47,7 @@ const metrics = validateCalculationMetrics(await engine.execute({
       }
     },
     {
+      importJobId: "10000000-0000-4000-8000-000000000001",
       population: "Ativos",
       rowNumber: 3,
       data: {
@@ -59,6 +61,8 @@ const metrics = validateCalculationMetrics(await engine.execute({
   importCount: 1
 }));
 
+const metrics = output.metrics;
+assert(output.participantResults.length === 0, "Pré-cálculo não deve gerar resultados individuais atuariais.");
 assert(metricNumber(metrics, "INPUT.VALID_ROWS") === 2, "Quantidade de linhas válidas incorreta.");
 assert(metricNumber(metrics, "DEMOGRAPHIC.MALE_COUNT") === 1, "Quantidade masculina incorreta.");
 assert(metricNumber(metrics, "DEMOGRAPHIC.FEMALE_COUNT") === 1, "Quantidade feminina incorreta.");
