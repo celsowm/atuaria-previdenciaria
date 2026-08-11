@@ -46,10 +46,10 @@ export async function seedDemoData(db: sqlite3.Database) {
   const evaluationCount = await getValue<{ count: number }>(db, "SELECT COUNT(*) AS count FROM evaluations");
   if (evaluationCount.count === 0) {
     await execSql(db, `
-      INSERT INTO evaluations (planName, referenceDate, status, stage, progress, blockingIssues, updatedAt) VALUES
-        ('Plano Previdenciário Alfa', '2025-12-31', 'Em andamento', 'Fechamento', 82, 3, '2026-08-10T13:40:00.000Z'),
-        ('Plano Beta', '2025-12-31', 'Em andamento', 'Aderência', 57, 0, '2026-08-10T12:55:00.000Z'),
-        ('Plano Gama', '2025-12-31', 'Aguardando correção', 'Crítica cadastral', 23, 47, '2026-08-10T11:20:00.000Z');
+      INSERT INTO evaluations (planId, planName, referenceDate, status, stage, progress, blockingIssues, updatedAt) VALUES
+        ('6d74e611-a2e0-4f51-b727-100000000001', 'Plano Previdenciário Alfa', '2025-12-31', 'Em andamento', 'Fechamento', 82, 3, '2026-08-10T13:40:00.000Z'),
+        ('6d74e611-a2e0-4f51-b727-100000000002', 'Plano Beta', '2025-12-31', 'Em andamento', 'Aderência', 57, 0, '2026-08-10T12:55:00.000Z'),
+        ('6d74e611-a2e0-4f51-b727-100000000003', 'Plano Gama', '2025-12-31', 'Aguardando correção', 'Crítica cadastral', 23, 47, '2026-08-10T11:20:00.000Z');
 
       INSERT INTO mapping_profiles
         (name, population, version, schemaFingerprint, rulesFingerprint, sourceHeadersJson, mappedFields, totalFields, updatedAt)
@@ -76,4 +76,23 @@ export async function seedDemoData(db: sqlite3.Database) {
         SELECT id, 'Credencial 01', 'env://OPENAI_API_KEY', 1, 10 FROM llm_providers WHERE name = 'OpenAI';
     `);
   }
+}
+
+export async function linkLegacyEvaluationsToPlans(db: sqlite3.Database) {
+  await execSql(db, `
+    UPDATE evaluations
+       SET planId = (
+         SELECT plans.id
+           FROM plans
+          WHERE plans.name = evaluations.planName
+          ORDER BY plans.id
+          LIMIT 1
+       )
+     WHERE planId IS NULL
+       AND (
+         SELECT COUNT(*)
+           FROM plans
+          WHERE plans.name = evaluations.planName
+       ) = 1;
+  `);
 }
