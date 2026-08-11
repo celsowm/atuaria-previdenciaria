@@ -39,6 +39,11 @@ export type UpdateUserInput = ApiComponents["schemas"]["UpdateUser"];
 export type Plan = ApiComponents["schemas"]["Plan"];
 export type CreatePlanInput = ApiComponents["schemas"]["CreatePlan"];
 export type UpdatePlanInput = ApiComponents["schemas"]["UpdatePlan"];
+export type PlanRulesVersionSummary = ApiComponents["schemas"]["PlanRulesVersionSummary"];
+export type PlanRulesVersion = ApiComponents["schemas"]["PlanRulesVersion"];
+export type CreatePlanRulesVersionInput = ApiComponents["schemas"]["CreatePlanRulesVersion"];
+export type UpdatePlanRulesVersionInput = ApiComponents["schemas"]["UpdatePlanRulesVersion"];
+export type SetPlanRuleValueInput = ApiComponents["schemas"]["SetPlanRuleValue"];
 export type ApplicationConfig = ApiComponents["schemas"]["ApplicationConfig"];
 
 export const defaultApplicationConfig: ApplicationConfig = {
@@ -146,6 +151,17 @@ export const api = {
   plan: (id: string) => getJson<Plan>(`/api/plans/${id}`),
   createPlan: (input: CreatePlanInput) => postJson<Plan>("/api/plans/", input),
   updatePlan: (id: string, input: UpdatePlanInput) => patchJson<Plan>(`/api/plans/${id}`, input),
+  planRulesVersions: (planId: string) =>
+    getJson<PlanRulesVersionSummary[]>(`/api/plans/${planId}/rules`),
+  planRulesVersion: (id: string) => getJson<PlanRulesVersion>(`/api/plan-rules/${id}`),
+  createPlanRulesVersion: (planId: string, input: CreatePlanRulesVersionInput = {}) =>
+    postJson<PlanRulesVersion>(`/api/plans/${planId}/rules`, input),
+  updatePlanRulesVersion: (id: string, input: UpdatePlanRulesVersionInput) =>
+    patchJson<PlanRulesVersion>(`/api/plan-rules/${id}`, input),
+  setPlanRuleValues: (id: string, rules: SetPlanRuleValueInput[]) =>
+    patchJson<PlanRulesVersion>(`/api/plan-rules/${id}/values`, { rules }),
+  approvePlanRulesVersion: (id: string) =>
+    postJson<PlanRulesVersion>(`/api/plan-rules/${id}/approve`, {}),
   dashboard: () => getJson<DashboardTotals>("/api/dashboard"),
   evaluations: () => getJson<Evaluation[]>("/api/evaluations/"),
   parameterizations: (evaluationId: number) =>
