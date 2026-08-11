@@ -47,6 +47,7 @@ export type CreatePlanRulesVersionInput = ApiComponents["schemas"]["CreatePlanRu
 export type UpdatePlanRulesVersionInput = ApiComponents["schemas"]["UpdatePlanRulesVersion"];
 export type SetPlanRuleValueInput = ApiComponents["schemas"]["SetPlanRuleValue"];
 export type ApplicationConfig = ApiComponents["schemas"]["ApplicationConfig"];
+export type ActuarialClosing = { id: string; evaluationId: number; calculationRunId: string; status: "DRAFT" | "FINALIZED"; notes: string | null; createdAt: string; updatedAt: string; finalizedAt: string | null; lines: Array<{ id: string; code: string; category: string; label: string; valueJson: string; unit: string | null; source: string; ordinal: number }> };
 
 export const defaultApplicationConfig: ApplicationConfig = {
   name: "Atuária Previdenciária",
@@ -189,6 +190,9 @@ export const api = {
     getJson<CalculationParticipantResultPage>(`/api/calculations/${id}/participants?page=${page}&pageSize=${pageSize}`),
   createCalculationRun: (evaluationId: number, input: CreateCalculationRunInput) =>
     postJson<CalculationRun>(`/api/evaluations/${evaluationId}/calculations`, input),
+  closings: (evaluationId: number) => getJson<ActuarialClosing[]>(`/api/evaluations/${evaluationId}/closings`),
+  createClosing: (evaluationId: number, calculationRunId: string, notes?: string) => postJson<ActuarialClosing>(`/api/evaluations/${evaluationId}/closings`, { calculationRunId, notes }),
+  finalizeClosing: (id: string) => postJson<ActuarialClosing>(`/api/closings/${id}/finalize`, {}),
   mappingProfiles: () => getJson<MappingProfile[]>("/api/mapping-profiles/"),
   matchMappingProfile: (headers: string[], population: string) =>
     postJson<MappingProfileMatch>("/api/mapping-profiles/match", { headers, population }),

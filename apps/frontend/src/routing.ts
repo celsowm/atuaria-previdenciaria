@@ -5,6 +5,7 @@ export type AppRoute =
   | { name: "evaluations"; evaluationId?: number }
   | { name: "parameterization"; evaluationId: number; parameterizationId?: string }
   | { name: "calculation"; evaluationId: number; calculationId?: string }
+  | { name: "closing"; evaluationId: number }
   | { name: "plans"; planId?: string }
   | { name: "plan-rules"; planId: string; rulesVersionId?: string }
   | { name: "data-studio" }
@@ -36,6 +37,8 @@ export function parseRoute(pathname: string): AppRoute {
   if (match) return { name: "calculation", evaluationId: Number(match[1]) };
   match = /^\/avaliacoes\/(\d+)\/calculos\/([0-9a-f-]+)$/i.exec(path);
   if (match) return { name: "calculation", evaluationId: Number(match[1]), calculationId: match[2] };
+  match = /^\/avaliacoes\/(\d+)\/fechamento$/.exec(path);
+  if (match) return { name: "closing", evaluationId: Number(match[1]) };
 
   match = /^\/avaliacoes\/(\d+)$/.exec(path);
   if (match) return { name: "evaluations", evaluationId: Number(match[1]) };

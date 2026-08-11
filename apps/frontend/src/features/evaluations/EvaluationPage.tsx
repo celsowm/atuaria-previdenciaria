@@ -23,12 +23,14 @@ export function EvaluationPage({
   evaluationId,
   onBack,
   onOpenParameterization,
-  onOpenCalculation
+  onOpenCalculation,
+  onOpenClosing
 }: {
   evaluationId: number;
   onBack: () => void;
   onOpenParameterization: () => void;
   onOpenCalculation: () => void;
+  onOpenClosing: () => void;
 }) {
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,6 +61,7 @@ export function EvaluationPage({
           <Box><Typography fontWeight={700}>{index + 1}. {title}</Typography><Typography variant="body2" color="text.secondary">{detail}</Typography></Box>
           {title === "Parametrização" && <Button size="small" variant="outlined" onClick={onOpenParameterization}>Abrir</Button>}
           {title === "Cálculo" && <Button size="small" variant="contained" onClick={onOpenCalculation}>Abrir</Button>}
+          {title === "Fechamento" && <Button size="small" variant="outlined" onClick={onOpenClosing}>Abrir</Button>}
         </Box>)}
       </Stack>
 

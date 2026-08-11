@@ -42,6 +42,7 @@ import {
   CalculationResultMetric,
   CalculationRun
 } from "./domain/calculation-entities.js";
+import { ActuarialClosing, ActuarialClosingLine } from "./domain/closing-entities.js";
 
 const entityTypes = [
   User,
@@ -72,6 +73,8 @@ const entityTypes = [
   CalculationInput,
   CalculationResultMetric,
   CalculationParticipantResult,
+  ActuarialClosing,
+  ActuarialClosingLine,
   LlmProvider,
   LlmProviderCredential
 ] as const;

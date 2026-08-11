@@ -7,6 +7,7 @@ import { PlanController } from "./api/plan-controller.js";
 import { PlanRulesController } from "./api/plan-rules-controller.js";
 import { ParameterizationController } from "./api/parameterization-controller.js";
 import { CalculationController } from "./api/calculation-controller.js";
+import { ClosingController } from "./api/closing-controller.js";
 import {
   CritiqueController,
   EvaluationController,
@@ -34,6 +35,7 @@ async function start() {
       EvaluationController,
       ParameterizationController,
       CalculationController,
+      ClosingController,
       MappingProfileController,
       ImportController,
       CritiqueController,
