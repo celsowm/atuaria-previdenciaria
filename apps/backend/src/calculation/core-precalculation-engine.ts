@@ -102,5 +102,7 @@ registerCalculationEngine({
   label: "Pré-cálculo determinístico",
   description: "Consolida a base canônica congelada, métricas demográficas e fatores financeiros sem produzir reservas ou provisões oficiais.",
   resultKind: "PRECALCULATION",
+  requiresPlanRules: false,
+  supportedModalities: ["BD", "CD", "CV"],
   execute
 });
