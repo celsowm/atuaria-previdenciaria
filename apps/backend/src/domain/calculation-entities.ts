@@ -19,6 +19,16 @@ export class CalculationRun {
   })))
   parameterizationId!: string;
 
+  @Column(col.references(col.text(), {
+    table: "plan_rules_versions",
+    column: "id",
+    onDelete: "RESTRICT"
+  }))
+  planRulesVersionId?: string | null;
+
+  @Column(col.text())
+  planRulesFingerprint?: string | null;
+
   @Column(col.notNull(col.text()))
   engineCode!: string;
 
