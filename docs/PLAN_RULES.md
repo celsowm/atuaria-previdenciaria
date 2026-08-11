@@ -20,7 +20,7 @@ APPROVED
 SUPERSEDED
 ```
 
-Somente `DRAFT` pode ser alterada. Uma versão aprovada mantém seus valores e fingerprint para referência futura.
+Somente `DRAFT` pode ser alterada. `APPROVED` e `SUPERSEDED` são snapshots imutáveis: `SUPERSEDED` apenas informa que existe uma versão aprovada mais nova, sem invalidar o uso histórico da versão anterior dentro de sua vigência.
 
 Cada versão guarda também a modalidade (`BD`, `CD` ou `CV`) como snapshot. Depois que um plano possui qualquer versão de regras, sua modalidade não pode ser alterada no cadastro mestre.
 
@@ -29,6 +29,8 @@ Cada versão guarda também a modalidade (`BD`, `CD` ou `CV`) como snapshot. Dep
 `effectiveFrom` é obrigatório para aprovação. `effectiveTo` é opcional, mas, quando informado, não pode ser anterior ao início.
 
 Ao copiar uma versão anterior, os valores e notas podem ser reaproveitados, mas a nova versão **não herda automaticamente a vigência**. O usuário precisa confirmar a data do novo regulamento antes de aprovar.
+
+Um engine atuarial verifica a vigência contra `Evaluation.referenceDate`; portanto uma versão mais nova não deve ser usada retroativamente só porque hoje é a versão `APPROVED` corrente.
 
 ## Valores tipados
 
@@ -79,17 +81,19 @@ planId
 + versão
 + modalidade
 + vigência
-+ regras ativas ordenadas
++ regras ativas ordenadas por código canônico
 + tipo/unidade/origem
 ```
 
-O fingerprint serve para auditoria e para compor futuramente o `inputFingerprint` de um `CalculationRun` atuarial.
+A ordenação do payload do hash não depende de locale. O fingerprint é persistido no `CalculationRun` de engines atuariais e também participa do `inputFingerprint` completo da execução.
 
 ## Relação Avaliação → Plano
 
-`Evaluation` agora possui `planId` opcional com FK para `plans`. `planName` continua sendo o snapshot textual exibível.
+`Evaluation` possui `planId` opcional com FK para `plans`. `planName` continua sendo o snapshot textual exibível.
 
 Bases existentes recebem um backfill somente quando existe **exatamente um** plano cujo nome seja igual ao `planName` histórico. Situações sem correspondência ou ambíguas permanecem com `planId = null`; o sistema não adivinha vínculos.
+
+Um engine `ACTUARIAL` recusa executar quando `planId` está ausente, mesmo que `planName` pareça coincidir com algum cadastro.
 
 ## API
 
@@ -119,16 +123,27 @@ npm run plan-rules:self-test
 
 O arquivo temporário é removido ao final e não utiliza a base operacional da aplicação.
 
-## Contrato para o engine atuarial
+## Contrato com o motor atuarial
 
-O engine oficial não deve inferir regras a partir do cadastro atual do plano. Uma futura execução `ACTUARIAL` deverá receber explicitamente:
+O primeiro consumidor real deste contrato é `BD_PVFB`.
+
+Uma execução atuarial recebe explicitamente:
 
 ```text
 Evaluation.planId
-+ PlanRulesVersion APPROVED
-+ ActuarialParameterization APPROVED
++ PlanRulesVersion APPROVED/SUPERSEDED e vigente na data-base
++ ActuarialParameterization APPROVED/SUPERSEDED
 + frozen canonical imports
 + engine code/version
 ```
 
-O `CalculationRun` deverá persistir o `planRulesVersionId` e o fingerprint aprovado das regras. Assim uma alteração regulatória posterior não modifica o significado de uma execução histórica.
+O `CalculationRun` persiste:
+
+```text
+planRulesVersionId
+planRulesFingerprint
+```
+
+Assim, aprovar uma nova versão regulatória depois não modifica o significado de uma execução histórica. O engine nunca resolve "a regra atual" implicitamente.
+
+Detalhes da fórmula e do contrato de `BD_PVFB` estão em `docs/CALCULATION_ENGINE.md`.
