@@ -7,6 +7,8 @@ export class CalculationEngineDto {
   @Field(t.string()) label!: string;
   @Field(t.string()) description!: string;
   @Field(t.enum(["PRECALCULATION", "ACTUARIAL"])) resultKind!: string;
+  @Field(t.boolean()) requiresPlanRules!: boolean;
+  @Field(t.array(t.enum(["BD", "CD", "CV"]), { minItems: 1 })) supportedModalities!: string[];
 }
 
 @Dto({ name: "CalculationRunSummary", description: "Immutable calculation run metadata." })
@@ -14,6 +16,8 @@ export class CalculationRunSummaryDto {
   @Field(t.string({ format: "uuid" })) id!: string;
   @Field(t.integer({ minimum: 1 })) evaluationId!: number;
   @Field(t.string({ format: "uuid" })) parameterizationId!: string;
+  @Field(t.nullable(t.string({ format: "uuid" }))) planRulesVersionId!: string | null;
+  @Field(t.nullable(t.string())) planRulesFingerprint!: string | null;
   @Field(t.string()) engineCode!: string;
   @Field(t.string()) engineVersion!: string;
   @Field(t.enum(["PROCESSING", "COMPLETED", "FAILED"])) status!: string;
@@ -62,9 +66,10 @@ export class CalculationRunDto extends CalculationRunSummaryDto {
   @Field(t.array(t.ref(CalculationResultMetricDto))) metrics!: CalculationResultMetricDto[];
 }
 
-@Dto({ name: "CreateCalculationRun", description: "Execute one registered engine against an approved parameterization." })
+@Dto({ name: "CreateCalculationRun", description: "Execute one registered engine against approved immutable inputs." })
 export class CreateCalculationRunDto {
   @Field(t.string({ format: "uuid" })) parameterizationId!: string;
+  @Field(t.optional(t.string({ format: "uuid" }))) planRulesVersionId?: string;
   @Field(t.optional(t.string({ minLength: 1 }))) engineCode?: string;
 }
 
