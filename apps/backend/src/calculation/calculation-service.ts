@@ -18,7 +18,11 @@ import {
   CalculationRun
 } from "../domain/calculation-entities.js";
 import "./core-precalculation-engine.js";
-import { getCalculationEngine, listCalculationEngines } from "./calculation-engine.js";
+import {
+  getCalculationEngine,
+  listCalculationEngines,
+  validateCalculationMetrics
+} from "./calculation-engine.js";
 
 const runRef = entityRef(CalculationRun);
 const importJobRef = entityRef(ImportJob);
@@ -329,7 +333,7 @@ export async function executeCalculation(
     await session.commit();
 
     try {
-      const metrics = await engine.execute({
+      const metrics = validateCalculationMetrics(await engine.execute({
         evaluation: {
           id: evaluation.id,
           planName: evaluation.planName,
@@ -344,7 +348,7 @@ export async function executeCalculation(
         rows: canonicalRows,
         invalidRowCount: run.invalidRowCount,
         importCount: run.inputImportCount
-      });
+      }));
 
       for (const [ordinal, metric] of metrics.entries()) {
         const stored = new CalculationResultMetric();
