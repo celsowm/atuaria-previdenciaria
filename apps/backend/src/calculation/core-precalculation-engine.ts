@@ -1,6 +1,7 @@
 import {
   registerCalculationEngine,
   type CalculationEngineContext,
+  type CalculationEngineOutput,
   type CalculationMetric
 } from "./calculation-engine.js";
 
@@ -41,7 +42,7 @@ function numberMetric(code: string, category: string, label: string, value: numb
   return { code, category, label, valueType: "NUMBER", value, unit: unit ?? null };
 }
 
-async function execute(context: CalculationEngineContext): Promise<CalculationMetric[]> {
+async function execute(context: CalculationEngineContext): Promise<CalculationEngineOutput> {
   if (!context.rows.length) throw new Error("Não existem linhas canônicas válidas para cálculo.");
 
   let male = 0;
@@ -93,7 +94,7 @@ async function execute(context: CalculationEngineContext): Promise<CalculationMe
     }
   }
 
-  return metrics;
+  return { metrics, participantResults: [] };
 }
 
 registerCalculationEngine({
