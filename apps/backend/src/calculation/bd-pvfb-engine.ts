@@ -1,4 +1,4 @@
-import { normalizeToken, parsePtNumber } from "../data-studio/mapping.js";
+import { normalizeToken, parseCanonicalNumber } from "../data-studio/mapping.js";
 import {
   registerCalculationEngine,
   type CalculationEngineContext,
@@ -103,7 +103,7 @@ function parameterNumber(context: CalculationEngineContext, code: string) {
 }
 
 function canonicalNumber(rowNumber: number, data: Record<string, unknown>, field: string) {
-  const parsed = parsePtNumber(data[field]);
+  const parsed = parseCanonicalNumber(data[field]);
   if (parsed === null) throw new Error(`Linha ${rowNumber}: ${field} é obrigatório e precisa ser numérico.`);
   return parsed;
 }
