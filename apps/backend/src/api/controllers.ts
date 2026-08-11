@@ -149,6 +149,7 @@ export class EvaluationController {
         .execute(session);
       return rows.map((row) => ({
         id: row.id,
+        planId: row.planId ?? null,
         planName: row.planName,
         referenceDate: row.referenceDate,
         status: row.status,
