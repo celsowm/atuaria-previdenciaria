@@ -15,6 +15,8 @@ O frontend usa a URL do navegador como fonte de verdade da navegação. Não exi
 | Execução de cálculo | `/avaliacoes/:id/calculos/:calculationId` |
 | Planos | `/planos` |
 | Plano | `/planos/:id` |
+| Regras atuariais do plano | `/planos/:id/regras` |
+| Versão das regras do plano | `/planos/:id/regras/:rulesVersionId` |
 | Data Studio | `/data-studio` |
 | Crítica de importação | `/data-studio/criticas/:id` |
 | Hipóteses e Tábuas | `/hipoteses-e-tabuas` |
@@ -26,7 +28,7 @@ O frontend usa a URL do navegador como fonte de verdade da navegação. Não exi
 
 A navegação usa a History API. `popstate` mantém voltar/avançar do navegador sincronizados com a aplicação e os identificadores ficam na própria URL, permitindo copiar e reabrir links diretamente.
 
-Parametrizações e execuções de cálculo são deep links reais. Abrir uma execução específica não recalcula o resultado: a página recupera o `CalculationRun` imutável já persistido.
+Parametrizações, versões de regras dos planos e execuções de cálculo são deep links reais. Abrir uma versão específica recupera o snapshot persistido; não existe uma seleção escondida em estado local que mude o significado da URL.
 
 ## Autenticação e deep links
 
@@ -46,4 +48,4 @@ Exemplo conceitual:
 qualquer outra URL -> index.html
 ```
 
-Sem esse fallback, navegar dentro da SPA funciona, mas abrir diretamente `/avaliacoes/42/calculos/<uuid>` no servidor pode resultar em 404 antes do React ser carregado.
+Sem esse fallback, navegar dentro da SPA funciona, mas abrir diretamente uma URL como `/planos/<uuid>/regras/<uuid>` ou `/avaliacoes/42/calculos/<uuid>` no servidor pode resultar em 404 antes do React ser carregado.
