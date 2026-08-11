@@ -3,6 +3,7 @@ import { Dto, Field, t } from "adorn-api";
 @Dto({ name: "Evaluation", description: "Actuarial valuation workspace summary." })
 export class EvaluationDto {
   @Field(t.integer()) id!: number;
+  @Field(t.nullable(t.string({ format: "uuid" }))) planId!: string | null;
   @Field(t.string()) planName!: string;
   @Field(t.string({ format: "date" })) referenceDate!: string;
   @Field(t.string()) status!: string;
