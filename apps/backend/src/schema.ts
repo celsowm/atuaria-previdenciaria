@@ -35,6 +35,11 @@ import {
   ActuarialParameterization,
   ActuarialParameterValue
 } from "./domain/parameterization-entities.js";
+import {
+  CalculationInput,
+  CalculationResultMetric,
+  CalculationRun
+} from "./domain/calculation-entities.js";
 
 const entityTypes = [
   User,
@@ -59,6 +64,9 @@ const entityTypes = [
   ActuarialParameterization,
   ActuarialParameterValue,
   ActuarialHypothesisSelection,
+  CalculationRun,
+  CalculationInput,
+  CalculationResultMetric,
   LlmProvider,
   LlmProviderCredential
 ] as const;
