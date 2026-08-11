@@ -1,11 +1,13 @@
 # Motor de Cálculo
 
-O módulo de cálculo transforma uma parametrização aprovada e uma fotografia explícita das massas canônicas em uma execução imutável e reproduzível.
+O módulo de cálculo transforma snapshots aprovados e uma fotografia explícita das massas canônicas em uma execução imutável e reproduzível.
 
 ```text
 Evaluation
    │
-   ├── APPROVED ActuarialParameterization
+   ├── ActuarialParameterization APPROVED/SUPERSEDED
+   │
+   ├── PlanRulesVersion APPROVED/SUPERSEDED   # engines atuariais
    │
    └── latest COMPLETED import por população
                     │
@@ -17,62 +19,34 @@ Evaluation
  CalculationInput      CalculationResultMetric
 ```
 
-O motor atual ainda é `PRECALCULATION`. O primeiro motor `ACTUARIAL` deverá acrescentar ao contrato uma `PlanRulesVersion` aprovada e explicitamente selecionada.
+`SUPERSEDED` significa que o snapshot já foi aprovado e depois substituído por uma versão mais nova. Ele continua imutável e válido para reprodução histórica; portanto o cálculo aceita `APPROVED` e `SUPERSEDED`.
 
-## Invariantes atuais
+## Invariantes
 
-Uma execução só pode começar quando:
+Toda execução exige:
 
-- a avaliação existe;
-- não há ocorrências bloqueantes registradas na avaliação;
-- a parametrização pertence à avaliação;
-- a parametrização está `APPROVED`;
-- existe ao menos um import `COMPLETED` vinculado à avaliação;
-- o motor solicitado está registrado no `CalculationEngine` registry.
+- avaliação existente;
+- nenhuma ocorrência bloqueante na avaliação;
+- parametrização pertencente à avaliação;
+- parametrização `APPROVED` ou `SUPERSEDED`;
+- ao menos um import `COMPLETED` vinculado à avaliação;
+- engine registrado no `CalculationEngine` registry.
 
-A execução nunca busca "parâmetros atuais" depois de criada. `parameterizationId`, versão do motor e imports utilizados ficam congelados.
+Um engine com `requiresPlanRules = true` exige adicionalmente:
 
-## Seleção da massa
+- `Evaluation.planId` real, sem inferência por nome;
+- `planRulesVersionId` explícito;
+- regras pertencentes ao mesmo plano;
+- modalidade compatível com `supportedModalities` do engine;
+- versão de regras `APPROVED` ou `SUPERSEDED`;
+- `rulesFingerprint` persistido;
+- vigência da versão cobrindo a data-base da avaliação.
 
-Para cada população vinculada à avaliação, o serviço seleciona deterministicamente o import `COMPLETED` mais recente. O desempate usa o próprio UUID do import para evitar seleção não determinística quando timestamps coincidirem.
+A execução nunca busca "a regra atual" ou "o parâmetro atual" depois de criada.
 
-Cada `CalculationInput` registra:
+## Registry de engines
 
-- `importJobId`;
-- população;
-- SHA-256 do arquivo original;
-- fingerprint do schema mapeado;
-- fingerprint do conteúdo CANONICAL e do estado de validação;
-- quantidade total, válida e inválida de linhas;
-- timestamp da conclusão da importação.
-
-As linhas inválidas não são entregues ao motor. Sua quantidade permanece registrada na execução.
-
-## Fingerprints
-
-Existem quatro níveis principais de fingerprint no engine atual:
-
-```text
-parameterFingerprint
-  = parametrização + valores + origem + hipóteses + proveniência dos estudos
-
-dataFingerprint
-  = imports + arquivo original + schema + conteúdo canonical
-
-inputFingerprint
-  = avaliação + data-base + parâmetros + dados + engine code/version
-
-resultFingerprint
-  = métricas tipadas produzidas pelo motor
-```
-
-O primeiro engine `ACTUARIAL` acrescentará `planRulesFingerprint` ao contrato e ao `inputFingerprint`.
-
-Se uma nova solicitação possui o mesmo `inputFingerprint` e a mesma versão do motor, a execução `COMPLETED` anterior é reutilizada. Um motor determinístico não cria cópias indistinguíveis do mesmo cálculo.
-
-## Registry de motores
-
-O domínio não usa `switch` central por modalidade ou versão. Cada motor implementa o contrato `CalculationEngine` e é registrado pelo seu código.
+O domínio não usa um `switch` central por modalidade.
 
 ```text
 CalculationEngine
@@ -80,46 +54,205 @@ CalculationEngine
   ├── version
   ├── label
   ├── resultKind
+  ├── requiresPlanRules
+  ├── supportedModalities[]
   └── execute(context)
 ```
 
 `resultKind` distingue:
 
-- `PRECALCULATION`: consolidação e cálculos técnicos que ainda não representam a avaliação atuarial oficial;
-- `ACTUARIAL`: motores que implementam integralmente uma família de regras atuariais validada.
+- `PRECALCULATION`: consolidação e cálculos técnicos sem resultado atuarial de benefício/provisão;
+- `ACTUARIAL`: cálculo que consome explicitamente regras versionadas do plano e hipóteses atuariais.
 
-Isso permite adicionar motores BD, CD, CV, motores de comparação com legado ou versões regulatórias sem contaminar o orquestrador.
+Um engine `ACTUARIAL` não pode ser registrado com `requiresPlanRules = false`.
 
-## Motor inicial
-
-O primeiro motor registrado é:
+## CORE_PRECALCULATION
 
 ```text
 code:    CORE_PRECALCULATION
 version: core-precalculation-v1
 kind:    PRECALCULATION
+modalidades: BD / CD / CV
 ```
 
-Ele calcula deterministicamente:
+Calcula:
 
-- quantidade de imports congelados;
-- quantidade de populações;
-- linhas válidas e inválidas;
-- participantes masculinos/femininos;
-- idade média na data-base;
-- quantidade de parâmetros ativos;
-- quantidade de hipóteses selecionadas;
-- taxa real de juros, quando parametrizada;
-- fatores de desconto em 1, 10 e 30 anos.
+- imports e populações congeladas;
+- linhas válidas/inválidas;
+- composição por sexo;
+- idade média;
+- quantidade de parâmetros e hipóteses;
+- taxa real de juros;
+- fatores de desconto de 1, 10 e 30 anos.
 
-Ele **não** produz reservas, provisões, custos normais, déficits ou superávits. Esses resultados só devem aparecer em um engine `ACTUARIAL` com regras do plano e fórmulas validadas.
+Não produz reservas, provisões, custos normais, déficits ou superávits.
 
-## Persistência atual
+## BD_PVFB
+
+O primeiro engine `ACTUARIAL` é:
+
+```text
+code:    BD_PVFB
+version: bd-pvfb-v1
+kind:    ACTUARIAL
+modalidade: BD
+```
+
+Ele calcula o **Valor Presente dos Benefícios Futuros (PVFB)** da renda de aposentadoria da população `Ativos`.
+
+O resultado **não é reserva matemática nem provisão técnica**. O engine ainda não distribui o PVFB entre serviço passado/futuro por método de financiamento e não calcula contribuições futuras, déficit ou superávit.
+
+### Regras obrigatórias do plano
+
+```text
+ELIGIBILITY.NORMAL_RETIREMENT_AGE
+BENEFIT.CALCULATION_BASIS = FINAL_SALARY
+BENEFIT.REPLACEMENT_RATE
+BENEFIT.PAYMENTS_PER_YEAR
+```
+
+Regras opcionais que alteram a data de elegibilidade:
+
+```text
+ELIGIBILITY.MINIMUM_PLAN_MEMBERSHIP_YEARS
+ELIGIBILITY.MINIMUM_SPONSOR_SERVICE_YEARS
+```
+
+Quando essas carências existem, os campos canônicos `participant.planJoinDate` e/ou `participant.admissionDate` tornam-se obrigatórios para o engine.
+
+`FINANCIAL.CURRENCY_CODE` é opcional e serve apenas como unidade de apresentação das métricas monetárias; não altera a matemática.
+
+### Parâmetros obrigatórios da rodada
+
+```text
+ECONOMIC.REAL_INTEREST_RATE
+ECONOMIC.SALARY_GROWTH_RATE
+ECONOMIC.BENEFIT_GROWTH_RATE
+```
+
+Nenhum deles recebe zero implicitamente. Se o valor correto for zero, zero precisa estar explicitamente gravado na parametrização aprovada.
+
+### Hipótese biométrica
+
+O v1 exige exatamente uma hipótese biométrica ativa na parametrização e usa os pontos `qx` da `BiometricTableVersion` selecionada.
+
+Os próprios pontos `age / sex / qx` entram no `parameterFingerprint`. Assim o fingerprint reflete os dados biométricos efetivamente consumidos, e não apenas o UUID da versão.
+
+Para cada sexo utilizado, a série precisa:
+
+- possuir `qx` em todas as idades necessárias;
+- ter `0 <= qx <= 1`;
+- encerrar com `qx = 1` (tolerância numérica `0.999999`).
+
+Uma tabela `UNISEX` pode servir como fallback para `MALE` e `FEMALE`.
+
+### Dados canônicos obrigatórios
+
+Para `Ativos`:
+
+```text
+participant.birthDate
+participant.sex
+participant.contributionSalary
+```
+
+Salário pode estar persistido como número ou como representação textual canônica reconhecível. O backend compartilha o parser numérico do Data Studio para não interpretar de forma diferente o mesmo dado.
+
+### Fórmula
+
+Para cada participante, o engine determina uma idade inteira de início de benefício respeitando idade normal e carências configuradas.
+
+Salário mensal projetado:
+
+```text
+S_R = S_0 × (1 + g_s)^n
+```
+
+Benefício mensal projetado:
+
+```text
+B_R = S_R × r
+```
+
+Benefício anual no primeiro ano de aposentadoria:
+
+```text
+A_0 = B_R × m
+```
+
+onde:
+
+- `S_0`: salário de contribuição mensal na data-base;
+- `g_s`: crescimento real salarial;
+- `n`: anos inteiros até início do benefício;
+- `r`: taxa de reposição;
+- `m`: pagamentos por ano.
+
+A sobrevivência até cada idade é construída pelo produto dos `px = 1 - qx` da hipótese selecionada.
+
+O PVFB individual usa passos anuais e pagamentos no início de cada ano de aposentadoria:
+
+```text
+PVFB = Σ [ A_0 × (1 + g_b)^t × survival(t) / (1 + i)^(n+t) ]
+```
+
+até a idade terminal da tábua, em que `qx = 1`.
+
+- `g_b`: crescimento real dos benefícios;
+- `i`: taxa real de juros;
+- `survival(t)`: probabilidade acumulada de sobrevivência desde a idade atual até o pagamento do ano `t`.
+
+A convenção anual é deliberadamente explícita para que versões futuras possam mudar para fracionamento mensal ou outra hipótese sem alterar silenciosamente o significado de `bd-pvfb-v1`.
+
+### Métricas
+
+Entre as métricas persistidas:
+
+```text
+BD.PVFB.ACTIVE_PARTICIPANTS
+BD.PVFB.CURRENT_MONTHLY_SALARY_TOTAL
+BD.PVFB.PROJECTED_MONTHLY_BENEFIT_TOTAL
+BD.PVFB.TOTAL
+BD.PVFB.AVERAGE
+BD.PVFB.AVERAGE_YEARS_TO_RETIREMENT
+BD.PVFB.AVERAGE_SURVIVAL_TO_RETIREMENT
+```
+
+Além disso, a execução registra as taxas e regras centrais usadas para facilitar conferência humana.
+
+## Fingerprints
+
+```text
+planRulesFingerprint
+  = fingerprint da PlanRulesVersion aprovada
+
+parameterFingerprint
+  = parametrização + parâmetros + hipóteses + pontos qx efetivamente usados
+
+dataFingerprint
+  = imports + arquivo original + schema + conteúdo CANONICAL
+
+inputFingerprint
+  = avaliação + planId + data-base
+    + snapshot completo de regras
+    + parameterFingerprint
+    + dataFingerprint
+    + engine code/version
+
+resultFingerprint
+  = métricas tipadas produzidas pelo engine
+```
+
+Se uma solicitação possui o mesmo `inputFingerprint`, engine e versão de engine, um `CalculationRun COMPLETED` anterior é reutilizado.
+
+## Persistência
 
 ```text
 CalculationRun
   ├── evaluationId
   ├── parameterizationId
+  ├── planRulesVersionId?       # obrigatório para engine atuarial
+  ├── planRulesFingerprint?
   ├── engineCode / engineVersion
   ├── status
   ├── parameterFingerprint
@@ -135,7 +268,7 @@ CalculationResultMetric
   └── resultado tipado e ordenado
 ```
 
-Execuções históricas protegem suas referências com `RESTRICT`; apagar dados de origem não pode silenciosamente invalidar um resultado já persistido.
+As colunas de regras do plano são nullable para permitir leitura dos `CalculationRun` de pré-cálculo criados antes da introdução do contrato atuarial.
 
 ## API
 
@@ -146,7 +279,15 @@ POST /api/evaluations/:evaluationId/calculations
 GET  /api/calculations/:id
 ```
 
-Criar uma execução exige explicitamente o `parameterizationId` aprovado. `engineCode` é opcional e, quando omitido, usa o motor base atual.
+Exemplo de solicitação atuarial:
+
+```json
+{
+  "parameterizationId": "<uuid>",
+  "planRulesVersionId": "<uuid>",
+  "engineCode": "BD_PVFB"
+}
+```
 
 ## URLs
 
@@ -155,26 +296,19 @@ Criar uma execução exige explicitamente o `parameterizationId` aprovado. `engi
 /avaliacoes/:evaluationId/calculos/:calculationId
 ```
 
-A URL individual apenas recupera a execução persistida. Ela não dispara recálculo.
+A URL individual recupera a execução persistida. Ela nunca dispara recálculo.
+
+## Self-tests
+
+```bash
+npm run calculation:self-test
+npm run bd-pvfb:self-test
+```
+
+O self-test BD inclui um caso fechado cuja resposta analítica é `PVFB = 9.000`.
 
 ## Próxima evolução
 
-`PlanRulesVersion` já é módulo funcional e `Evaluation` já possui `planId`. Portanto o próximo engine `ACTUARIAL` deverá exigir:
+O próximo passo atuarial não é renomear PVFB como reserva. É implementar a apropriação do passivo conforme método de financiamento e regras efetivamente suportadas, por exemplo um engine BD específico para `PROJECTED_UNIT_CREDIT` ou outro método validado.
 
-```text
-Evaluation.planId
-       +
-PlanRulesVersion APPROVED
-       +
-ActuarialParameterization APPROVED
-       +
-Frozen Canonical Inputs
-       ↓
-BD/CD/CV CalculationEngine
-       ↓
-CalculationRun (ACTUARIAL)
-```
-
-A persistência do `CalculationRun` deverá ganhar `planRulesVersionId` e `planRulesFingerprint`. A execução deve validar que a versão de regras pertence ao mesmo `Evaluation.planId` e que está `APPROVED`.
-
-Os primeiros resultados oficiais só devem ser implementados em uma modalidade cuja fórmula tenha sido validada contra fonte técnica ou golden master/legado. O fechamento atuarial deverá consumir apenas `CalculationRun` concluído e explicitamente selecionado, nunca recalcular valores por conta própria.
+Somente depois disso o **Fechamento Atuarial** deve selecionar explicitamente um `CalculationRun COMPLETED`, reconciliar valores e congelar a rodada final.
