@@ -27,6 +27,10 @@ export type ActuarialParameterization = ApiComponents["schemas"]["ActuarialParam
 export type CreateActuarialParameterizationInput = ApiComponents["schemas"]["CreateActuarialParameterization"];
 export type UpdateActuarialParameterizationInput = ApiComponents["schemas"]["UpdateActuarialParameterization"];
 export type SetActuarialParameterValueInput = ApiComponents["schemas"]["SetActuarialParameterValue"];
+export type CalculationEngine = ApiComponents["schemas"]["CalculationEngine"];
+export type CalculationRunSummary = ApiComponents["schemas"]["CalculationRunSummary"];
+export type CalculationRun = ApiComponents["schemas"]["CalculationRun"];
+export type CreateCalculationRunInput = ApiComponents["schemas"]["CreateCalculationRun"];
 export type LlmProvider = ApiComponents["schemas"]["LlmProvider"];
 export type AuthUser = ApiComponents["schemas"]["AuthUser"];
 export type LoginResponse = ApiComponents["schemas"]["LoginResponse"];
@@ -159,6 +163,12 @@ export const api = {
     postJson<ActuarialParameterization>(`/api/parameterizations/${id}/hypothesis/remove`, { selectionId }),
   approveParameterization: (id: string) =>
     postJson<ActuarialParameterization>(`/api/parameterizations/${id}/approve`, {}),
+  calculationEngines: () => getJson<CalculationEngine[]>("/api/calculation-engines"),
+  calculationRuns: (evaluationId: number) =>
+    getJson<CalculationRunSummary[]>(`/api/evaluations/${evaluationId}/calculations`),
+  calculationRun: (id: string) => getJson<CalculationRun>(`/api/calculations/${id}`),
+  createCalculationRun: (evaluationId: number, input: CreateCalculationRunInput) =>
+    postJson<CalculationRun>(`/api/evaluations/${evaluationId}/calculations`, input),
   mappingProfiles: () => getJson<MappingProfile[]>("/api/mapping-profiles/"),
   matchMappingProfile: (headers: string[], population: string) =>
     postJson<MappingProfileMatch>("/api/mapping-profiles/match", { headers, population }),
