@@ -7,6 +7,9 @@ import {
   ImportJob,
   ImportRow
 } from "../domain/entities.js";
+import { Plan } from "../domain/plan-entities.js";
+import { PlanRuleValue, PlanRulesVersion } from "../domain/plan-rule-entities.js";
+import { BiometricTablePoint } from "../domain/biometric-entities.js";
 import {
   ActuarialHypothesisSelection,
   ActuarialParameterization,
@@ -18,10 +21,13 @@ import {
   CalculationRun
 } from "../domain/calculation-entities.js";
 import "./core-precalculation-engine.js";
+import "./bd-pvfb-engine.js";
 import {
   getCalculationEngine,
   listCalculationEngines,
-  validateCalculationMetrics
+  validateCalculationMetrics,
+  type CalculationEngine,
+  type CalculationEngineContext
 } from "./calculation-engine.js";
 
 const runRef = entityRef(CalculationRun);
@@ -29,6 +35,8 @@ const importJobRef = entityRef(ImportJob);
 const importRowRef = entityRef(ImportRow);
 const valueRef = entityRef(ActuarialParameterValue);
 const selectionRef = entityRef(ActuarialHypothesisSelection);
+const planRuleRef = entityRef(PlanRuleValue);
+const biometricPointRef = entityRef(BiometricTablePoint);
 const inputRef = entityRef(CalculationInput);
 const metricRef = entityRef(CalculationResultMetric);
 
@@ -62,11 +70,17 @@ function normalizedJsonFingerprint(value: unknown) {
   return sha256(JSON.stringify(value));
 }
 
+function isModality(value: string): value is "BD" | "CD" | "CV" {
+  return value === "BD" || value === "CD" || value === "CV";
+}
+
 function runSummary(row: CalculationRun) {
   return {
     id: row.id,
     evaluationId: row.evaluationId,
     parameterizationId: row.parameterizationId,
+    planRulesVersionId: row.planRulesVersionId ?? null,
+    planRulesFingerprint: row.planRulesFingerprint ?? null,
     engineCode: row.engineCode,
     engineVersion: row.engineVersion,
     status: row.status,
@@ -157,9 +171,84 @@ function latestCompletedImports(jobs: ImportJob[]) {
   );
 }
 
+async function loadPlanRules(
+  session: Session,
+  evaluation: Evaluation,
+  engine: CalculationEngine,
+  planRulesVersionId: string | undefined
+): Promise<CalculationEngineContext["planRules"]> {
+  if (!engine.requiresPlanRules) {
+    if (planRulesVersionId) {
+      throw new Error(`O motor ${engine.code} não utiliza regras versionadas do plano; remova planRulesVersionId da solicitação.`);
+    }
+    return null;
+  }
+
+  if (!evaluation.planId) {
+    throw new Error("O motor atuarial exige que a avaliação esteja vinculada a um plano por planId.");
+  }
+  if (!planRulesVersionId) {
+    throw new Error(`O motor ${engine.code} exige planRulesVersionId aprovado.`);
+  }
+
+  const plan = await session.find(Plan, evaluation.planId);
+  if (!plan) throw new Error("O plano vinculado à avaliação não foi encontrado.");
+  if (!isModality(plan.modality)) throw new Error(`Modalidade de plano inválida: ${plan.modality}.`);
+  if (!engine.supportedModalities.includes(plan.modality)) {
+    throw new Error(`O motor ${engine.code} não suporta plano ${plan.modality}.`);
+  }
+
+  const version = await session.find(PlanRulesVersion, planRulesVersionId);
+  if (!version || version.planId !== plan.id) {
+    throw new Error("A versão de regras informada não pertence ao plano desta avaliação.");
+  }
+  if (version.status !== "APPROVED") {
+    throw new Error("O motor atuarial exige uma versão de regras do plano APPROVED e imutável.");
+  }
+  if (version.modality !== plan.modality) {
+    throw new Error("A modalidade congelada na versão de regras diverge da modalidade do plano.");
+  }
+  if (!version.rulesFingerprint) {
+    throw new Error("A versão aprovada das regras do plano não possui fingerprint.");
+  }
+  if (!version.effectiveFrom) {
+    throw new Error("A versão aprovada das regras do plano não possui início de vigência.");
+  }
+  if (evaluation.referenceDate < version.effectiveFrom || (version.effectiveTo && evaluation.referenceDate > version.effectiveTo)) {
+    throw new Error(`A versão de regras não está vigente na data-base ${evaluation.referenceDate}.`);
+  }
+
+  const storedRules = await selectFromEntity(PlanRuleValue)
+    .where(eq(planRuleRef.planRulesVersionId, version.id))
+    .execute(session);
+  const rules = storedRules
+    .filter((item) => item.active !== 0)
+    .sort((a, b) => a.code < b.code ? -1 : a.code > b.code ? 1 : 0)
+    .map((item) => ({
+      code: item.code,
+      category: item.category,
+      label: item.label,
+      valueType: item.valueType,
+      valueJson: item.valueJson,
+      unit: item.unit ?? null,
+      source: item.source
+    }));
+  if (!rules.length) throw new Error("A versão aprovada das regras do plano não possui regras ativas.");
+
+  return {
+    id: version.id,
+    version: version.version,
+    modality: plan.modality,
+    effectiveFrom: version.effectiveFrom,
+    effectiveTo: version.effectiveTo ?? null,
+    fingerprint: version.rulesFingerprint,
+    rules
+  };
+}
+
 export async function executeCalculation(
   evaluationId: number,
-  input: { parameterizationId: string; engineCode?: string }
+  input: { parameterizationId: string; planRulesVersionId?: string; engineCode?: string }
 ) {
   return withSession(async (session) => {
     const evaluation = await session.find(Evaluation, evaluationId);
@@ -177,6 +266,8 @@ export async function executeCalculation(
     }
 
     const engine = getCalculationEngine(input.engineCode ?? "CORE_PRECALCULATION");
+    const planRules = await loadPlanRules(session, evaluation, engine, input.planRulesVersionId);
+
     const [storedValues, storedSelections, jobs] = await Promise.all([
       selectFromEntity(ActuarialParameterValue)
         .where(eq(valueRef.parameterizationId, parameterization.id))
@@ -191,7 +282,7 @@ export async function executeCalculation(
 
     const parameters = storedValues
       .filter((value) => value.active !== 0)
-      .sort((a, b) => a.code.localeCompare(b.code))
+      .sort((a, b) => a.code < b.code ? -1 : a.code > b.code ? 1 : 0)
       .map((value) => ({
         code: value.code,
         category: value.category,
@@ -201,10 +292,18 @@ export async function executeCalculation(
         unit: value.unit ?? null,
         source: value.source
       }));
-    const hypotheses = storedSelections
-      .filter((selection) => selection.active !== 0)
-      .sort((a, b) => a.hypothesisType.localeCompare(b.hypothesisType, "pt-BR") || a.id.localeCompare(b.id))
-      .map((selection) => ({
+
+    const hypotheses: CalculationEngineContext["parameterization"]["hypotheses"] = [];
+    for (const selection of storedSelections
+      .filter((item) => item.active !== 0)
+      .sort((a, b) => a.hypothesisType < b.hypothesisType ? -1 : a.hypothesisType > b.hypothesisType ? 1 : a.id.localeCompare(b.id))) {
+      const storedPoints = await selectFromEntity(BiometricTablePoint)
+        .where(eq(biometricPointRef.versionId, selection.biometricVersionId))
+        .execute(session);
+      const points = storedPoints
+        .sort((a, b) => a.age - b.age || a.sex.localeCompare(b.sex))
+        .map((point) => ({ age: point.age, sex: point.sex, qx: Number(point.qx) }));
+      hypotheses.push({
         hypothesisType: selection.hypothesisType,
         adherenceStudyId: selection.adherenceStudyId,
         candidateResultId: selection.candidateResultId,
@@ -212,8 +311,10 @@ export async function executeCalculation(
         tableCode: selection.tableCode,
         tableName: selection.tableName,
         versionLabel: selection.versionLabel,
-        candidateRank: selection.candidateRank
-      }));
+        candidateRank: selection.candidateRank,
+        points
+      });
+    }
 
     const selectedImports = latestCompletedImports(jobs);
     if (!selectedImports.length) {
@@ -275,7 +376,9 @@ export async function executeCalculation(
     })));
     const inputFingerprint = normalizedJsonFingerprint({
       evaluationId,
+      planId: evaluation.planId ?? null,
       referenceDate: evaluation.referenceDate,
+      planRules,
       parameterFingerprint,
       dataFingerprint,
       engineCode: engine.code,
@@ -299,6 +402,8 @@ export async function executeCalculation(
     run.id = randomUUID();
     run.evaluationId = evaluationId;
     run.parameterizationId = parameterization.id;
+    run.planRulesVersionId = planRules?.id ?? null;
+    run.planRulesFingerprint = planRules?.fingerprint ?? null;
     run.engineCode = engine.code;
     run.engineVersion = engine.version;
     run.status = "PROCESSING";
@@ -336,9 +441,11 @@ export async function executeCalculation(
       const metrics = validateCalculationMetrics(await engine.execute({
         evaluation: {
           id: evaluation.id,
+          planId: evaluation.planId ?? null,
           planName: evaluation.planName,
           referenceDate: evaluation.referenceDate
         },
+        planRules,
         parameterization: {
           id: parameterization.id,
           version: parameterization.version,
