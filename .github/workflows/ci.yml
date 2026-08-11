@@ -21,6 +21,11 @@ jobs:
         run: npm run typecheck
       - name: Build
         run: npm run build
+      - name: Deterministic actuarial self-tests
+        run: |
+          npm run calculation:self-test
+          npm run bd-pvfb:self-test
+          npm run plan-rules:self-test
       - name: Smoke test API, Data Studio, critique and biometrics
         shell: bash
         run: |
