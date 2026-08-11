@@ -118,11 +118,17 @@ async function valuesFor(session: Session, parameterizationId: string) {
     .sort((a, b) => a.category.localeCompare(b.category, "pt-BR") || a.code.localeCompare(b.code));
 }
 
-async function selectionsFor(session: Session, parameterizationId: string) {
-  const rows = await selectFromEntity(ActuarialHypothesisSelection)
+async function allSelectionsFor(session: Session, parameterizationId: string) {
+  return selectFromEntity(ActuarialHypothesisSelection)
     .where(eq(selectionRef.parameterizationId, parameterizationId))
     .execute(session);
-  return rows.sort((a, b) => a.hypothesisType.localeCompare(b.hypothesisType, "pt-BR"));
+}
+
+async function selectionsFor(session: Session, parameterizationId: string) {
+  const rows = await allSelectionsFor(session, parameterizationId);
+  return rows
+    .filter((row) => row.active !== 0)
+    .sort((a, b) => a.hypothesisType.localeCompare(b.hypothesisType, "pt-BR"));
 }
 
 function summary(row: ActuarialParameterization) {
@@ -263,6 +269,7 @@ export async function createParameterization(
         selection.tableName = source.tableName;
         selection.versionLabel = source.versionLabel;
         selection.candidateRank = source.candidateRank;
+        selection.active = 1;
         selection.selectedAt = now;
         session.trackNew(tableOf(ActuarialHypothesisSelection), selection, selection.id);
       }
@@ -363,7 +370,7 @@ export async function promoteAdherenceCandidate(id: string, candidateResultId: s
       throw new Error("O estudo de aderência pertence a outra avaliação.");
     }
 
-    const current = (await selectionsFor(session, id)).find(
+    const current = (await allSelectionsFor(session, id)).find(
       (selection) => selection.hypothesisType === study.hypothesisType
     );
     const now = new Date().toISOString();
@@ -380,11 +387,28 @@ export async function promoteAdherenceCandidate(id: string, candidateResultId: s
     selection.tableName = candidate.tableName;
     selection.versionLabel = candidate.versionLabel;
     selection.candidateRank = candidate.rank;
+    selection.active = 1;
     selection.selectedAt = now;
 
     if (current) session.markDirty(selection);
     else session.trackNew(tableOf(ActuarialHypothesisSelection), selection, selection.id);
     row.updatedAt = now;
+    session.markDirty(row);
+    await session.commit();
+    return detailInSession(session, row);
+  });
+}
+
+export async function removeHypothesisSelection(id: string, selectionId: string) {
+  return withSession(async (session) => {
+    const row = await requireDraft(session, id);
+    const selection = await session.find(ActuarialHypothesisSelection, selectionId);
+    if (!selection || selection.parameterizationId !== id || selection.active === 0) {
+      throw new Error("Hipótese selecionada não encontrada nesta parametrização.");
+    }
+    selection.active = 0;
+    session.markDirty(selection);
+    row.updatedAt = new Date().toISOString();
     session.markDirty(row);
     await session.commit();
     return detailInSession(session, row);
