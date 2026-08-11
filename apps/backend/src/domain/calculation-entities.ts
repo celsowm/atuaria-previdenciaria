@@ -8,7 +8,7 @@ export class CalculationRun {
   @Column(col.notNull(col.references(col.int(), {
     table: "evaluations",
     column: "id",
-    onDelete: "CASCADE"
+    onDelete: "RESTRICT"
   })))
   evaluationId!: number;
 
