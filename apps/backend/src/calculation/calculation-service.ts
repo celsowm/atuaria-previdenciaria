@@ -88,7 +88,7 @@ async function detailInSession(session: Session, row: CalculationRun) {
     parameterFingerprint: row.parameterFingerprint,
     dataFingerprint: row.dataFingerprint,
     inputs: inputs
-      .sort((a, b) => a.population.localeCompare(b.population, "pt-BR"))
+      .sort((a, b) => a.population.localeCompare(b.population, "pt-BR") || a.importJobId.localeCompare(b.importJobId))
       .map((item) => ({
         id: item.id,
         importJobId: item.importJobId,
@@ -141,11 +141,16 @@ function latestCompletedImports(jobs: ImportJob[]) {
   const byPopulation = new Map<string, ImportJob>();
   const sorted = jobs
     .filter((job) => job.status === "COMPLETED")
-    .sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt));
+    .sort((a, b) => {
+      const timeOrder = (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt);
+      return timeOrder || b.id.localeCompare(a.id);
+    });
   for (const job of sorted) {
     if (!byPopulation.has(job.population)) byPopulation.set(job.population, job);
   }
-  return [...byPopulation.values()].sort((a, b) => a.population.localeCompare(b.population, "pt-BR"));
+  return [...byPopulation.values()].sort(
+    (a, b) => a.population.localeCompare(b.population, "pt-BR") || a.id.localeCompare(b.id)
+  );
 }
 
 export async function executeCalculation(
@@ -185,19 +190,25 @@ export async function executeCalculation(
       .sort((a, b) => a.code.localeCompare(b.code))
       .map((value) => ({
         code: value.code,
+        category: value.category,
+        label: value.label,
         valueType: value.valueType,
         valueJson: value.valueJson,
-        unit: value.unit ?? null
+        unit: value.unit ?? null,
+        source: value.source
       }));
     const hypotheses = storedSelections
       .filter((selection) => selection.active !== 0)
-      .sort((a, b) => a.hypothesisType.localeCompare(b.hypothesisType, "pt-BR"))
+      .sort((a, b) => a.hypothesisType.localeCompare(b.hypothesisType, "pt-BR") || a.id.localeCompare(b.id))
       .map((selection) => ({
         hypothesisType: selection.hypothesisType,
+        adherenceStudyId: selection.adherenceStudyId,
+        candidateResultId: selection.candidateResultId,
         biometricVersionId: selection.biometricVersionId,
         tableCode: selection.tableCode,
         tableName: selection.tableName,
-        versionLabel: selection.versionLabel
+        versionLabel: selection.versionLabel,
+        candidateRank: selection.candidateRank
       }));
 
     const selectedImports = latestCompletedImports(jobs);
@@ -218,8 +229,9 @@ export async function executeCalculation(
       const rows = await selectFromEntity(ImportRow)
         .where(eq(importRowRef.importJobId, job.id))
         .execute(session);
-      rows.sort((a, b) => a.rowNumber - b.rowNumber);
+      rows.sort((a, b) => a.rowNumber - b.rowNumber || a.id.localeCompare(b.id));
       const canonicalFingerprint = normalizedJsonFingerprint(rows.map((row) => ({
+        id: row.id,
         rowNumber: row.rowNumber,
         validationStatus: row.validationStatus,
         canonicalJson: row.canonicalJson,
@@ -242,6 +254,7 @@ export async function executeCalculation(
     const parameterFingerprint = normalizedJsonFingerprint({
       parameterizationId: parameterization.id,
       version: parameterization.version,
+      approvedAt: parameterization.approvedAt ?? null,
       parameters,
       hypotheses
     });
@@ -253,7 +266,8 @@ export async function executeCalculation(
       canonicalFingerprint,
       rowCount: job.rowCount,
       validRows: job.validRows,
-      invalidRows: job.invalidRows
+      invalidRows: job.invalidRows,
+      completedAt: job.completedAt ?? null
     })));
     const inputFingerprint = normalizedJsonFingerprint({
       evaluationId,
@@ -348,6 +362,8 @@ export async function executeCalculation(
 
       run.resultFingerprint = normalizedJsonFingerprint(metrics.map((metric) => ({
         code: metric.code,
+        category: metric.category,
+        label: metric.label,
         valueType: metric.valueType,
         value: metric.value,
         unit: metric.unit ?? null
