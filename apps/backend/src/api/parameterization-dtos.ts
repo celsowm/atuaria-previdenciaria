@@ -89,6 +89,11 @@ export class PromoteAdherenceCandidateDto {
   @Field(t.string({ format: "uuid" })) candidateResultId!: string;
 }
 
+@Dto({ name: "RemoveActuarialHypothesisSelection", description: "Deactivate one selected hypothesis in a draft parameterization." })
+export class RemoveActuarialHypothesisSelectionDto {
+  @Field(t.string({ format: "uuid" })) selectionId!: string;
+}
+
 @Dto({ name: "EvaluationParameterizationParams" })
 export class EvaluationParameterizationParamsDto {
   @Field(t.integer({ minimum: 1 })) evaluationId!: number;
