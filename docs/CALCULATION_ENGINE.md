@@ -14,9 +14,9 @@ Evaluation
                     ▼
               CalculationRun
                     │
-          ┌─────────┴─────────┐
-          ▼                   ▼
- CalculationInput      CalculationResultMetric
+       ┌────────────┼──────────────────┐
+       ▼            ▼                  ▼
+CalculationInput  Aggregate metrics  Participant results
 ```
 
 `SUPERSEDED` significa que o snapshot já foi aprovado e depois substituído por uma versão mais nova. Ele continua imutável e válido para reprodução histórica; portanto o cálculo aceita `APPROVED` e `SUPERSEDED`.
@@ -42,6 +42,8 @@ Um engine com `requiresPlanRules = true` exige adicionalmente:
 - `rulesFingerprint` persistido;
 - vigência da versão cobrindo a data-base da avaliação.
 
+Antes da execução, o backend recalcula o fingerprint do conteúdo atual da `PlanRulesVersion` e o compara ao fingerprint aprovado. Divergência é tratada como falha de integridade e o cálculo é recusado.
+
 A execução nunca busca "a regra atual" ou "o parâmetro atual" depois de criada.
 
 ## Registry de engines
@@ -57,6 +59,10 @@ CalculationEngine
   ├── requiresPlanRules
   ├── supportedModalities[]
   └── execute(context)
+          ↓
+     CalculationEngineOutput
+       ├── metrics[]
+       └── participantResults[]
 ```
 
 `resultKind` distingue:
@@ -65,6 +71,8 @@ CalculationEngine
 - `ACTUARIAL`: cálculo que consome explicitamente regras versionadas do plano e hipóteses atuariais.
 
 Um engine `ACTUARIAL` não pode ser registrado com `requiresPlanRules = false`.
+
+Resultados individuais só podem referenciar linhas pertencentes aos imports efetivamente congelados na execução. O orquestrador valida `importJobId + sourceRowNumber` antes de persistir a saída do engine.
 
 ## CORE_PRECALCULATION
 
@@ -85,7 +93,7 @@ Calcula:
 - taxa real de juros;
 - fatores de desconto de 1, 10 e 30 anos.
 
-Não produz reservas, provisões, custos normais, déficits ou superávits.
+Não produz reservas, provisões, custos normais, déficits ou superávits e não gera resultados individuais atuariais.
 
 ## BD_PVFB
 
@@ -156,7 +164,7 @@ participant.sex
 participant.contributionSalary
 ```
 
-Salário pode estar persistido como número ou como representação textual canônica reconhecível. O backend compartilha o parser numérico do Data Studio para não interpretar de forma diferente o mesmo dado.
+Salário pode estar persistido como número ou como representação textual canônica reconhecível. O backend compartilha o contrato de parsing numérico do Data Studio e reconhece, entre outros, `9.321,74`, `9,321.74` e `9321.74` sem deixar o engine interpretar o mesmo valor com outra regra.
 
 ### Fórmula
 
@@ -204,7 +212,7 @@ até a idade terminal da tábua, em que `qx = 1`.
 
 A convenção anual é deliberadamente explícita para que versões futuras possam mudar para fracionamento mensal ou outra hipótese sem alterar silenciosamente o significado de `bd-pvfb-v1`.
 
-### Métricas
+### Métricas agregadas
 
 Entre as métricas persistidas:
 
@@ -219,6 +227,38 @@ BD.PVFB.AVERAGE_SURVIVAL_TO_RETIREMENT
 ```
 
 Além disso, a execução registra as taxas e regras centrais usadas para facilitar conferência humana.
+
+### Reconciliação por participante
+
+O `BD_PVFB` também persiste um resultado por participante, separado das métricas agregadas. Cada linha guarda a proveniência:
+
+```text
+CalculationParticipantResult
+  ├── calculationRunId
+  ├── importJobId
+  ├── population
+  ├── sourceRowNumber
+  ├── participantRegistration
+  ├── resultJson
+  └── ordinal
+```
+
+O `resultJson` do `bd-pvfb-v1` contém:
+
+```text
+currentAge
+retirementAge
+yearsToRetirement
+currentMonthlySalary
+projectedMonthlySalary
+projectedMonthlyBenefit
+survivalToRetirement
+pvfb
+```
+
+Isso permite reconciliar a nova implementação contra o sistema legado participante a participante, sem depender apenas da igualdade do total agregado.
+
+O detalhe normal do `CalculationRun` continua leve. Resultados individuais são recuperados por endpoint paginado, com máximo de 200 registros por página.
 
 ## Fingerprints
 
@@ -240,7 +280,7 @@ inputFingerprint
     + engine code/version
 
 resultFingerprint
-  = métricas tipadas produzidas pelo engine
+  = métricas agregadas + resultados individuais ordenados produzidos pelo engine
 ```
 
 Se uma solicitação possui o mesmo `inputFingerprint`, engine e versão de engine, um `CalculationRun COMPLETED` anterior é reutilizado.
@@ -259,16 +299,20 @@ CalculationRun
   ├── dataFingerprint
   ├── inputFingerprint
   ├── resultFingerprint
+  ├── participantResultCount
   └── timestamps / contagens
 
 CalculationInput
   └── snapshot de cada import utilizado
 
 CalculationResultMetric
-  └── resultado tipado e ordenado
+  └── resultado agregado tipado e ordenado
+
+CalculationParticipantResult
+  └── resultado individual + ligação à linha de origem congelada
 ```
 
-As colunas de regras do plano são nullable para permitir leitura dos `CalculationRun` de pré-cálculo criados antes da introdução do contrato atuarial.
+As colunas de regras do plano e `participantResultCount` são aditivas/nullable no schema para manter leitura de execuções criadas antes da introdução desses contratos; a API normaliza contagem ausente para zero.
 
 ## API
 
@@ -277,6 +321,7 @@ GET  /api/calculation-engines
 GET  /api/evaluations/:evaluationId/calculations
 POST /api/evaluations/:evaluationId/calculations
 GET  /api/calculations/:id
+GET  /api/calculations/:id/participants?page=1&pageSize=50
 ```
 
 Exemplo de solicitação atuarial:
@@ -296,18 +341,23 @@ Exemplo de solicitação atuarial:
 /avaliacoes/:evaluationId/calculos/:calculationId
 ```
 
-A URL individual recupera a execução persistida. Ela nunca dispara recálculo.
+A URL individual recupera a execução persistida. Ela nunca dispara recálculo. A própria tela carrega a reconciliação individual paginadamente quando a execução possui esses resultados.
 
 ## Self-tests
 
 ```bash
 npm run calculation:self-test
 npm run bd-pvfb:self-test
+npm run plan-rules:self-test
 ```
 
-O self-test BD inclui um caso fechado cuja resposta analítica é `PVFB = 9.000`.
+O self-test BD inclui um caso fechado cuja resposta analítica é `PVFB = 9.000`, usa salário canônico `1.000,00` e verifica o mesmo `9.000` no resultado individual persistível.
+
+A CI executa esses self-tests depois de `typecheck` e `build`.
 
 ## Próxima evolução
+
+A infraestrutura para reconciliar o cálculo com o legado já existe em nível agregado e participante.
 
 O próximo passo atuarial não é renomear PVFB como reserva. É implementar a apropriação do passivo conforme método de financiamento e regras efetivamente suportadas, por exemplo um engine BD específico para `PROJECTED_UNIT_CREDIT` ou outro método validado.
 
