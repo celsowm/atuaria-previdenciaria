@@ -33,7 +33,8 @@ Somente `DRAFT` pode ser alterada. Ao aprovar uma versão:
 - a aprovação recebe timestamp;
 - uma versão anteriormente aprovada da mesma avaliação passa para `SUPERSEDED`;
 - parâmetros e hipóteses da versão aprovada deixam de ser editáveis;
-- alterações posteriores exigem uma nova versão, que pode copiar a anterior.
+- alterações posteriores exigem uma nova versão, que pode copiar a anterior;
+- existe no máximo um rascunho aberto por avaliação.
 
 O futuro `CalculationRun` deverá referenciar explicitamente o `parameterizationId` aprovado utilizado na execução.
 
@@ -60,6 +61,8 @@ Os parâmetros são tipados e extensíveis. Cada valor registra:
 
 A primeira UI oferece parâmetros econômicos/demográficos básicos e método de financiamento, mas o modelo não fica limitado a esses campos. Parâmetros específicos de modalidade ou regulamento podem ser adicionados sem transformar a tabela em uma estrutura monolítica.
 
+A edição do rascunho trata o conjunto enviado como o conjunto ativo. Um valor retirado do rascunho é desativado internamente em vez de ser apagado fisicamente, evitando ressuscitar silenciosamente valores antigos ao copiar ou aprovar versões.
+
 ### ActuarialHypothesisSelection
 
 Um resultado do Estudo de Aderência pode ser promovido explicitamente para a parametrização. O snapshot guarda:
@@ -73,6 +76,10 @@ Um resultado do Estudo de Aderência pode ser promovido explicitamente para a pa
 - posição do candidato no ranking no momento da seleção.
 
 A promoção não significa que o candidato `#1` é automaticamente aprovado. A decisão continua sendo humana e explícita.
+
+Um estudo ainda sem `evaluationId` pode ser associado à avaliação no momento da primeira promoção. Um estudo já associado a outra avaliação não pode ser reutilizado silenciosamente.
+
+Hipóteses copiadas de uma versão anterior também podem ser removidas enquanto a nova versão está em `DRAFT`. A remoção desativa a seleção sem apagar seu registro físico. Depois da aprovação, a seleção fica congelada com o restante do snapshot.
 
 ## URLs amigáveis
 
@@ -92,6 +99,7 @@ GET   /api/parameterizations/:id
 PATCH /api/parameterizations/:id
 PATCH /api/parameterizations/:id/parameters
 POST  /api/parameterizations/:id/adherence-candidate
+POST  /api/parameterizations/:id/hypothesis/remove
 POST  /api/parameterizations/:id/approve
 ```
 
