@@ -16,9 +16,11 @@ const engine = getCalculationEngine("CORE_PRECALCULATION");
 const metrics = validateCalculationMetrics(await engine.execute({
   evaluation: {
     id: 1,
+    planId: null,
     planName: "Plano Teste",
     referenceDate: "2025-12-31"
   },
+  planRules: null,
   parameterization: {
     id: "00000000-0000-4000-8000-000000000001",
     version: 1,
