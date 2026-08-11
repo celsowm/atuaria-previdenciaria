@@ -17,7 +17,9 @@ Evaluation
  CalculationInput      CalculationResultMetric
 ```
 
-## Invariantes
+O motor atual ainda é `PRECALCULATION`. O primeiro motor `ACTUARIAL` deverá acrescentar ao contrato uma `PlanRulesVersion` aprovada e explicitamente selecionada.
+
+## Invariantes atuais
 
 Uma execução só pode começar quando:
 
@@ -48,7 +50,7 @@ As linhas inválidas não são entregues ao motor. Sua quantidade permanece regi
 
 ## Fingerprints
 
-Existem quatro níveis principais de fingerprint:
+Existem quatro níveis principais de fingerprint no engine atual:
 
 ```text
 parameterFingerprint
@@ -63,6 +65,8 @@ inputFingerprint
 resultFingerprint
   = métricas tipadas produzidas pelo motor
 ```
+
+O primeiro engine `ACTUARIAL` acrescentará `planRulesFingerprint` ao contrato e ao `inputFingerprint`.
 
 Se uma nova solicitação possui o mesmo `inputFingerprint` e a mesma versão do motor, a execução `COMPLETED` anterior é reutilizada. Um motor determinístico não cria cópias indistinguíveis do mesmo cálculo.
 
@@ -82,7 +86,7 @@ CalculationEngine
 `resultKind` distingue:
 
 - `PRECALCULATION`: consolidação e cálculos técnicos que ainda não representam a avaliação atuarial oficial;
-- `ACTUARIAL`: motores futuros que implementem integralmente uma família de regras atuariais validada.
+- `ACTUARIAL`: motores que implementam integralmente uma família de regras atuariais validada.
 
 Isso permite adicionar motores BD, CD, CV, motores de comparação com legado ou versões regulatórias sem contaminar o orquestrador.
 
@@ -108,9 +112,9 @@ Ele calcula deterministicamente:
 - taxa real de juros, quando parametrizada;
 - fatores de desconto em 1, 10 e 30 anos.
 
-Ele **não** produz reservas, provisões, custos normais, déficits ou superávits. Esses resultados só devem aparecer quando as regras de benefícios, contribuições e método de financiamento estiverem modeladas e validadas.
+Ele **não** produz reservas, provisões, custos normais, déficits ou superávits. Esses resultados só devem aparecer em um engine `ACTUARIAL` com regras do plano e fórmulas validadas.
 
-## Persistência
+## Persistência atual
 
 ```text
 CalculationRun
@@ -155,14 +159,14 @@ A URL individual apenas recupera a execução persistida. Ela não dispara recá
 
 ## Próxima evolução
 
-O próximo passo técnico dentro do domínio atuarial é modelar regras suficientes para um engine `ACTUARIAL` real. Antes disso, o modelo de Plano precisa evoluir de cadastro mestre simples para regras versionadas de benefício/contribuição e elegibilidade.
-
-Uma implementação futura pode seguir:
+`PlanRulesVersion` já é módulo funcional e `Evaluation` já possui `planId`. Portanto o próximo engine `ACTUARIAL` deverá exigir:
 
 ```text
-PlanRulesVersion
+Evaluation.planId
        +
-Approved Parameterization
+PlanRulesVersion APPROVED
+       +
+ActuarialParameterization APPROVED
        +
 Frozen Canonical Inputs
        ↓
@@ -171,4 +175,6 @@ BD/CD/CV CalculationEngine
 CalculationRun (ACTUARIAL)
 ```
 
-O fechamento atuarial deverá consumir apenas `CalculationRun` concluído e explicitamente selecionado, nunca recalcular valores por conta própria.
+A persistência do `CalculationRun` deverá ganhar `planRulesVersionId` e `planRulesFingerprint`. A execução deve validar que a versão de regras pertence ao mesmo `Evaluation.planId` e que está `APPROVED`.
+
+Os primeiros resultados oficiais só devem ser implementados em uma modalidade cuja fórmula tenha sido validada contra fonte técnica ou golden master/legado. O fechamento atuarial deverá consumir apenas `CalculationRun` concluído e explicitamente selecionado, nunca recalcular valores por conta própria.
