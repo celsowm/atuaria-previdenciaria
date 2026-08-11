@@ -60,22 +60,30 @@
     "schemas": {
       "CalculationEngine": {
         "type": "object",
-        "required": ["code", "version", "label", "description", "resultKind"],
+        "required": ["code", "version", "label", "description", "resultKind", "requiresPlanRules", "supportedModalities"],
         "properties": {
           "code": { "type": "string" },
           "version": { "type": "string" },
           "label": { "type": "string" },
           "description": { "type": "string" },
-          "resultKind": { "type": "string", "enum": ["PRECALCULATION", "ACTUARIAL"] }
+          "resultKind": { "type": "string", "enum": ["PRECALCULATION", "ACTUARIAL"] },
+          "requiresPlanRules": { "type": "boolean" },
+          "supportedModalities": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "enum": ["BD", "CD", "CV"] }
+          }
         }
       },
       "CalculationRunSummary": {
         "type": "object",
-        "required": ["id", "evaluationId", "parameterizationId", "engineCode", "engineVersion", "status", "inputFingerprint", "resultFingerprint", "inputImportCount", "inputRowCount", "validRowCount", "invalidRowCount", "createdAt", "completedAt", "errorMessage"],
+        "required": ["id", "evaluationId", "parameterizationId", "planRulesVersionId", "planRulesFingerprint", "engineCode", "engineVersion", "status", "inputFingerprint", "resultFingerprint", "inputImportCount", "inputRowCount", "validRowCount", "invalidRowCount", "createdAt", "completedAt", "errorMessage"],
         "properties": {
           "id": { "type": "string", "format": "uuid" },
           "evaluationId": { "type": "integer", "minimum": 1 },
           "parameterizationId": { "type": "string", "format": "uuid" },
+          "planRulesVersionId": { "type": ["string", "null"], "format": "uuid" },
+          "planRulesFingerprint": { "type": ["string", "null"] },
           "engineCode": { "type": "string" },
           "engineVersion": { "type": "string" },
           "status": { "type": "string", "enum": ["PROCESSING", "COMPLETED", "FAILED"] },
@@ -140,6 +148,7 @@
         "required": ["parameterizationId"],
         "properties": {
           "parameterizationId": { "type": "string", "format": "uuid" },
+          "planRulesVersionId": { "type": "string", "format": "uuid" },
           "engineCode": { "type": "string", "minLength": 1 }
         }
       }
