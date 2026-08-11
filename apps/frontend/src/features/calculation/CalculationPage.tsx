@@ -21,7 +21,11 @@ import {
   type ActuarialParameterizationSummary,
   type CalculationEngine,
   type CalculationRun,
-  type CalculationRunSummary
+  type CalculationRunSummary,
+  type CreateCalculationRunInput,
+  type Evaluation,
+  type Plan,
+  type PlanRulesVersionSummary
 } from "../../api/client";
 
 function statusColor(status: string): "default" | "success" | "error" | "warning" {
@@ -46,41 +50,83 @@ function shortHash(value: string | null | undefined) {
   return value ? `${value.slice(0, 12)}…${value.slice(-8)}` : "—";
 }
 
+function immutableSnapshot(status: string) {
+  return status === "APPROVED" || status === "SUPERSEDED";
+}
+
 export function CalculationPage({
   evaluationId,
   calculationId,
   onOpen,
   onBack,
-  onOpenParameterization
+  onOpenParameterization,
+  onOpenPlanRules
 }: {
   evaluationId: number;
   calculationId?: string;
   onOpen: (id: string) => void;
   onBack: () => void;
   onOpenParameterization: () => void;
+  onOpenPlanRules: (planId: string) => void;
 }) {
+  const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
+  const [plan, setPlan] = useState<Plan | null>(null);
   const [runs, setRuns] = useState<CalculationRunSummary[]>([]);
   const [engines, setEngines] = useState<CalculationEngine[]>([]);
   const [parameterizations, setParameterizations] = useState<ActuarialParameterizationSummary[]>([]);
+  const [planRulesVersions, setPlanRulesVersions] = useState<PlanRulesVersionSummary[]>([]);
   const [detail, setDetail] = useState<CalculationRun | null>(null);
   const [parameterizationId, setParameterizationId] = useState("");
+  const [planRulesVersionId, setPlanRulesVersionId] = useState("");
   const [engineCode, setEngineCode] = useState("CORE_PRECALCULATION");
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const reload = async () => {
-    const [nextRuns, nextEngines, nextParameterizations] = await Promise.all([
+    const [nextRuns, nextEngines, nextParameterizations, evaluations] = await Promise.all([
       api.calculationRuns(evaluationId),
       api.calculationEngines(),
-      api.parameterizations(evaluationId)
+      api.parameterizations(evaluationId),
+      api.evaluations()
     ]);
+    const nextEvaluation = evaluations.find((item) => item.id === evaluationId) ?? null;
+    let nextPlan: Plan | null = null;
+    let nextRules: PlanRulesVersionSummary[] = [];
+    if (nextEvaluation?.planId) {
+      [nextPlan, nextRules] = await Promise.all([
+        api.plan(nextEvaluation.planId),
+        api.planRulesVersions(nextEvaluation.planId)
+      ]);
+    }
+
+    setEvaluation(nextEvaluation);
+    setPlan(nextPlan);
     setRuns(nextRuns);
     setEngines(nextEngines);
     setParameterizations(nextParameterizations);
-    const approved = nextParameterizations.filter((item) => item.status === "APPROVED");
-    setParameterizationId((current) => current || approved[0]?.id || "");
-    setEngineCode((current) => current || nextEngines[0]?.code || "CORE_PRECALCULATION");
+    setPlanRulesVersions(nextRules);
+
+    const approvedParameterizations = nextParameterizations.filter((item) => immutableSnapshot(item.status));
+    setParameterizationId((current) =>
+      approvedParameterizations.some((item) => item.id === current) ? current : approvedParameterizations[0]?.id ?? ""
+    );
+
+    const applicableRules = nextRules.filter((item) =>
+      immutableSnapshot(item.status) &&
+      (!nextEvaluation || item.effectiveFrom === null || item.effectiveFrom <= nextEvaluation.referenceDate) &&
+      (!nextEvaluation || item.effectiveTo === null || item.effectiveTo >= nextEvaluation.referenceDate)
+    );
+    setPlanRulesVersionId((current) =>
+      applicableRules.some((item) => item.id === current) ? current : applicableRules[0]?.id ?? ""
+    );
+
+    const compatibleEngines = nextPlan
+      ? nextEngines.filter((engine) => engine.supportedModalities.includes(nextPlan.modality))
+      : nextEngines;
+    setEngineCode((current) =>
+      compatibleEngines.some((engine) => engine.code === current) ? current : compatibleEngines[0]?.code ?? "CORE_PRECALCULATION"
+    );
     return nextRuns;
   };
 
@@ -109,10 +155,22 @@ export function CalculationPage({
   }, [evaluationId, calculationId]);
 
   const approved = useMemo(
-    () => parameterizations.filter((item) => item.status === "APPROVED"),
+    () => parameterizations.filter((item) => immutableSnapshot(item.status)),
     [parameterizations]
   );
-  const selectedEngine = engines.find((item) => item.code === engineCode) ?? null;
+  const applicablePlanRules = useMemo(
+    () => planRulesVersions.filter((item) =>
+      immutableSnapshot(item.status) &&
+      (!evaluation || item.effectiveFrom === null || item.effectiveFrom <= evaluation.referenceDate) &&
+      (!evaluation || item.effectiveTo === null || item.effectiveTo >= evaluation.referenceDate)
+    ),
+    [evaluation, planRulesVersions]
+  );
+  const compatibleEngines = useMemo(
+    () => plan ? engines.filter((engine) => engine.supportedModalities.includes(plan.modality)) : engines,
+    [engines, plan]
+  );
+  const selectedEngine = compatibleEngines.find((item) => item.code === engineCode) ?? null;
   const metricsByCategory = useMemo(() => {
     const grouped = new Map<string, CalculationRun["metrics"]>();
     for (const metric of detail?.metrics ?? []) {
@@ -128,10 +186,16 @@ export function CalculationPage({
       setError("Aprove uma parametrização antes de executar o cálculo.");
       return;
     }
+    if (selectedEngine?.requiresPlanRules && !planRulesVersionId) {
+      setError("Selecione uma versão aprovada das regras do plano vigente na data-base.");
+      return;
+    }
     setRunning(true);
     setError(null);
     try {
-      const run = await api.createCalculationRun(evaluationId, { parameterizationId, engineCode });
+      const input: CreateCalculationRunInput = { parameterizationId, engineCode };
+      if (selectedEngine?.requiresPlanRules) input.planRulesVersionId = planRulesVersionId;
+      const run = await api.createCalculationRun(evaluationId, input);
       await reload();
       setDetail(run);
       onOpen(run.id);
@@ -147,10 +211,10 @@ export function CalculationPage({
   return <Stack spacing={3.5}>
     <Box>
       <Button onClick={onBack} startIcon={<ArrowBackRounded />} sx={{ mb: 2 }}>Avaliação</Button>
-      <Typography variant="overline" color="text.secondary">Avaliação #{evaluationId}</Typography>
+      <Typography variant="overline" color="text.secondary">Avaliação #{evaluationId}{plan ? ` · ${plan.code}` : ""}</Typography>
       <Typography variant="h4">Motor de Cálculo</Typography>
       <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 840 }}>
-        Cada execução congela parametrização, imports, fingerprints e versão do motor. Repetir exatamente os mesmos inputs reaproveita a execução determinística já persistida.
+        Cada execução congela parametrização, regras do plano quando aplicáveis, qx biométricos, imports, fingerprints e versão do motor.
       </Typography>
     </Box>
 
@@ -158,22 +222,39 @@ export function CalculationPage({
 
     <Paper elevation={0} sx={{ p: 2.5, border: "1px solid", borderColor: "divider" }}>
       <Stack direction={{ xs: "column", lg: "row" }} spacing={2} alignItems={{ lg: "center" }}>
-        <TextField select label="Parametrização aprovada" value={parameterizationId} onChange={(event) => setParameterizationId(event.target.value)} sx={{ minWidth: { lg: 300 } }}>
-          {approved.map((item) => <MenuItem key={item.id} value={item.id}>v{item.version} · {item.name}</MenuItem>)}
+        <TextField select label="Parametrização imutável" value={parameterizationId} onChange={(event) => setParameterizationId(event.target.value)} sx={{ minWidth: { lg: 290 } }}>
+          {approved.map((item) => <MenuItem key={item.id} value={item.id}>v{item.version} · {item.name} · {item.status}</MenuItem>)}
         </TextField>
         <TextField select label="Motor" value={engineCode} onChange={(event) => setEngineCode(event.target.value)} sx={{ minWidth: { lg: 280 } }}>
-          {engines.map((engine) => <MenuItem key={engine.code} value={engine.code}>{engine.label} · {engine.version}</MenuItem>)}
+          {compatibleEngines.map((engine) => <MenuItem key={engine.code} value={engine.code}>{engine.label} · {engine.version}</MenuItem>)}
         </TextField>
+        {selectedEngine?.requiresPlanRules && <TextField select label="Regras do plano" value={planRulesVersionId} onChange={(event) => setPlanRulesVersionId(event.target.value)} sx={{ minWidth: { lg: 280 } }}>
+          {applicablePlanRules.map((item) => <MenuItem key={item.id} value={item.id}>v{item.version} · {item.name} · {item.status}</MenuItem>)}
+        </TextField>}
         <Box sx={{ flex: 1 }} />
-        <Button variant="contained" startIcon={<PlayArrowRounded />} disabled={running || !parameterizationId || !engineCode} onClick={() => void execute()}>
+        <Button
+          variant="contained"
+          startIcon={<PlayArrowRounded />}
+          disabled={running || !parameterizationId || !engineCode || Boolean(selectedEngine?.requiresPlanRules && !planRulesVersionId)}
+          onClick={() => void execute()}
+        >
           {running ? "Executando…" : "Executar cálculo"}
         </Button>
       </Stack>
       {approved.length === 0 && <Alert severity="warning" sx={{ mt: 2 }} action={<Button color="inherit" size="small" onClick={onOpenParameterization}>Abrir parametrização</Button>}>
-        Não há parametrização aprovada nesta avaliação.
+        Não há snapshot aprovado ou substituído de parametrização nesta avaliação.
+      </Alert>}
+      {selectedEngine?.requiresPlanRules && !evaluation?.planId && <Alert severity="error" sx={{ mt: 2 }}>
+        Esta avaliação ainda não possui `planId`. Um cálculo atuarial não pode inferir o plano apenas pelo nome textual.
+      </Alert>}
+      {selectedEngine?.requiresPlanRules && evaluation?.planId && applicablePlanRules.length === 0 && <Alert severity="warning" sx={{ mt: 2 }} action={<Button color="inherit" size="small" onClick={() => onOpenPlanRules(evaluation.planId!)}>Abrir regras do plano</Button>}>
+        Não há versão imutável das regras do plano vigente na data-base {evaluation.referenceDate}.
       </Alert>}
       {selectedEngine?.resultKind === "PRECALCULATION" && <Alert severity="info" sx={{ mt: 2 }}>
-        Este motor é um pré-cálculo determinístico. Ele valida e consolida os inputs, calcula métricas demográficas e fatores financeiros, mas ainda não produz reservas ou provisões oficiais.
+        Este motor é um pré-cálculo determinístico. Ele valida e consolida os inputs, calcula métricas demográficas e fatores financeiros, mas não produz resultado atuarial de benefício ou provisão.
+      </Alert>}
+      {selectedEngine?.resultKind === "ACTUARIAL" && <Alert severity="info" sx={{ mt: 2 }}>
+        {selectedEngine.description}
       </Alert>}
     </Paper>
 
@@ -213,11 +294,13 @@ export function CalculationPage({
           <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider" }}>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}><FingerprintRounded color="primary" /><Typography variant="h6">Reprodutibilidade</Typography></Stack>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
-              <Hash label="Parametrização" value={detail.parameterFingerprint} />
+              <Hash label="Regras do plano" value={detail.planRulesFingerprint} />
+              <Hash label="Parametrização + qx" value={detail.parameterFingerprint} />
               <Hash label="Dados canônicos" value={detail.dataFingerprint} />
               <Hash label="Input completo" value={detail.inputFingerprint} />
               <Hash label="Resultado" value={detail.resultFingerprint} />
             </Box>
+            {detail.planRulesVersionId && <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>PlanRulesVersion: {detail.planRulesVersionId}</Typography>}
           </Paper>
 
           <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider" }}>
