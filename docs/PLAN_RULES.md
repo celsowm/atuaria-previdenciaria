@@ -68,6 +68,8 @@ CV adiciona contrato inicial para componente híbrido, contribuição variável 
 
 Esses campos não são valores regulatórios inventados pelo sistema. O usuário deve transcrevê-los do regulamento ou da nota técnica. A API permite regras adicionais sem exigir alteração do modelo relacional.
 
+Regras adicionais que ainda não possuem componente visual aparecem como **Regras adicionais** na tela e são preservadas integralmente quando o formulário é salvo. A UI não pode apagar ou desativar extensões apenas por não conhecê-las.
+
 ## Fingerprint
 
 Na aprovação é calculado SHA-256 sobre o contrato canônico:
@@ -106,6 +108,16 @@ POST  /api/plan-rules/:id/approve
 /planos/:planId/regras
 /planos/:planId/regras/:rulesVersionId
 ```
+
+## Self-test
+
+O smoke test do domínio cria um SQLite temporário e valida versionamento, fingerprint, vigência, cópia, desativação de regras, supersessão e bloqueio de mudança de modalidade:
+
+```bash
+npm run plan-rules:self-test
+```
+
+O arquivo temporário é removido ao final e não utiliza a base operacional da aplicação.
 
 ## Contrato para o engine atuarial
 
