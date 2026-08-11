@@ -4,6 +4,7 @@ import { bootstrapAdminFromEnvironment, verifyBearerToken } from "./auth/auth-se
 import { AuthController, UserController } from "./api/auth-controller.js";
 import { PlanController } from "./api/plan-controller.js";
 import { ParameterizationController } from "./api/parameterization-controller.js";
+import { CalculationController } from "./api/calculation-controller.js";
 import {
   CritiqueController,
   EvaluationController,
@@ -29,6 +30,7 @@ async function start() {
       PlanController,
       EvaluationController,
       ParameterizationController,
+      CalculationController,
       MappingProfileController,
       ImportController,
       CritiqueController,
@@ -50,7 +52,7 @@ async function start() {
       info: {
         title: `${applicationName} API`,
         version: "0.0.1",
-        description: "Actuarial valuation, pension plans, data studio, biometrics, adherence studies, assumptions, drafting and AI orchestration API."
+        description: "Actuarial valuation, pension plans, data studio, biometrics, adherence studies, parameterization, deterministic calculation, drafting and AI orchestration API."
       },
       path: "/openapi.json",
       docs: { path: "/docs" }
