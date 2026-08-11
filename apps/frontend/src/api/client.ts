@@ -30,6 +30,8 @@ export type SetActuarialParameterValueInput = ApiComponents["schemas"]["SetActua
 export type CalculationEngine = ApiComponents["schemas"]["CalculationEngine"];
 export type CalculationRunSummary = ApiComponents["schemas"]["CalculationRunSummary"];
 export type CalculationRun = ApiComponents["schemas"]["CalculationRun"];
+export type CalculationParticipantResult = ApiComponents["schemas"]["CalculationParticipantResult"];
+export type CalculationParticipantResultPage = ApiComponents["schemas"]["CalculationParticipantResultPage"];
 export type CreateCalculationRunInput = ApiComponents["schemas"]["CreateCalculationRun"];
 export type LlmProvider = ApiComponents["schemas"]["LlmProvider"];
 export type AuthUser = ApiComponents["schemas"]["AuthUser"];
@@ -183,6 +185,8 @@ export const api = {
   calculationRuns: (evaluationId: number) =>
     getJson<CalculationRunSummary[]>(`/api/evaluations/${evaluationId}/calculations`),
   calculationRun: (id: string) => getJson<CalculationRun>(`/api/calculations/${id}`),
+  calculationParticipantResults: (id: string, page = 1, pageSize = 50) =>
+    getJson<CalculationParticipantResultPage>(`/api/calculations/${id}/participants?page=${page}&pageSize=${pageSize}`),
   createCalculationRun: (evaluationId: number, input: CreateCalculationRunInput) =>
     postJson<CalculationRun>(`/api/evaluations/${evaluationId}/calculations`, input),
   mappingProfiles: () => getJson<MappingProfile[]>("/api/mapping-profiles/"),
