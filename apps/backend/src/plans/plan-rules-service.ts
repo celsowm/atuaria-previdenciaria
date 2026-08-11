@@ -110,9 +110,10 @@ function validateRule(input: RuleInput) {
 }
 
 async function allValuesFor(session: Session, planRulesVersionId: string) {
-  return selectFromEntity(PlanRuleValue)
+  const rows = await selectFromEntity(PlanRuleValue)
     .where(eq(valueRef.planRulesVersionId, planRulesVersionId))
     .execute(session);
+  return rows as PlanRuleValue[];
 }
 
 async function valuesFor(session: Session, planRulesVersionId: string) {

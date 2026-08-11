@@ -106,9 +106,10 @@ async function requireDraft(session: Session, id: string) {
 }
 
 async function allValuesFor(session: Session, parameterizationId: string) {
-  return selectFromEntity(ActuarialParameterValue)
+  const rows = await selectFromEntity(ActuarialParameterValue)
     .where(eq(valueRef.parameterizationId, parameterizationId))
     .execute(session);
+  return rows as ActuarialParameterValue[];
 }
 
 async function valuesFor(session: Session, parameterizationId: string) {

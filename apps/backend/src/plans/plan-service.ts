@@ -49,7 +49,7 @@ function validateStatus(value: string) {
 
 export async function listPlans() {
   return withSession((session) =>
-    selectFromEntity(Plan).orderBy(planRef.name, "ASC").execute(session)
+    selectFromEntity(Plan).orderBy(planRef.$.name, "ASC").execute(session)
   );
 }
 

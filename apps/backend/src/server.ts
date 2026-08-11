@@ -1,3 +1,4 @@
+import "./load-env.js";
 import { createExpressApp } from "adorn-api";
 import { getApplicationName } from "./application-config.js";
 import { bootstrapAdminFromEnvironment, verifyBearerToken } from "./auth/auth-service.js";

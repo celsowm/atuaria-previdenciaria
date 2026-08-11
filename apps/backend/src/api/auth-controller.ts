@@ -36,6 +36,7 @@ function badRequest(error: unknown): never {
   throw new HttpError(400, error instanceof Error ? error.message : "Operação inválida.");
 }
 
+@Auth()
 @Controller({ path: "/api/auth", tags: ["Authentication"] })
 export class AuthController {
   @Post("/login")
@@ -49,7 +50,6 @@ export class AuthController {
   }
 
   @Get("/me")
-  @Auth()
   @Returns(AuthUserDto)
   async me(ctx: RequestContext): Promise<AuthUserDto> {
     const authenticated = getUser<ApplicationAuthUser>(ctx.req);
@@ -60,7 +60,6 @@ export class AuthController {
   }
 
   @Post("/logout")
-  @Auth()
   @Returns(LogoutResponseDto)
   async logout(ctx: RequestContext): Promise<LogoutResponseDto> {
     const token = extractBearerToken(ctx.req);

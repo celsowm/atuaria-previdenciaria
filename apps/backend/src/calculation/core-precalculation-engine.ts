@@ -38,7 +38,7 @@ function integerMetric(code: string, category: string, label: string, value: num
   return { code, category, label, valueType: "INTEGER", value };
 }
 
-function numberMetric(code: string, category: string, label: string, value: number, unit?: string): CalculationMetric {
+function numberMetric(code: string, category: string, label: string, value: number, unit?: string | null): CalculationMetric {
   return { code, category, label, valueType: "NUMBER", value, unit: unit ?? null };
 }
 

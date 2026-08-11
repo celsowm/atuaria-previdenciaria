@@ -296,7 +296,7 @@ export class LlmProviderController {
   async list(): Promise<LlmProviderDto[]> {
     return withSession(async (session) => {
       const [providers, credentials] = await Promise.all([
-        selectFromEntity(LlmProvider).orderBy(providerRef.name, "ASC").execute(session),
+        selectFromEntity(LlmProvider).orderBy(providerRef.$.name, "ASC").execute(session),
         selectFromEntity(LlmProviderCredential).execute(session)
       ]);
       return providers.map((row) => ({
