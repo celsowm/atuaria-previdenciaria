@@ -1,0 +1,369 @@
+import { createHash, randomUUID } from "node:crypto";
+import { entityRef, eq, getTableDefFromEntity, selectFromEntity } from "metal-orm";
+import { createSession } from "../db.js";
+import {
+  Evaluation,
+  ImportFile,
+  ImportJob,
+  ImportRow
+} from "../domain/entities.js";
+import {
+  ActuarialHypothesisSelection,
+  ActuarialParameterization,
+  ActuarialParameterValue
+} from "../domain/parameterization-entities.js";
+import {
+  CalculationInput,
+  CalculationResultMetric,
+  CalculationRun
+} from "../domain/calculation-entities.js";
+import "./core-precalculation-engine.js";
+import { getCalculationEngine, listCalculationEngines } from "./calculation-engine.js";
+
+const runRef = entityRef(CalculationRun);
+const importJobRef = entityRef(ImportJob);
+const importRowRef = entityRef(ImportRow);
+const valueRef = entityRef(ActuarialParameterValue);
+const selectionRef = entityRef(ActuarialHypothesisSelection);
+const inputRef = entityRef(CalculationInput);
+const metricRef = entityRef(CalculationResultMetric);
+
+type Session = ReturnType<typeof createSession>;
+
+type CalculationEntity =
+  | typeof CalculationRun
+  | typeof CalculationInput
+  | typeof CalculationResultMetric;
+
+async function withSession<T>(handler: (session: Session) => Promise<T>) {
+  const session = createSession();
+  try {
+    return await handler(session);
+  } finally {
+    await session.dispose();
+  }
+}
+
+function tableOf(entity: CalculationEntity) {
+  const table = getTableDefFromEntity(entity);
+  if (!table) throw new Error(`Metal ORM metadata not bootstrapped for ${entity.name}`);
+  return table;
+}
+
+function sha256(value: string) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function normalizedJsonFingerprint(value: unknown) {
+  return sha256(JSON.stringify(value));
+}
+
+function runSummary(row: CalculationRun) {
+  return {
+    id: row.id,
+    evaluationId: row.evaluationId,
+    parameterizationId: row.parameterizationId,
+    engineCode: row.engineCode,
+    engineVersion: row.engineVersion,
+    status: row.status,
+    inputFingerprint: row.inputFingerprint,
+    resultFingerprint: row.resultFingerprint ?? null,
+    inputImportCount: row.inputImportCount,
+    inputRowCount: row.inputRowCount,
+    validRowCount: row.validRowCount,
+    invalidRowCount: row.invalidRowCount,
+    createdAt: row.createdAt,
+    completedAt: row.completedAt ?? null,
+    errorMessage: row.errorMessage ?? null
+  };
+}
+
+async function detailInSession(session: Session, row: CalculationRun) {
+  const [inputs, metrics] = await Promise.all([
+    selectFromEntity(CalculationInput).where(eq(inputRef.calculationRunId, row.id)).execute(session),
+    selectFromEntity(CalculationResultMetric).where(eq(metricRef.calculationRunId, row.id)).execute(session)
+  ]);
+  return {
+    ...runSummary(row),
+    parameterFingerprint: row.parameterFingerprint,
+    dataFingerprint: row.dataFingerprint,
+    inputs: inputs
+      .sort((a, b) => a.population.localeCompare(b.population, "pt-BR"))
+      .map((item) => ({
+        id: item.id,
+        importJobId: item.importJobId,
+        population: item.population,
+        fileSha256: item.fileSha256,
+        schemaFingerprint: item.schemaFingerprint,
+        canonicalFingerprint: item.canonicalFingerprint,
+        rowCount: item.rowCount,
+        validRows: item.validRows,
+        invalidRows: item.invalidRows,
+        importedAt: item.importedAt
+      })),
+    metrics: metrics
+      .sort((a, b) => a.ordinal - b.ordinal)
+      .map((item) => ({
+        id: item.id,
+        code: item.code,
+        category: item.category,
+        label: item.label,
+        valueType: item.valueType,
+        valueJson: item.valueJson,
+        unit: item.unit ?? null,
+        ordinal: item.ordinal
+      }))
+  };
+}
+
+export function availableCalculationEngines() {
+  return listCalculationEngines();
+}
+
+export async function listCalculationRuns(evaluationId: number) {
+  return withSession(async (session) => {
+    const rows = await selectFromEntity(CalculationRun)
+      .where(eq(runRef.evaluationId, evaluationId))
+      .orderBy(runRef.createdAt, "DESC")
+      .execute(session);
+    return rows.map(runSummary);
+  });
+}
+
+export async function getCalculationRun(id: string) {
+  return withSession(async (session) => {
+    const row = await session.find(CalculationRun, id);
+    return row ? detailInSession(session, row) : null;
+  });
+}
+
+function latestCompletedImports(jobs: ImportJob[]) {
+  const byPopulation = new Map<string, ImportJob>();
+  const sorted = jobs
+    .filter((job) => job.status === "COMPLETED")
+    .sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt));
+  for (const job of sorted) {
+    if (!byPopulation.has(job.population)) byPopulation.set(job.population, job);
+  }
+  return [...byPopulation.values()].sort((a, b) => a.population.localeCompare(b.population, "pt-BR"));
+}
+
+export async function executeCalculation(
+  evaluationId: number,
+  input: { parameterizationId: string; engineCode?: string }
+) {
+  return withSession(async (session) => {
+    const evaluation = await session.find(Evaluation, evaluationId);
+    if (!evaluation) throw new Error("Avaliação não encontrada.");
+    if (evaluation.blockingIssues > 0) {
+      throw new Error("A avaliação possui ocorrências bloqueantes e não pode ser calculada.");
+    }
+
+    const parameterization = await session.find(ActuarialParameterization, input.parameterizationId);
+    if (!parameterization || parameterization.evaluationId !== evaluationId) {
+      throw new Error("A parametrização não pertence a esta avaliação.");
+    }
+    if (parameterization.status !== "APPROVED") {
+      throw new Error("O cálculo exige uma parametrização APPROVED e imutável.");
+    }
+
+    const engine = getCalculationEngine(input.engineCode ?? "CORE_PRECALCULATION");
+    const [storedValues, storedSelections, jobs] = await Promise.all([
+      selectFromEntity(ActuarialParameterValue)
+        .where(eq(valueRef.parameterizationId, parameterization.id))
+        .execute(session),
+      selectFromEntity(ActuarialHypothesisSelection)
+        .where(eq(selectionRef.parameterizationId, parameterization.id))
+        .execute(session),
+      selectFromEntity(ImportJob)
+        .where(eq(importJobRef.evaluationId, evaluationId))
+        .execute(session)
+    ]);
+
+    const parameters = storedValues
+      .filter((value) => value.active !== 0)
+      .sort((a, b) => a.code.localeCompare(b.code))
+      .map((value) => ({
+        code: value.code,
+        valueType: value.valueType,
+        valueJson: value.valueJson,
+        unit: value.unit ?? null
+      }));
+    const hypotheses = storedSelections
+      .filter((selection) => selection.active !== 0)
+      .sort((a, b) => a.hypothesisType.localeCompare(b.hypothesisType, "pt-BR"))
+      .map((selection) => ({
+        hypothesisType: selection.hypothesisType,
+        biometricVersionId: selection.biometricVersionId,
+        tableCode: selection.tableCode,
+        tableName: selection.tableName,
+        versionLabel: selection.versionLabel
+      }));
+
+    const selectedImports = latestCompletedImports(jobs);
+    if (!selectedImports.length) {
+      throw new Error("A avaliação não possui imports COMPLETED vinculados ao Data Studio.");
+    }
+
+    const canonicalRows: Array<{ population: string; rowNumber: number; data: Record<string, unknown> }> = [];
+    const inputSnapshots: Array<{
+      job: ImportJob;
+      file: ImportFile;
+      canonicalFingerprint: string;
+    }> = [];
+
+    for (const job of selectedImports) {
+      const file = await session.find(ImportFile, job.fileId);
+      if (!file) throw new Error(`Arquivo do import ${job.id} não foi encontrado.`);
+      const rows = await selectFromEntity(ImportRow)
+        .where(eq(importRowRef.importJobId, job.id))
+        .execute(session);
+      rows.sort((a, b) => a.rowNumber - b.rowNumber);
+      const canonicalFingerprint = normalizedJsonFingerprint(rows.map((row) => ({
+        rowNumber: row.rowNumber,
+        validationStatus: row.validationStatus,
+        canonicalJson: row.canonicalJson,
+        validationErrorsJson: row.validationErrorsJson
+      })));
+      inputSnapshots.push({ job, file, canonicalFingerprint });
+
+      for (const row of rows) {
+        if (row.validationStatus !== "VALID") continue;
+        let data: Record<string, unknown>;
+        try {
+          data = JSON.parse(row.canonicalJson) as Record<string, unknown>;
+        } catch {
+          throw new Error(`Linha canônica inválida no import ${job.id}, linha ${row.rowNumber}.`);
+        }
+        canonicalRows.push({ population: job.population, rowNumber: row.rowNumber, data });
+      }
+    }
+
+    const parameterFingerprint = normalizedJsonFingerprint({
+      parameterizationId: parameterization.id,
+      version: parameterization.version,
+      parameters,
+      hypotheses
+    });
+    const dataFingerprint = normalizedJsonFingerprint(inputSnapshots.map(({ job, file, canonicalFingerprint }) => ({
+      importJobId: job.id,
+      population: job.population,
+      fileSha256: file.sha256,
+      schemaFingerprint: job.schemaFingerprint,
+      canonicalFingerprint,
+      rowCount: job.rowCount,
+      validRows: job.validRows,
+      invalidRows: job.invalidRows
+    })));
+    const inputFingerprint = normalizedJsonFingerprint({
+      evaluationId,
+      referenceDate: evaluation.referenceDate,
+      parameterFingerprint,
+      dataFingerprint,
+      engineCode: engine.code,
+      engineVersion: engine.version
+    });
+
+    const prior = await selectFromEntity(CalculationRun)
+      .where(eq(runRef.evaluationId, evaluationId))
+      .execute(session);
+    const reusable = prior.find(
+      (run) =>
+        run.status === "COMPLETED" &&
+        run.engineCode === engine.code &&
+        run.engineVersion === engine.version &&
+        run.inputFingerprint === inputFingerprint
+    );
+    if (reusable) return detailInSession(session, reusable);
+
+    const createdAt = new Date().toISOString();
+    const run = new CalculationRun();
+    run.id = randomUUID();
+    run.evaluationId = evaluationId;
+    run.parameterizationId = parameterization.id;
+    run.engineCode = engine.code;
+    run.engineVersion = engine.version;
+    run.status = "PROCESSING";
+    run.parameterFingerprint = parameterFingerprint;
+    run.dataFingerprint = dataFingerprint;
+    run.inputFingerprint = inputFingerprint;
+    run.resultFingerprint = null;
+    run.inputImportCount = selectedImports.length;
+    run.inputRowCount = selectedImports.reduce((total, job) => total + job.rowCount, 0);
+    run.validRowCount = selectedImports.reduce((total, job) => total + job.validRows, 0);
+    run.invalidRowCount = selectedImports.reduce((total, job) => total + job.invalidRows, 0);
+    run.createdAt = createdAt;
+    run.completedAt = null;
+    run.errorMessage = null;
+    session.trackNew(tableOf(CalculationRun), run, run.id);
+
+    for (const snapshot of inputSnapshots) {
+      const stored = new CalculationInput();
+      stored.id = randomUUID();
+      stored.calculationRunId = run.id;
+      stored.importJobId = snapshot.job.id;
+      stored.population = snapshot.job.population;
+      stored.fileSha256 = snapshot.file.sha256;
+      stored.schemaFingerprint = snapshot.job.schemaFingerprint;
+      stored.canonicalFingerprint = snapshot.canonicalFingerprint;
+      stored.rowCount = snapshot.job.rowCount;
+      stored.validRows = snapshot.job.validRows;
+      stored.invalidRows = snapshot.job.invalidRows;
+      stored.importedAt = snapshot.job.completedAt ?? snapshot.job.createdAt;
+      session.trackNew(tableOf(CalculationInput), stored, stored.id);
+    }
+    await session.commit();
+
+    try {
+      const metrics = await engine.execute({
+        evaluation: {
+          id: evaluation.id,
+          planName: evaluation.planName,
+          referenceDate: evaluation.referenceDate
+        },
+        parameterization: {
+          id: parameterization.id,
+          version: parameterization.version,
+          parameters,
+          hypotheses
+        },
+        rows: canonicalRows,
+        invalidRowCount: run.invalidRowCount,
+        importCount: run.inputImportCount
+      });
+
+      for (const [ordinal, metric] of metrics.entries()) {
+        const stored = new CalculationResultMetric();
+        stored.id = randomUUID();
+        stored.calculationRunId = run.id;
+        stored.code = metric.code;
+        stored.category = metric.category;
+        stored.label = metric.label;
+        stored.valueType = metric.valueType;
+        stored.valueJson = JSON.stringify(metric.value);
+        stored.unit = metric.unit ?? null;
+        stored.ordinal = ordinal;
+        session.trackNew(tableOf(CalculationResultMetric), stored, stored.id);
+      }
+
+      run.resultFingerprint = normalizedJsonFingerprint(metrics.map((metric) => ({
+        code: metric.code,
+        valueType: metric.valueType,
+        value: metric.value,
+        unit: metric.unit ?? null
+      })));
+      run.status = "COMPLETED";
+      run.completedAt = new Date().toISOString();
+      session.markDirty(run);
+      await session.commit();
+    } catch (error) {
+      run.status = "FAILED";
+      run.completedAt = new Date().toISOString();
+      run.errorMessage = error instanceof Error ? error.message : "Falha não identificada no motor de cálculo.";
+      session.markDirty(run);
+      await session.commit();
+    }
+
+    return detailInSession(session, run);
+  });
+}
