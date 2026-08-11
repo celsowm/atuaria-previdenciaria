@@ -119,7 +119,7 @@ export function normalizeSourceRow(raw: Record<string, unknown>) {
   );
 }
 
-function parsePtNumber(value: unknown) {
+export function parsePtNumber(value: unknown) {
   if (typeof value === "number") return value;
   const text = String(value ?? "")
     .trim()
