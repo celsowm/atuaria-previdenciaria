@@ -17,6 +17,8 @@ A base funcional inclui:
 - autenticação bearer, usuários e RBAC básico;
 - identificação configurável da organização responsável pelo deployment;
 - cadastro de Planos BD/CD/CV;
+- regras atuariais dos planos versionadas por vigência, modalidade e fingerprint;
+- vínculo estável `Evaluation.planId` com backfill conservador para bases anteriores;
 - Dashboard e Workspace de Avaliação;
 - Data Studio com wizard XLSX/XLS/CSV;
 - mapping N:N e transformações;
@@ -71,6 +73,8 @@ Os workspaces são:
 O domínio é organizado ao redor de uma **Avaliação Atuarial**:
 
 ```text
+Plano + regras versionadas
+          ↓
 Dados
   ↓
 Crítica cadastral
@@ -191,6 +195,31 @@ O ranking inicial usa:
 
 O ranking é auxílio operacional e não aprova automaticamente uma hipótese.
 
+## Regras Atuariais do Plano
+
+O cadastro mestre do plano permanece pequeno. Elegibilidade, contribuições e regras de benefício ficam em versões próprias:
+
+```text
+Plan
+  └─ PlanRulesVersion 1:N
+        └─ PlanRuleValue 1:N
+```
+
+Cada versão congela a modalidade `BD/CD/CV`, vigência, valores tipados e fingerprint SHA-256. O fluxo é `DRAFT → APPROVED → SUPERSEDED`; uma versão aprovada não pode ser editada.
+
+A UI oferece um catálogo inicial sem qualquer valor regulatório default. Valores devem ser transcritos do regulamento/nota técnica. Uma nova versão pode copiar os valores da anterior, mas a vigência é deliberadamente zerada para exigir confirmação explícita antes da aprovação.
+
+URLs:
+
+```text
+/planos/:id/regras
+/planos/:id/regras/:rulesVersionId
+```
+
+`Evaluation` agora possui `planId` com FK opcional para o cadastro mestre. Bases anteriores só são ligadas automaticamente quando existe exatamente um plano com o mesmo nome histórico; casos ambíguos permanecem sem vínculo.
+
+Detalhes estão em `docs/PLAN_RULES.md`.
+
 ## Parametrização Atuarial
 
 Cada avaliação pode possuir uma sequência versionada de parametrizações. Existe no máximo um `DRAFT`; após aprovação, a versão vira um snapshot imutável e a aprovada anterior passa para `SUPERSEDED`.
@@ -236,7 +265,7 @@ O registry `CalculationEngine` permite adicionar novos motores sem um `switch` c
 CORE_PRECALCULATION / core-precalculation-v1
 ```
 
-Ele é classificado como `PRECALCULATION`: produz consolidação cadastral, idade média, composição por sexo e fatores de desconto quando existe taxa real de juros parametrizada. Ele deliberadamente **não** declara reservas, provisões, déficit ou superávit como resultado oficial enquanto as regras versionadas de benefício/contribuição do plano ainda não estiverem modeladas.
+Ele é classificado como `PRECALCULATION`: produz consolidação cadastral, idade média, composição por sexo e fatores de desconto quando existe taxa real de juros parametrizada. Ele deliberadamente **não** declara reservas, provisões, déficit ou superávit como resultado oficial.
 
 Solicitar novamente o mesmo engine com exatamente os mesmos inputs reutiliza o `CalculationRun` concluído pelo `inputFingerprint`.
 
@@ -283,6 +312,12 @@ POST  /api/auth/logout
 GET   /api/users/
 GET   /api/plans/
 POST  /api/plans/
+GET   /api/plans/:planId/rules
+POST  /api/plans/:planId/rules
+GET   /api/plan-rules/:id
+PATCH /api/plan-rules/:id
+PATCH /api/plan-rules/:id/values
+POST  /api/plan-rules/:id/approve
 GET   /api/dashboard
 GET   /api/evaluations/
 GET   /api/evaluations/:evaluationId/parameterizations
@@ -383,7 +418,15 @@ O diretório `/data/` inteiro é ignorado pelo Git. SQLite é adequado enquanto 
 
 ## Próximo slice
 
-A infraestrutura de cálculo está pronta. Para o primeiro engine `ACTUARIAL` oficial, o cadastro de Plano precisa ganhar **regras versionadas de benefício, contribuição e elegibilidade** (`PlanRulesVersion`), permitindo que os motores BD/CD/CV consumam regras congeladas da mesma forma que já consomem parâmetros e massas.
+Agora existem os três snapshots necessários para um cálculo oficial reproduzível:
+
+```text
+PlanRulesVersion APPROVED
++ ActuarialParameterization APPROVED
++ frozen canonical imports
+```
+
+O próximo passo é fazer o primeiro `CalculationEngine` de `resultKind: ACTUARIAL`, exigindo explicitamente `planRulesVersionId` no `CalculationRun`. Os motores por modalidade devem ser implementações separadas do registry e começar por uma modalidade com fórmula validada contra golden master/legado, em vez de inventar reservas genéricas.
 
 Depois disso, o **Fechamento Atuarial** poderá selecionar explicitamente um `CalculationRun` concluído, reconciliar resultados e congelar a rodada final.
 
