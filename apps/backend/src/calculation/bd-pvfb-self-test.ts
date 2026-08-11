@@ -106,6 +106,7 @@ const context: CalculationEngineContext = {
   },
   rows: [
     {
+      importJobId: "77777777-7777-4777-8777-777777777777",
       population: "Ativos",
       rowNumber: 2,
       data: {
@@ -120,9 +121,9 @@ const context: CalculationEngineContext = {
   importCount: 1
 };
 
-const metrics = await executeBdPvfb(context);
+const output = await executeBdPvfb(context);
 const metric = (code: string) => {
-  const found = metrics.find((item) => item.code === code);
+  const found = output.metrics.find((item) => item.code === code);
   assert.ok(found, `Métrica ausente: ${code}`);
   return found.value;
 };
@@ -133,6 +134,15 @@ assert.equal(metric("BD.PVFB.PROJECTED_MONTHLY_BENEFIT_TOTAL"), 500);
 assert.equal(metric("BD.PVFB.TOTAL"), 9000);
 assert.equal(metric("BD.PVFB.AVERAGE"), 9000);
 assert.equal(metric("BD.PVFB.AVERAGE_SURVIVAL_TO_RETIREMENT"), 1);
+
+assert.equal(output.participantResults.length, 1);
+const participant = output.participantResults[0];
+assert.equal(participant.importJobId, "77777777-7777-4777-8777-777777777777");
+assert.equal(participant.sourceRowNumber, 2);
+assert.equal(participant.participantRegistration, "000001");
+assert.equal(participant.result.currentMonthlySalary, 1000);
+assert.equal(participant.result.projectedMonthlyBenefit, 500);
+assert.equal(participant.result.pvfb, 9000);
 
 await assert.rejects(
   () => executeBdPvfb({ ...context, parameterization: { ...context.parameterization, hypotheses: [] } }),
