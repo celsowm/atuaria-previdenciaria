@@ -17,6 +17,7 @@ import {
 } from "../domain/parameterization-entities.js";
 import {
   CalculationInput,
+  CalculationParticipantResult,
   CalculationResultMetric,
   CalculationRun
 } from "../domain/calculation-entities.js";
@@ -26,7 +27,7 @@ import "./bd-pvfb-engine.js";
 import {
   getCalculationEngine,
   listCalculationEngines,
-  validateCalculationMetrics,
+  validateCalculationOutput,
   type CalculationEngine,
   type CalculationEngineContext
 } from "./calculation-engine.js";
@@ -40,13 +41,15 @@ const planRuleRef = entityRef(PlanRuleValue);
 const biometricPointRef = entityRef(BiometricTablePoint);
 const inputRef = entityRef(CalculationInput);
 const metricRef = entityRef(CalculationResultMetric);
+const participantRef = entityRef(CalculationParticipantResult);
 
 type Session = ReturnType<typeof createSession>;
 
 type CalculationEntity =
   | typeof CalculationRun
   | typeof CalculationInput
-  | typeof CalculationResultMetric;
+  | typeof CalculationResultMetric
+  | typeof CalculationParticipantResult;
 
 async function withSession<T>(handler: (session: Session) => Promise<T>) {
   const session = createSession();
@@ -95,6 +98,7 @@ function runSummary(row: CalculationRun) {
     inputRowCount: row.inputRowCount,
     validRowCount: row.validRowCount,
     invalidRowCount: row.invalidRowCount,
+    participantResultCount: row.participantResultCount ?? 0,
     createdAt: row.createdAt,
     completedAt: row.completedAt ?? null,
     errorMessage: row.errorMessage ?? null
@@ -157,6 +161,32 @@ export async function getCalculationRun(id: string) {
   return withSession(async (session) => {
     const row = await session.find(CalculationRun, id);
     return row ? detailInSession(session, row) : null;
+  });
+}
+
+export async function listCalculationParticipantResults(id: string, page: number, pageSize: number) {
+  return withSession(async (session) => {
+    const run = await session.find(CalculationRun, id);
+    if (!run) return null;
+    const result = await selectFromEntity(CalculationParticipantResult)
+      .where(eq(participantRef.calculationRunId, id))
+      .orderBy(participantRef.ordinal, "ASC")
+      .orderBy(participantRef.id, "ASC")
+      .executePaged(session, { page, pageSize });
+    return {
+      items: result.items.map((item) => ({
+        id: item.id,
+        importJobId: item.importJobId,
+        population: item.population,
+        sourceRowNumber: item.sourceRowNumber,
+        participantRegistration: item.participantRegistration ?? null,
+        resultJson: item.resultJson,
+        ordinal: item.ordinal
+      })),
+      totalItems: result.totalItems,
+      page,
+      pageSize
+    };
   });
 }
 
@@ -338,7 +368,7 @@ export async function executeCalculation(
       throw new Error("A avaliação não possui imports COMPLETED vinculados ao Data Studio.");
     }
 
-    const canonicalRows: Array<{ population: string; rowNumber: number; data: Record<string, unknown> }> = [];
+    const canonicalRows: CalculationEngineContext["rows"] = [];
     const inputSnapshots: Array<{
       job: ImportJob;
       file: ImportFile;
@@ -369,7 +399,7 @@ export async function executeCalculation(
         } catch {
           throw new Error(`Linha canônica inválida no import ${job.id}, linha ${row.rowNumber}.`);
         }
-        canonicalRows.push({ population: job.population, rowNumber: row.rowNumber, data });
+        canonicalRows.push({ importJobId: job.id, population: job.population, rowNumber: row.rowNumber, data });
       }
     }
 
@@ -432,6 +462,7 @@ export async function executeCalculation(
     run.inputRowCount = selectedImports.reduce((total, job) => total + job.rowCount, 0);
     run.validRowCount = selectedImports.reduce((total, job) => total + job.validRows, 0);
     run.invalidRowCount = selectedImports.reduce((total, job) => total + job.invalidRows, 0);
+    run.participantResultCount = null;
     run.createdAt = createdAt;
     run.completedAt = null;
     run.errorMessage = null;
@@ -455,7 +486,7 @@ export async function executeCalculation(
     await session.commit();
 
     try {
-      const metrics = validateCalculationMetrics(await engine.execute({
+      const output = validateCalculationOutput(await engine.execute({
         evaluation: {
           id: evaluation.id,
           planId: evaluation.planId ?? null,
@@ -474,7 +505,15 @@ export async function executeCalculation(
         importCount: run.inputImportCount
       }));
 
-      for (const [ordinal, metric] of metrics.entries()) {
+      const allowedRows = new Set(canonicalRows.map((row) => `${row.importJobId}:${row.rowNumber}`));
+      for (const participant of output.participantResults) {
+        const key = `${participant.importJobId}:${participant.sourceRowNumber}`;
+        if (!allowedRows.has(key)) {
+          throw new Error(`O engine tentou persistir resultado individual para uma linha que não pertence aos inputs congelados: ${key}.`);
+        }
+      }
+
+      for (const [ordinal, metric] of output.metrics.entries()) {
         const stored = new CalculationResultMetric();
         stored.id = randomUUID();
         stored.calculationRunId = run.id;
@@ -488,20 +527,38 @@ export async function executeCalculation(
         session.trackNew(tableOf(CalculationResultMetric), stored, stored.id);
       }
 
-      run.resultFingerprint = normalizedJsonFingerprint(metrics.map((metric) => ({
-        code: metric.code,
-        category: metric.category,
-        label: metric.label,
-        valueType: metric.valueType,
-        value: metric.value,
-        unit: metric.unit ?? null
-      })));
+      for (const [ordinal, participant] of output.participantResults.entries()) {
+        const stored = new CalculationParticipantResult();
+        stored.id = randomUUID();
+        stored.calculationRunId = run.id;
+        stored.importJobId = participant.importJobId;
+        stored.population = participant.population;
+        stored.sourceRowNumber = participant.sourceRowNumber;
+        stored.participantRegistration = participant.participantRegistration;
+        stored.resultJson = JSON.stringify(participant.result);
+        stored.ordinal = ordinal;
+        session.trackNew(tableOf(CalculationParticipantResult), stored, stored.id);
+      }
+
+      run.resultFingerprint = normalizedJsonFingerprint({
+        metrics: output.metrics.map((metric) => ({
+          code: metric.code,
+          category: metric.category,
+          label: metric.label,
+          valueType: metric.valueType,
+          value: metric.value,
+          unit: metric.unit ?? null
+        })),
+        participantResults: output.participantResults
+      });
+      run.participantResultCount = output.participantResults.length;
       run.status = "COMPLETED";
       run.completedAt = new Date().toISOString();
       session.markDirty(run);
       await session.commit();
     } catch (error) {
       run.status = "FAILED";
+      run.participantResultCount = 0;
       run.completedAt = new Date().toISOString();
       run.errorMessage = error instanceof Error ? error.message : "Falha não identificada no motor de cálculo.";
       session.markDirty(run);
