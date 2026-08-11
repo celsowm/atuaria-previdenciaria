@@ -33,23 +33,22 @@ export async function seedReferenceData(db: sqlite3.Database) {
 export async function seedDemoData(db: sqlite3.Database) {
   if (process.env.APP_SEED_DEMO !== "true") return;
 
-  const planCount = await getValue<{ count: number }>(db, "SELECT COUNT(*) AS count FROM plans");
-  if (planCount.count === 0) {
-    await execSql(db, `
-      INSERT INTO plans (id, code, name, modality, sponsorName, cnpj, status, createdAt, updatedAt) VALUES
-        ('6d74e611-a2e0-4f51-b727-100000000001', 'ALFA-BD', 'Plano Previdenciário Alfa', 'BD', 'Patrocinadora Alfa', NULL, 'ACTIVE', '2026-08-10T13:00:00.000Z', '2026-08-10T13:00:00.000Z'),
-        ('6d74e611-a2e0-4f51-b727-100000000002', 'BETA-CD', 'Plano Beta', 'CD', 'Patrocinadora Beta', NULL, 'ACTIVE', '2026-08-10T13:00:00.000Z', '2026-08-10T13:00:00.000Z'),
-        ('6d74e611-a2e0-4f51-b727-100000000003', 'GAMA-CV', 'Plano Gama', 'CV', 'Patrocinadora Gama', NULL, 'ACTIVE', '2026-08-10T13:00:00.000Z', '2026-08-10T13:00:00.000Z');
-    `);
-  }
+  await execSql(db, `
+    INSERT OR IGNORE INTO plans (id, code, name, modality, sponsorName, cnpj, status, createdAt, updatedAt) VALUES
+      ('6d74e611-a2e0-4f51-b727-100000000001', 'ALFA-BD', 'Plano Previdenciário Alfa', 'BD', 'Patrocinadora Alfa', NULL, 'ACTIVE', '2026-08-10T13:00:00.000Z', '2026-08-10T13:00:00.000Z'),
+      ('6d74e611-a2e0-4f51-b727-100000000002', 'BETA-CD', 'Plano Beta', 'CD', 'Patrocinadora Beta', NULL, 'ACTIVE', '2026-08-10T13:00:00.000Z', '2026-08-10T13:00:00.000Z'),
+      ('6d74e611-a2e0-4f51-b727-100000000003', 'GAMA-CV', 'Plano Gama', 'CV', 'Patrocinadora Gama', NULL, 'ACTIVE', '2026-08-10T13:00:00.000Z', '2026-08-10T13:00:00.000Z');
+  `);
 
   const evaluationCount = await getValue<{ count: number }>(db, "SELECT COUNT(*) AS count FROM evaluations");
   if (evaluationCount.count === 0) {
     await execSql(db, `
-      INSERT INTO evaluations (planId, planName, referenceDate, status, stage, progress, blockingIssues, updatedAt) VALUES
-        ('6d74e611-a2e0-4f51-b727-100000000001', 'Plano Previdenciário Alfa', '2025-12-31', 'Em andamento', 'Fechamento', 82, 3, '2026-08-10T13:40:00.000Z'),
-        ('6d74e611-a2e0-4f51-b727-100000000002', 'Plano Beta', '2025-12-31', 'Em andamento', 'Aderência', 57, 0, '2026-08-10T12:55:00.000Z'),
-        ('6d74e611-a2e0-4f51-b727-100000000003', 'Plano Gama', '2025-12-31', 'Aguardando correção', 'Crítica cadastral', 23, 47, '2026-08-10T11:20:00.000Z');
+      INSERT INTO evaluations (planId, planName, referenceDate, status, stage, progress, blockingIssues, updatedAt)
+        SELECT id, name, '2025-12-31', 'Em andamento', 'Fechamento', 82, 3, '2026-08-10T13:40:00.000Z' FROM plans WHERE code = 'ALFA-BD'
+        UNION ALL
+        SELECT id, name, '2025-12-31', 'Em andamento', 'Aderência', 57, 0, '2026-08-10T12:55:00.000Z' FROM plans WHERE code = 'BETA-CD'
+        UNION ALL
+        SELECT id, name, '2025-12-31', 'Aguardando correção', 'Crítica cadastral', 23, 47, '2026-08-10T11:20:00.000Z' FROM plans WHERE code = 'GAMA-CV';
 
       INSERT INTO mapping_profiles
         (name, population, version, schemaFingerprint, rulesFingerprint, sourceHeadersJson, mappedFields, totalFields, updatedAt)
