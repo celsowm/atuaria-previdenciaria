@@ -3,6 +3,7 @@ import { Dto, Field, t } from "adorn-api";
 @Dto({ name: "Plan", description: "Pension plan managed by Atuária Previdenciária." })
 export class PlanDto {
   @Field(t.string({ format: "uuid" })) id!: string;
+  @Field(t.string({ format: "uuid" })) entidadePrevidenciaId!: string;
   @Field(t.string()) code!: string;
   @Field(t.string()) name!: string;
   @Field(t.string()) modality!: string;
@@ -15,6 +16,7 @@ export class PlanDto {
 
 @Dto({ name: "CreatePlan", description: "Create a pension plan." })
 export class CreatePlanDto {
+  @Field(t.string({ format: "uuid" })) entidadePrevidenciaId!: string;
   @Field(t.string({ minLength: 1, maxLength: 40 })) code!: string;
   @Field(t.string({ minLength: 1, maxLength: 200 })) name!: string;
   @Field(t.string({ minLength: 1 })) modality!: string;

@@ -8,6 +8,7 @@ const fragments = [
   resolve("../../openapi/auth.openapi.json"),
   resolve("../../openapi/evaluations.openapi.json"),
   resolve("../../openapi/plans.openapi.json"),
+  resolve("../../openapi/previdencia.openapi.json"),
   resolve("../../openapi/plan-rules.openapi.json"),
   resolve("../../openapi/adherence.openapi.json"),
   resolve("../../openapi/parameterization.openapi.json"),
@@ -36,6 +37,17 @@ for (const fragmentPath of fragments) {
     ...(base.components.securitySchemes ?? {}),
     ...(fragment.components?.securitySchemes ?? {})
   };
+}
+
+// O gerador usa a tag como identificador TypeScript; nomes exibíveis podem conter espaços.
+const normalizarTag = (nome) => String(nome).replace(/[^A-Za-z0-9_]/g, "");
+base.tags = (base.tags ?? []).map((tag) => ({ ...tag, name: normalizarTag(tag.name) }));
+for (const caminho of Object.values(base.paths ?? {})) {
+  for (const operacao of Object.values(caminho ?? {})) {
+    if (operacao && typeof operacao === "object" && Array.isArray(operacao.tags)) {
+      operacao.tags = operacao.tags.map(normalizarTag);
+    }
+  }
 }
 
 await writeFile(mergedPath, `${JSON.stringify(base, null, 2)}\n`, "utf8");

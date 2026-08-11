@@ -1,9 +1,17 @@
-import { Column, Entity, PrimaryKey, col } from "metal-orm";
+import { Entity, col } from "metal-orm";
+import { Column, PrimaryKey } from "./colunas-portuguesas.js";
 
 @Entity({ tableName: "plans" })
 export class Plan {
   @PrimaryKey(col.text())
   id!: string;
+
+  @Column(col.notNull(col.references(col.text(), {
+    table: "entidades_previdencia",
+    column: "id",
+    onDelete: "RESTRICT"
+  })))
+  entidadePrevidenciaId!: string;
 
   @Column(col.notNull(col.unique(col.text())))
   code!: string;

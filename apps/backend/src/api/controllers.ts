@@ -217,6 +217,7 @@ export class ImportController {
 
     return persistImport(file, {
       evaluationId: ctx.body.evaluationId,
+      submassaId: ctx.body.submassaId,
       population: ctx.body.population,
       profileId: ctx.body.profileId,
       profileName: ctx.body.profileName,

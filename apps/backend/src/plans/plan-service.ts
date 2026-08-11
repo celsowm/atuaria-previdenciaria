@@ -1,11 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { entityRef, eq, getTableDefFromEntity, selectFromEntity } from "metal-orm";
-import { createSession } from "../db.js";
+import { createSession, executarSql } from "../db.js";
 import { Plan } from "../domain/plan-entities.js";
-import { PlanRulesVersion } from "../domain/plan-rule-entities.js";
+import { EntidadePrevidencia } from "../domain/previdencia-entities.js";
 
 const planRef = entityRef(Plan);
-const rulesVersionRef = entityRef(PlanRulesVersion);
 const modalities = new Set(["BD", "CD", "CV"]);
 const statuses = new Set(["ACTIVE", "INACTIVE", "CLOSED"]);
 
@@ -58,6 +57,7 @@ export async function getPlan(id: string) {
 }
 
 export async function createPlan(input: {
+  entidadePrevidenciaId: string;
   code: string;
   name: string;
   modality: string;
@@ -70,12 +70,15 @@ export async function createPlan(input: {
   if (!name) throw new Error("Nome do plano é obrigatório.");
 
   return withSession(async (session) => {
+    const entidade = await session.find(EntidadePrevidencia, input.entidadePrevidenciaId);
+    if (!entidade || entidade.situacao !== "ATIVA") throw new Error("Entidade de previdência inválida ou inativa.");
     const existing = await selectFromEntity(Plan).where(eq(planRef.code, code)).execute(session);
     if (existing.length > 0) throw new Error("Já existe um plano com este código.");
 
     const now = new Date().toISOString();
     const plan = new Plan();
     plan.id = randomUUID();
+    plan.entidadePrevidenciaId = input.entidadePrevidenciaId;
     plan.code = code;
     plan.name = name;
     plan.modality = validateModality(input.modality);
@@ -85,8 +88,7 @@ export async function createPlan(input: {
     plan.createdAt = now;
     plan.updatedAt = now;
 
-    session.trackNew(table(), plan, plan.id);
-    await session.commit();
+    await executarSql("INSERT INTO planos (id, entidade_previdencia_id, codigo, nome, modalidade, nome_patrocinador, cnpj, situacao, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [plan.id, plan.entidadePrevidenciaId, plan.code, plan.name, plan.modality, plan.sponsorName ?? null, plan.cnpj ?? null, plan.status, plan.createdAt, plan.updatedAt]);
     return plan;
   });
 }
@@ -119,14 +121,6 @@ export async function updatePlan(id: string, input: {
     }
     if (input.modality !== undefined) {
       const modality = validateModality(input.modality);
-      if (modality !== plan.modality) {
-        const versions = await selectFromEntity(PlanRulesVersion)
-          .where(eq(rulesVersionRef.planId, id))
-          .execute(session);
-        if (versions.length > 0) {
-          throw new Error("A modalidade não pode ser alterada depois que o plano possui versões de regras atuariais.");
-        }
-      }
       plan.modality = modality;
     }
     if (input.sponsorName !== undefined) plan.sponsorName = normalizeOptional(input.sponsorName);

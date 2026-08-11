@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryKey, col } from "metal-orm";
+import { Entity, col } from "metal-orm";
+import { Column, PrimaryKey } from "./colunas-portuguesas.js";
 
 @Entity({ tableName: "calculation_runs" })
 export class CalculationRun {
@@ -11,6 +12,23 @@ export class CalculationRun {
     onDelete: "RESTRICT"
   })))
   evaluationId!: number;
+
+  @Column(col.references(col.text(), {
+    table: "submassas",
+    column: "id",
+    onDelete: "RESTRICT"
+  }))
+  submassaId?: string | null;
+
+  @Column(col.references(col.text(), {
+    table: "beneficios",
+    column: "id",
+    onDelete: "RESTRICT"
+  }))
+  beneficioId?: string | null;
+
+  @Column(col.text())
+  impressaoDigitalSubmassa?: string | null;
 
   @Column(col.notNull(col.references(col.text(), {
     table: "actuarial_parameterizations",

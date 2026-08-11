@@ -4,7 +4,7 @@ import { getApplicationName } from "./application-config.js";
 import { bootstrapAdminFromEnvironment, verifyBearerToken } from "./auth/auth-service.js";
 import { AuthController, UserController } from "./api/auth-controller.js";
 import { PlanController } from "./api/plan-controller.js";
-import { PlanRulesController } from "./api/plan-rules-controller.js";
+import { PrevidenciaController } from "./api/previdencia-controller.js";
 import { ParameterizationController } from "./api/parameterization-controller.js";
 import { CalculationController } from "./api/calculation-controller.js";
 import { ClosingController } from "./api/closing-controller.js";
@@ -31,7 +31,7 @@ async function start() {
       UserController,
       SystemController,
       PlanController,
-      PlanRulesController,
+      PrevidenciaController,
       EvaluationController,
       ParameterizationController,
       CalculationController,

@@ -27,6 +27,12 @@ function closeSqlite(db: sqlite3.Database): Promise<void> {
   });
 }
 
+function runSql(db: sqlite3.Database, sql: string, params: unknown[]): Promise<void> {
+  return new Promise((resolvePromise, reject) => {
+    db.run(sql, params, (error) => (error ? reject(error) : resolvePromise()));
+  });
+}
+
 function sqliteClient(db: sqlite3.Database): SqliteClientLike {
   return {
     all(sql, params = []) {
@@ -82,6 +88,19 @@ export function getDatabasePath() {
 export function createSession() {
   if (!orm) throw new Error("Atuária Previdenciária database is not initialized");
   return orm.createSession();
+}
+
+/** Executa escrita parametrizada no banco operacional. Uso restrito a fluxos cujo schema usa nomes físicos em português. */
+export async function executarSql(sql: string, params: unknown[] = []) {
+  if (!database) throw new Error("Banco de dados não inicializado.");
+  await runSql(database, sql, params);
+}
+
+export async function consultarSql<T extends object>(sql: string, params: unknown[] = []) {
+  if (!database) throw new Error("Banco de dados não inicializado.");
+  return new Promise<T[]>((resolvePromise, reject) => {
+    database!.all(sql, params, (error, rows) => error ? reject(error) : resolvePromise(rows as T[]));
+  });
 }
 
 export async function closeDatabase() {

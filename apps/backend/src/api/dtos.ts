@@ -47,6 +47,7 @@ export class MappingProfileMatchDto {
 export class CreateImportDto {
   @Field(t.string({ minLength: 1 })) population!: string;
   @Field(t.optional(t.integer({ minimum: 1 }))) evaluationId?: number;
+  @Field(t.string({ format: "uuid" })) submassaId!: string;
   @Field(t.optional(t.integer({ minimum: 1 }))) profileId?: number;
   @Field(t.optional(t.string({ minLength: 1 }))) profileName?: string;
   @Field(t.optional(t.boolean())) saveProfile?: boolean;

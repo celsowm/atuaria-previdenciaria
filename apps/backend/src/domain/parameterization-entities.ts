@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryKey, col } from "metal-orm";
+import { Entity, col } from "metal-orm";
+import { Column, PrimaryKey } from "./colunas-portuguesas.js";
 
 @Entity({ tableName: "actuarial_parameterizations" })
 export class ActuarialParameterization {

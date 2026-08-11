@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryKey, col } from "metal-orm";
+import { Entity, col } from "metal-orm";
+import { Column, PrimaryKey } from "./colunas-portuguesas.js";
 
 @Entity({ tableName: "evaluations" })
 export class Evaluation {
@@ -11,6 +12,13 @@ export class Evaluation {
     onDelete: "RESTRICT"
   }))
   planId?: string | null;
+
+  @Column(col.references(col.text(), {
+    table: "submassas",
+    column: "id",
+    onDelete: "RESTRICT"
+  }))
+  submassaId?: string | null;
 
   @Column(col.notNull(col.text()))
   planName!: string;
@@ -119,6 +127,13 @@ export class ImportJob {
 
   @Column(col.int())
   evaluationId?: number | null;
+
+  @Column(col.references(col.text(), {
+    table: "submassas",
+    column: "id",
+    onDelete: "RESTRICT"
+  }))
+  submassaId?: string | null;
 
   @Column(col.notNull(col.text()))
   fileId!: string;

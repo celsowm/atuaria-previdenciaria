@@ -44,6 +44,8 @@ const canonicalFields = [
   ["participant.admissionDate", "Data de admissão"],
   ["participant.planJoinDate", "Ingresso no plano"],
   ["participant.contributionSalary", "Salário de contribuição"],
+  ["participant.inssRetired", "Aposentado pelo INSS"],
+  ["participant.inssBenefit", "Benefício mensal do INSS"],
   ["participant.sponsorCode", "Patrocinador"]
 ] as const;
 
@@ -72,6 +74,8 @@ function suggestTarget(header: string): string[] {
   if (/ADMIS/.test(value)) return ["participant.admissionDate"];
   if (/ING.*PLANO|ADESAO|DTPLANO/.test(value)) return ["participant.planJoinDate"];
   if (/SAL|REMUN|CONTRIB/.test(value)) return ["participant.contributionSalary"];
+  if (/APOS.*INSS|INSS.*APOS/.test(value)) return ["participant.inssRetired"];
+  if (/BENEF.*INSS|INSS.*BENEF/.test(value)) return ["participant.inssBenefit"];
   if (/PATROC/.test(value)) return ["participant.sponsorCode"];
   return [];
 }
@@ -158,6 +162,7 @@ export function ImportWizardPage({ onClose, onCritique }: Props) {
   const [population, setPopulation] = useState<(typeof populations)[number]>("Ativos");
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [evaluationId, setEvaluationId] = useState<number | undefined>();
+  const [submassaId, setSubmassaId] = useState("");
   const [matrix, setMatrix] = useState<unknown[][]>([]);
   const [headerRow, setHeaderRow] = useState(1);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -254,6 +259,7 @@ export function ImportWizardPage({ onClose, onCritique }: Props) {
     try {
       const result = await api.importWorkbook(sourceFile, {
         population,
+        submassaId: submassaId.trim(),
         evaluationId,
         profileId: selectedProfileId,
         profileName: profileName.trim() || undefined,
@@ -297,9 +303,10 @@ export function ImportWizardPage({ onClose, onCritique }: Props) {
 
       {activeStep === 1 && <Stack spacing={3}>
         <Box><Typography variant="h6">Estrutura detectada</Typography><Typography color="text.secondary">Confirme avaliação, população, aba e onde os dados realmente começam.</Typography></Box>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1.6fr 1.5fr 1fr 1fr 1fr" }, gap: 2 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1.6fr 1.5fr 1.5fr 1fr 1fr 1fr" }, gap: 2 }}>
           <TextField label="Arquivo" value={fileName} slotProps={{ input: { readOnly: true } }} />
           <FormControl fullWidth><InputLabel>Avaliação</InputLabel><Select label="Avaliação" value={evaluationId ?? ""} onChange={(event) => setEvaluationId(event.target.value === "" ? undefined : Number(event.target.value))}><MenuItem value=""><em>Sem vínculo</em></MenuItem>{evaluations.map((evaluation) => <MenuItem key={evaluation.id} value={evaluation.id}>{evaluation.planName} · {new Date(`${evaluation.referenceDate}T12:00:00`).toLocaleDateString("pt-BR")}</MenuItem>)}</Select></FormControl>
+          <TextField required label="Identificação da submassa" value={submassaId} onChange={(event) => setSubmassaId(event.target.value)} helperText="UUID da submassa aprovada" />
           <FormControl fullWidth><InputLabel>População</InputLabel><Select label="População" value={population} onChange={(event) => { const value = event.target.value as (typeof populations)[number]; setPopulation(value); setProfileName(`${value} - ${fileName.replace(/\.[^.]+$/, "")}`); void findProfile(headers, value); }}>{populations.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</Select></FormControl>
           <TextField label="Aba" value={sheetName} slotProps={{ input: { readOnly: true } }} />
           <TextField label="Linha do cabeçalho" type="number" value={headerRow} onChange={(event) => { const value = Math.max(1, Number(event.target.value)); setHeaderRow(value); const nextHeaders = rebuild(matrix, value); void findProfile(nextHeaders, population); }} />

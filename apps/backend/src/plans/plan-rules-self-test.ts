@@ -9,6 +9,7 @@ process.env.APP_SEED_DEMO = "false";
 
 const { closeDatabase, initializeDatabase } = await import("../db.js");
 const { createPlan, updatePlan } = await import("./plan-service.js");
+const { criarEntidade } = await import("../previdencia/previdencia-service.js");
 const {
   approvePlanRulesVersion,
   createPlanRulesVersion,
@@ -20,7 +21,10 @@ const {
 try {
   await initializeDatabase();
 
+  const entidade = await criarEntidade({ codigo: "TESTE", nome: "Entidade de teste" });
+
   const plan = await createPlan({
+    entidadePrevidenciaId: entidade.id,
     code: "SELFTEST-BD",
     name: "Plano self-test",
     modality: "BD"

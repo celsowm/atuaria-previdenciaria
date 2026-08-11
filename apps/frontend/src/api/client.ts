@@ -63,6 +63,7 @@ export type ImportMappingRule = {
 
 export type ImportWorkbookOptions = {
   population: string;
+  submassaId: string;
   evaluationId?: number;
   profileId?: number;
   profileName?: string;
@@ -131,6 +132,7 @@ async function importWorkbook(file: File, options: ImportWorkbookOptions): Promi
   const form = new FormData();
   form.append("file", file);
   form.append("population", options.population);
+  form.append("submassaId", options.submassaId);
   form.append("headerRow", String(options.headerRow));
   form.append("rulesJson", JSON.stringify(options.rules));
   form.append("saveProfile", String(options.saveProfile ?? true));

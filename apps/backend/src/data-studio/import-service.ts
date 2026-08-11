@@ -5,12 +5,14 @@ import type { UploadedFileInfo } from "adorn-api";
 import { getTableDefFromEntity, selectFromEntity } from "metal-orm";
 import { createSession } from "../db.js";
 import {
+  Evaluation,
   ImportFile,
   ImportJob,
   ImportRow,
   MappingProfile,
   MappingRule
 } from "../domain/entities.js";
+import { Submassa } from "../domain/previdencia-entities.js";
 import { storageRootPath } from "../runtime-paths.js";
 import {
   compareHeaders,
@@ -26,6 +28,7 @@ import {
 
 type ImportOptions = {
   evaluationId?: number;
+  submassaId: string;
   population: string;
   profileId?: number;
   profileName?: string;
@@ -203,6 +206,19 @@ async function markJobFailed(jobId: string) {
 }
 
 export async function persistImport(file: UploadedFileInfo, options: ImportOptions): Promise<ImportResult> {
+  await withSession(async (session) => {
+    const submassa = await session.find(Submassa, options.submassaId);
+    if (!submassa || submassa.situacao !== "APROVADA") throw new Error("A importação exige uma submassa aprovada.");
+    if (!options.evaluationId) return;
+    const avaliacao = await session.find(Evaluation, options.evaluationId);
+    if (!avaliacao) throw new Error("Avaliação não encontrada.");
+    if (avaliacao.planId !== submassa.planoId || avaliacao.submassaId !== submassa.id) {
+      throw new Error("A submassa informada não corresponde à avaliação.");
+    }
+    if (avaliacao.referenceDate < submassa.vigenciaInicial || (submassa.vigenciaFinal && avaliacao.referenceDate > submassa.vigenciaFinal)) {
+      throw new Error("A submassa não está vigente na data-base da avaliação.");
+    }
+  });
   const buffer = await uploadedBuffer(file);
   const parsed = parseWorkbookBuffer(buffer, {
     sheetName: options.sheetName,
@@ -233,6 +249,7 @@ export async function persistImport(file: UploadedFileInfo, options: ImportOptio
   const job = new ImportJob();
   job.id = jobId;
   job.evaluationId = options.evaluationId ?? null;
+  job.submassaId = options.submassaId;
   job.fileId = fileId;
   job.mappingProfileId = profile?.id ?? null;
   job.population = options.population;

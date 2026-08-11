@@ -13,7 +13,9 @@
     "adherence:golden:self-test": "tsx src/adherence/golden-master.ts self-test",
     "calculation:self-test": "tsx src/calculation/self-test.ts",
     "bd-pvfb:self-test": "tsx src/calculation/bd-pvfb-self-test.ts",
-    "plan-rules:self-test": "tsx src/plans/plan-rules-self-test.ts"
+    "plan-rules:self-test": "tsx src/plans/plan-rules-self-test.ts",
+    "previdencia:self-test": "tsx src/previdencia/previdencia-self-test.ts",
+    "banco:reiniciar": "tsx src/reiniciar-banco.ts"
   },
   "dependencies": {
     "adorn-api": "^1.1.19",

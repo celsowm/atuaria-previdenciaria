@@ -7,15 +7,12 @@ import {
 } from "node:crypto";
 import { promisify } from "node:util";
 import type { AuthUser } from "adorn-api";
-import { entityRef, eq, getTableDefFromEntity, selectFromEntity } from "metal-orm";
-import { createSession } from "../db.js";
-import { User, UserSession } from "../domain/auth-entities.js";
+import { consultarSql, executarSql } from "../db.js";
+import { User } from "../domain/auth-entities.js";
 
 const scrypt = promisify(scryptCallback);
 const passwordVersion = "scrypt-v1";
 const allowedRoles = new Set(["admin", "actuary", "reviewer"]);
-const userRef = entityRef(User);
-const userSessionRef = entityRef(UserSession);
 
 export type ApplicationAuthUser = AuthUser & {
   id: string;
@@ -36,22 +33,7 @@ export type UserView = {
   lastLoginAt: string | null;
 };
 
-type Session = ReturnType<typeof createSession>;
-
-async function withSession<T>(handler: (session: Session) => Promise<T>) {
-  const session = createSession();
-  try {
-    return await handler(session);
-  } finally {
-    await session.dispose();
-  }
-}
-
-function tableFor<T extends typeof User | typeof UserSession>(entity: T) {
-  const table = getTableDefFromEntity(entity);
-  if (!table) throw new Error(`Metal ORM metadata not bootstrapped for ${entity.name}`);
-  return table;
-}
+const camposUsuario = `id,email,nome_exibicao AS displayName,resumo_senha AS passwordHash,perfil AS role,ativo,criado_em AS createdAt,atualizado_em AS updatedAt,ultimo_acesso_em AS lastLoginAt`;
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -125,27 +107,25 @@ function toAuthUser(user: User): ApplicationAuthUser {
 }
 
 async function allUsers() {
-  return withSession((session) => selectFromEntity(User).execute(session));
+  return consultarSql<User>(`SELECT ${camposUsuario} FROM usuarios`);
 }
 
 async function findUserByEmail(email: string) {
-  return withSession(async (session) => {
-    const [user] = await selectFromEntity(User)
-      .where(eq(userRef.email, email))
-      .limit(1)
-      .execute(session);
-    return user ?? null;
-  });
+  const [user] = await consultarSql<User>(`SELECT ${camposUsuario} FROM usuarios WHERE email = ? LIMIT 1`, [email]);
+  return user ?? null;
 }
 
 async function findSessionByTokenHash(hash: string) {
-  return withSession(async (session) => {
-    const [record] = await selectFromEntity(UserSession)
-      .where(eq(userSessionRef.tokenHash, hash))
-      .limit(1)
-      .execute(session);
-    return record ?? null;
-  });
+  const [record] = await consultarSql<{ id: string; userId: string; tokenHash: string; createdAt: string; expiresAt: string; revokedAt: string | null }>(
+    `SELECT id,usuario_id AS userId,resumo_token AS tokenHash,criado_em AS createdAt,expira_em AS expiresAt,revogado_em AS revokedAt FROM sessoes_usuario WHERE resumo_token = ? LIMIT 1`,
+    [hash]
+  );
+  return record ?? null;
+}
+
+async function findUserById(id: string) {
+  const [user] = await consultarSql<User>(`SELECT ${camposUsuario} FROM usuarios WHERE id = ? LIMIT 1`, [id]);
+  return user ?? null;
 }
 
 export async function bootstrapAdminFromEnvironment() {
@@ -210,10 +190,10 @@ export async function createUser(input: {
   user.updatedAt = now;
   user.lastLoginAt = null;
 
-  await withSession(async (session) => {
-    session.trackNew(tableFor(User), user, user.id);
-    await session.commit();
-  });
+  await executarSql(
+    "INSERT INTO usuarios (id,email,nome_exibicao,resumo_senha,perfil,ativo,criado_em,atualizado_em,ultimo_acesso_em) VALUES (?,?,?,?,?,?,?,?,?)",
+    [user.id, user.email, user.displayName, user.passwordHash, user.role, user.active, user.createdAt, user.updatedAt, user.lastLoginAt]
+  );
   return toView(user);
 }
 
@@ -227,8 +207,8 @@ export async function updateUser(
   }
 ) {
   const shouldRevokeSessions = input.password !== undefined || input.active === false;
-  const updated = await withSession(async (session) => {
-    const user = await session.find(User, id);
+  const updated = await (async () => {
+    const user = await findUserById(id);
     if (!user) return null;
 
     if (input.role !== undefined) validateRole(input.role);
@@ -241,7 +221,7 @@ export async function updateUser(
       user.active === 1 &&
       ((input.role !== undefined && input.role !== "admin") || input.active === false);
     if (removesAdmin) {
-      const users = await selectFromEntity(User).execute(session);
+      const users = await allUsers();
       const activeAdmins = users.filter((candidate) => candidate.role === "admin" && candidate.active === 1);
       if (activeAdmins.length <= 1) {
         throw new Error("Não é possível remover ou desativar o último administrador ativo.");
@@ -253,10 +233,9 @@ export async function updateUser(
     if (input.active !== undefined) user.active = input.active ? 1 : 0;
     if (input.password !== undefined) user.passwordHash = await hashPassword(input.password);
     user.updatedAt = new Date().toISOString();
-    session.markDirty(user);
-    await session.commit();
+    await executarSql("UPDATE usuarios SET nome_exibicao=?, perfil=?, ativo=?, resumo_senha=?, atualizado_em=? WHERE id=?", [user.displayName, user.role, user.active, user.passwordHash, user.updatedAt, id]);
     return toView(user);
-  });
+  })();
 
   if (updated && shouldRevokeSessions) {
     await revokeUserSessions(id);
@@ -273,27 +252,16 @@ export async function login(emailInput: string, password: string) {
 
   const token = randomBytes(32).toString("base64url");
   const now = new Date();
-  const sessionRecord = new UserSession();
-  sessionRecord.id = randomUUID();
-  sessionRecord.userId = user.id;
-  sessionRecord.tokenHash = tokenHash(token);
-  sessionRecord.createdAt = now.toISOString();
-  sessionRecord.expiresAt = new Date(now.getTime() + sessionTtlMs()).toISOString();
-  sessionRecord.revokedAt = null;
-
-  await withSession(async (session) => {
-    session.trackNew(tableFor(UserSession), sessionRecord, sessionRecord.id);
-    const storedUser = await session.find(User, user.id);
-    if (!storedUser) throw new Error("Usuário desapareceu durante a autenticação.");
-    storedUser.lastLoginAt = now.toISOString();
-    storedUser.updatedAt = now.toISOString();
-    session.markDirty(storedUser);
-    await session.commit();
-  });
+  const sessionId = randomUUID();
+  const sessionHash = tokenHash(token);
+  const createdAt = now.toISOString();
+  const expiresAt = new Date(now.getTime() + sessionTtlMs()).toISOString();
+  await executarSql("INSERT INTO sessoes_usuario (id,usuario_id,resumo_token,criado_em,expira_em,revogado_em) VALUES (?,?,?,?,?,?)", [sessionId, user.id, sessionHash, createdAt, expiresAt, null]);
+  await executarSql("UPDATE usuarios SET ultimo_acesso_em=?, atualizado_em=? WHERE id=?", [createdAt, createdAt, user.id]);
 
   return {
     token,
-    expiresAt: sessionRecord.expiresAt,
+    expiresAt,
     user: toView({ ...user, lastLoginAt: now.toISOString(), updatedAt: now.toISOString() } as User)
   };
 }
@@ -308,39 +276,18 @@ export async function verifyBearerToken(token: string): Promise<ApplicationAuthU
     return null;
   }
 
-  return withSession(async (session) => {
-    const user = await session.find(User, sessionRecord.userId);
-    if (!user || user.active !== 1) return null;
-    return toAuthUser(user);
-  });
+  const user = await findUserById(sessionRecord.userId);
+  if (!user || user.active !== 1) return null;
+  return toAuthUser(user);
 }
 
 export async function logout(token: string) {
   const sessionRecord = await findSessionByTokenHash(tokenHash(token));
   if (!sessionRecord || sessionRecord.revokedAt) return;
 
-  return withSession(async (session) => {
-    const stored = await session.find(UserSession, sessionRecord.id);
-    if (!stored || stored.revokedAt) return;
-    stored.revokedAt = new Date().toISOString();
-    session.markDirty(stored);
-    await session.commit();
-  });
+  await executarSql("UPDATE sessoes_usuario SET revogado_em=? WHERE id=? AND revogado_em IS NULL", [new Date().toISOString(), sessionRecord.id]);
 }
 
 export async function revokeUserSessions(userId: string) {
-  return withSession(async (session) => {
-    const sessions = await selectFromEntity(UserSession)
-      .where(eq(userSessionRef.userId, userId))
-      .execute(session);
-    const now = new Date().toISOString();
-    let changed = false;
-    for (const sessionRecord of sessions) {
-      if (sessionRecord.revokedAt) continue;
-      sessionRecord.revokedAt = now;
-      session.markDirty(sessionRecord);
-      changed = true;
-    }
-    if (changed) await session.commit();
-  });
+  await executarSql("UPDATE sessoes_usuario SET revogado_em=? WHERE usuario_id=? AND revogado_em IS NULL", [new Date().toISOString(), userId]);
 }
