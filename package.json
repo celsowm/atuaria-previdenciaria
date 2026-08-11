@@ -15,6 +15,7 @@
     "typecheck": "npm run typecheck -w @atuaria-previdenciaria/backend && npm run typecheck -w @atuaria-previdenciaria/frontend",
     "api:generate": "npm run api:generate -w @atuaria-previdenciaria/frontend",
     "calculation:self-test": "npm run calculation:self-test -w @atuaria-previdenciaria/backend",
+    "bd-pvfb:self-test": "npm run bd-pvfb:self-test -w @atuaria-previdenciaria/backend",
     "plan-rules:self-test": "npm run plan-rules:self-test -w @atuaria-previdenciaria/backend"
   },
   "devDependencies": {
