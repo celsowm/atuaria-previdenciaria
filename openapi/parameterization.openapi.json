@@ -76,6 +76,18 @@
         }
       }
     },
+    "/api/parameterizations/{id}/hypothesis/remove": {
+      "post": {
+        "tags": ["Parameterization"],
+        "operationId": "removeActuarialHypothesisSelection",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RemoveActuarialHypothesisSelection" } } } },
+        "responses": {
+          "200": { "description": "Hypothesis removed from draft snapshot", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActuarialParameterization" } } } }
+        }
+      }
+    },
     "/api/parameterizations/{id}/approve": {
       "post": {
         "tags": ["Parameterization"],
@@ -137,17 +149,21 @@
         }
       },
       "ActuarialParameterization": {
-        "allOf": [
-          { "$ref": "#/components/schemas/ActuarialParameterizationSummary" },
-          {
-            "type": "object",
-            "required": ["parameters", "hypotheses"],
-            "properties": {
-              "parameters": { "type": "array", "items": { "$ref": "#/components/schemas/ActuarialParameterValue" } },
-              "hypotheses": { "type": "array", "items": { "$ref": "#/components/schemas/ActuarialHypothesisSelection" } }
-            }
-          }
-        ]
+        "type": "object",
+        "required": ["id", "evaluationId", "version", "name", "status", "notes", "createdAt", "updatedAt", "approvedAt", "parameters", "hypotheses"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "evaluationId": { "type": "integer", "minimum": 1 },
+          "version": { "type": "integer", "minimum": 1 },
+          "name": { "type": "string" },
+          "status": { "type": "string", "enum": ["DRAFT", "APPROVED", "SUPERSEDED"] },
+          "notes": { "type": ["string", "null"] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "approvedAt": { "type": ["string", "null"], "format": "date-time" },
+          "parameters": { "type": "array", "items": { "$ref": "#/components/schemas/ActuarialParameterValue" } },
+          "hypotheses": { "type": "array", "items": { "$ref": "#/components/schemas/ActuarialHypothesisSelection" } }
+        }
       },
       "CreateActuarialParameterization": {
         "type": "object",
@@ -188,6 +204,11 @@
         "type": "object",
         "required": ["candidateResultId"],
         "properties": { "candidateResultId": { "type": "string", "format": "uuid" } }
+      },
+      "RemoveActuarialHypothesisSelection": {
+        "type": "object",
+        "required": ["selectionId"],
+        "properties": { "selectionId": { "type": "string", "format": "uuid" } }
       }
     }
   }
