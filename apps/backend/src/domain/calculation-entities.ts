@@ -34,7 +34,7 @@ export class CalculationRun {
   @Column(col.notNull(col.text()))
   dataFingerprint!: string;
 
-  @Column(col.notNull(col.text()))
+  @Column(col.notNull(col.unique(col.text())))
   inputFingerprint!: string;
 
   @Column(col.text())
