@@ -23,6 +23,7 @@ import { api, type Plan } from "../../api/client";
 type Props = {
   planId?: string;
   onOpenPlan: (id: string) => void;
+  onOpenRules: (id: string) => void;
   onBack: () => void;
 };
 
@@ -38,7 +39,7 @@ const statusLabels: Record<string, string> = {
   CLOSED: "Encerrado"
 };
 
-export function PlansPage({ planId, onOpenPlan, onBack }: Props) {
+export function PlansPage({ planId, onOpenPlan, onOpenRules, onBack }: Props) {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +72,7 @@ export function PlansPage({ planId, onOpenPlan, onBack }: Props) {
   }
 
   if (selected) {
-    return <PlanDetail plan={selected} onBack={onBack} onUpdated={(updated) => setPlans((current) => current.map((plan) => plan.id === updated.id ? updated : plan))} />;
+    return <PlanDetail plan={selected} onBack={onBack} onOpenRules={() => onOpenRules(selected.id)} onUpdated={(updated) => setPlans((current) => current.map((plan) => plan.id === updated.id ? updated : plan))} />;
   }
 
   return (
@@ -80,7 +81,7 @@ export function PlansPage({ planId, onOpenPlan, onBack }: Props) {
         <Box>
           <Typography variant="overline" color="text.secondary">Cadastro mestre</Typography>
           <Typography variant="h4">Planos</Typography>
-          <Typography color="text.secondary" sx={{ mt: .75 }}>Planos previdenciários que organizam avaliações, massas, hipóteses e documentos.</Typography>
+          <Typography color="text.secondary" sx={{ mt: .75 }}>Planos previdenciários que organizam avaliações, massas, hipóteses, regras atuariais e documentos.</Typography>
         </Box>
         <Button variant="contained" startIcon={<AddRounded />} onClick={() => setOpen(true)}>Novo plano</Button>
       </Box>
@@ -124,7 +125,7 @@ export function PlansPage({ planId, onOpenPlan, onBack }: Props) {
   );
 }
 
-function PlanDetail({ plan, onBack, onUpdated }: { plan: Plan; onBack: () => void; onUpdated: (plan: Plan) => void }) {
+function PlanDetail({ plan, onBack, onOpenRules, onUpdated }: { plan: Plan; onBack: () => void; onOpenRules: () => void; onUpdated: (plan: Plan) => void }) {
   const [status, setStatus] = useState(plan.status);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -158,6 +159,12 @@ function PlanDetail({ plan, onBack, onUpdated }: { plan: Plan; onBack: () => voi
         <Paper elevation={0} sx={{ p: 2.25, border: "1px solid", borderColor: "divider" }}><Typography variant="caption" color="text.secondary">CNPJ</Typography><Typography fontWeight={700} sx={{ mt: .5 }}>{plan.cnpj || "Não informado"}</Typography></Paper>
         <Paper elevation={0} sx={{ p: 2.25, border: "1px solid", borderColor: "divider" }}><TextField select fullWidth size="small" label="Situação" value={status} disabled={saving} onChange={(event) => void saveStatus(event.target.value)}><MenuItem value="ACTIVE">Ativo</MenuItem><MenuItem value="INACTIVE">Inativo</MenuItem><MenuItem value="CLOSED">Encerrado</MenuItem></TextField></Paper>
       </Box>
+      <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider" }}>
+        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={2} alignItems={{ sm: "center" }}>
+          <Box><Typography variant="h6">Regras atuariais</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: .5 }}>Versione vigência, elegibilidade, contribuições e regras de benefício sem alterar o cadastro mestre.</Typography></Box>
+          <Button variant="contained" onClick={onOpenRules}>Abrir regras</Button>
+        </Stack>
+      </Paper>
     </Stack>
   );
 }
