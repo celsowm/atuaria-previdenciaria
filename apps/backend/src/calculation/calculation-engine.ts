@@ -1,16 +1,22 @@
 export type CalculationParameter = {
   code: string;
+  category: string;
+  label: string;
   valueType: string;
   valueJson: string;
   unit: string | null;
+  source: string;
 };
 
 export type CalculationHypothesis = {
   hypothesisType: string;
+  adherenceStudyId: string;
+  candidateResultId: string;
   biometricVersionId: string;
   tableCode: string;
   tableName: string;
   versionLabel: string;
+  candidateRank: number;
 };
 
 export type CalculationCanonicalRow = {
