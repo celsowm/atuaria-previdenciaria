@@ -37,6 +37,7 @@ export type CalculationPlanRule = {
 };
 
 export type CalculationCanonicalRow = {
+  importJobId: string;
   population: string;
   rowNumber: number;
   data: Record<string, unknown>;
@@ -78,6 +79,19 @@ export type CalculationMetric = {
   unit?: string | null;
 };
 
+export type CalculationParticipantOutput = {
+  importJobId: string;
+  population: string;
+  sourceRowNumber: number;
+  participantRegistration: string | null;
+  result: Record<string, string | number | boolean | null>;
+};
+
+export type CalculationEngineOutput = {
+  metrics: CalculationMetric[];
+  participantResults: CalculationParticipantOutput[];
+};
+
 export type CalculationEngine = {
   code: string;
   version: string;
@@ -86,7 +100,7 @@ export type CalculationEngine = {
   resultKind: "PRECALCULATION" | "ACTUARIAL";
   requiresPlanRules: boolean;
   supportedModalities: Array<"BD" | "CD" | "CV">;
-  execute(context: CalculationEngineContext): Promise<CalculationMetric[]>;
+  execute(context: CalculationEngineContext): Promise<CalculationEngineOutput>;
 };
 
 const engines = new Map<string, CalculationEngine>();
@@ -114,6 +128,32 @@ export function validateCalculationMetrics(metrics: CalculationMetric[]) {
     }
   }
   return metrics;
+}
+
+function validateParticipantValue(value: unknown, path: string) {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return;
+  if (typeof value === "number" && Number.isFinite(value)) return;
+  throw new Error(`Resultado individual inválido em ${path}. Apenas string, number finito, boolean e null são permitidos.`);
+}
+
+export function validateCalculationOutput(output: CalculationEngineOutput) {
+  const metrics = validateCalculationMetrics(output.metrics);
+  const keys = new Set<string>();
+  for (const item of output.participantResults) {
+    if (!item.importJobId.trim()) throw new Error("Resultado individual sem importJobId.");
+    if (!item.population.trim()) throw new Error("Resultado individual sem população.");
+    if (!Number.isInteger(item.sourceRowNumber) || item.sourceRowNumber < 1) {
+      throw new Error("Resultado individual possui sourceRowNumber inválido.");
+    }
+    const key = `${item.importJobId}:${item.sourceRowNumber}`;
+    if (keys.has(key)) throw new Error(`Resultado individual duplicado para ${key}.`);
+    keys.add(key);
+    for (const [field, value] of Object.entries(item.result)) {
+      if (!field.trim()) throw new Error(`Resultado individual ${key} possui campo vazio.`);
+      validateParticipantValue(value, `${key}.${field}`);
+    }
+  }
+  return { metrics, participantResults: output.participantResults };
 }
 
 export function registerCalculationEngine(engine: CalculationEngine) {
