@@ -6,7 +6,9 @@ const basePath = resolve("../../openapi/core.openapi.json");
 const fragments = [
   resolve("../../openapi/config.openapi.json"),
   resolve("../../openapi/auth.openapi.json"),
+  resolve("../../openapi/evaluations.openapi.json"),
   resolve("../../openapi/plans.openapi.json"),
+  resolve("../../openapi/plan-rules.openapi.json"),
   resolve("../../openapi/adherence.openapi.json"),
   resolve("../../openapi/parameterization.openapi.json"),
   resolve("../../openapi/calculation.openapi.json")
