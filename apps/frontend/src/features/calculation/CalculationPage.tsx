@@ -7,8 +7,14 @@ import {
   CircularProgress,
   Divider,
   MenuItem,
+  Pagination,
   Paper,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   TextField,
   Typography
 } from "@mui/material";
@@ -20,6 +26,7 @@ import {
   api,
   type ActuarialParameterizationSummary,
   type CalculationEngine,
+  type CalculationParticipantResultPage,
   type CalculationRun,
   type CalculationRunSummary,
   type CreateCalculationRunInput,
@@ -27,6 +34,8 @@ import {
   type Plan,
   type PlanRulesVersionSummary
 } from "../../api/client";
+
+const participantPageSize = 25;
 
 function statusColor(status: string): "default" | "success" | "error" | "warning" {
   if (status === "COMPLETED") return "success";
@@ -44,6 +53,29 @@ function parseMetric(valueJson: string) {
   } catch {
     return valueJson;
   }
+}
+
+function parseParticipantResult(valueJson: string): Record<string, unknown> {
+  try {
+    const value = JSON.parse(valueJson) as unknown;
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? value as Record<string, unknown>
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function formatNumber(value: unknown, maximumFractionDigits = 2) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value.toLocaleString("pt-BR", { maximumFractionDigits })
+    : "—";
+}
+
+function formatProbability(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? `${(value * 100).toLocaleString("pt-BR", { maximumFractionDigits: 4 })}%`
+    : "—";
 }
 
 function shortHash(value: string | null | undefined) {
@@ -79,6 +111,10 @@ export function CalculationPage({
   const [parameterizationId, setParameterizationId] = useState("");
   const [planRulesVersionId, setPlanRulesVersionId] = useState("");
   const [engineCode, setEngineCode] = useState("CORE_PRECALCULATION");
+  const [participantPage, setParticipantPage] = useState<CalculationParticipantResultPage | null>(null);
+  const [participantPageNumber, setParticipantPageNumber] = useState(1);
+  const [participantLoading, setParticipantLoading] = useState(false);
+  const [participantError, setParticipantError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -153,6 +189,34 @@ export function CalculationPage({
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
   }, [evaluationId, calculationId]);
+
+  useEffect(() => {
+    setParticipantPageNumber(1);
+    setParticipantPage(null);
+    setParticipantError(null);
+  }, [detail?.id]);
+
+  useEffect(() => {
+    if (!detail || detail.participantResultCount === 0) {
+      setParticipantPage(null);
+      setParticipantLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setParticipantLoading(true);
+    setParticipantError(null);
+    void api.calculationParticipantResults(detail.id, participantPageNumber, participantPageSize)
+      .then((page) => {
+        if (!cancelled) setParticipantPage(page);
+      })
+      .catch((reason) => {
+        if (!cancelled) setParticipantError(reason instanceof Error ? reason.message : "Não foi possível carregar a reconciliação por participante.");
+      })
+      .finally(() => {
+        if (!cancelled) setParticipantLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [detail?.id, detail?.participantResultCount, participantPageNumber]);
 
   const approved = useMemo(
     () => parameterizations.filter((item) => immutableSnapshot(item.status)),
@@ -268,6 +332,7 @@ export function CalculationPage({
               <Stack direction="row" justifyContent="space-between" gap={1}><Typography fontWeight={750}>{run.engineVersion}</Typography><Chip size="small" color={statusColor(run.status)} label={run.status} /></Stack>
               <Typography variant="caption" color="text.secondary">{new Date(run.createdAt).toLocaleString("pt-BR")}</Typography>
               <Typography variant="caption" display="block" sx={{ mt: .75 }}>{run.validRowCount.toLocaleString("pt-BR")} registros válidos</Typography>
+              {run.participantResultCount > 0 && <Typography variant="caption" display="block" color="text.secondary">{run.participantResultCount.toLocaleString("pt-BR")} resultados individuais</Typography>}
             </Box>
           </Button>)}
         </Stack>}
@@ -291,6 +356,62 @@ export function CalculationPage({
             </Box>
           </Paper>)}
 
+          {detail.participantResultCount > 0 && <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", overflow: "hidden" }}>
+            <Box sx={{ p: 3, pb: 2 }}>
+              <Typography variant="h6">Reconciliação por participante</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: .5 }}>
+                {detail.participantResultCount.toLocaleString("pt-BR")} resultado(s) persistido(s) para conferência participante a participante sem recalcular a execução.
+              </Typography>
+            </Box>
+            {participantError && <Alert severity="error" sx={{ mx: 3, mb: 2 }}>{participantError}</Alert>}
+            {participantLoading && !participantPage ? <Box sx={{ minHeight: 140, display: "grid", placeItems: "center" }}><CircularProgress size={26} /></Box> : participantPage && <>
+              <Box sx={{ overflowX: "auto" }}>
+                {detail.engineCode === "BD_PVFB" ? <Table size="small" sx={{ minWidth: 980 }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Matrícula</TableCell>
+                      <TableCell align="right">Linha</TableCell>
+                      <TableCell align="right">Idade atual</TableCell>
+                      <TableCell align="right">Idade aposent.</TableCell>
+                      <TableCell align="right">Anos</TableCell>
+                      <TableCell align="right">Salário atual</TableCell>
+                      <TableCell align="right">Benefício proj.</TableCell>
+                      <TableCell align="right">Sobrevivência</TableCell>
+                      <TableCell align="right">PVFB</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {participantPage.items.map((item) => {
+                      const result = parseParticipantResult(item.resultJson);
+                      return <TableRow key={item.id} hover>
+                        <TableCell>{item.participantRegistration ?? "—"}</TableCell>
+                        <TableCell align="right">{item.sourceRowNumber}</TableCell>
+                        <TableCell align="right">{formatNumber(result.currentAge, 0)}</TableCell>
+                        <TableCell align="right">{formatNumber(result.retirementAge, 0)}</TableCell>
+                        <TableCell align="right">{formatNumber(result.yearsToRetirement, 0)}</TableCell>
+                        <TableCell align="right">{formatNumber(result.currentMonthlySalary)}</TableCell>
+                        <TableCell align="right">{formatNumber(result.projectedMonthlyBenefit)}</TableCell>
+                        <TableCell align="right">{formatProbability(result.survivalToRetirement)}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>{formatNumber(result.pvfb)}</TableCell>
+                      </TableRow>;
+                    })}
+                  </TableBody>
+                </Table> : <Table size="small" sx={{ minWidth: 760 }}>
+                  <TableHead><TableRow><TableCell>Matrícula</TableCell><TableCell>População</TableCell><TableCell align="right">Linha</TableCell><TableCell>Resultado</TableCell></TableRow></TableHead>
+                  <TableBody>{participantPage.items.map((item) => <TableRow key={item.id} hover><TableCell>{item.participantRegistration ?? "—"}</TableCell><TableCell>{item.population}</TableCell><TableCell align="right">{item.sourceRowNumber}</TableCell><TableCell sx={{ fontFamily: "monospace", fontSize: 12, overflowWrap: "anywhere" }}>{item.resultJson}</TableCell></TableRow>)}</TableBody>
+                </Table>}
+              </Box>
+              {participantPage.totalItems > participantPage.pageSize && <Stack direction="row" justifyContent="center" sx={{ p: 2, borderTop: "1px solid", borderColor: "divider" }}>
+                <Pagination
+                  page={participantPage.page}
+                  count={Math.ceil(participantPage.totalItems / participantPage.pageSize)}
+                  onChange={(_, page) => setParticipantPageNumber(page)}
+                  disabled={participantLoading}
+                />
+              </Stack>}
+            </>}
+          </Paper>}
+
           <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider" }}>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}><FingerprintRounded color="primary" /><Typography variant="h6">Reprodutibilidade</Typography></Stack>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
@@ -298,7 +419,7 @@ export function CalculationPage({
               <Hash label="Parametrização + qx" value={detail.parameterFingerprint} />
               <Hash label="Dados canônicos" value={detail.dataFingerprint} />
               <Hash label="Input completo" value={detail.inputFingerprint} />
-              <Hash label="Resultado" value={detail.resultFingerprint} />
+              <Hash label="Resultado agregado + individual" value={detail.resultFingerprint} />
             </Box>
             {detail.planRulesVersionId && <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>PlanRulesVersion: {detail.planRulesVersionId}</Typography>}
           </Paper>
