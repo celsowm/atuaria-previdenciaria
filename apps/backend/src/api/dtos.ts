@@ -107,6 +107,7 @@ export class CritiqueIssueDto {
   @Field(t.string()) category!: string;
   @Field(t.string()) status!: string;
   @Field(t.nullable(t.string())) participantRegistration!: string | null;
+  @Field(t.nullable(t.string())) campoUnicoLgpd!: string | null;
   @Field(t.nullable(t.string())) fieldPath!: string | null;
   @Field(t.nullable(t.string())) currentValueJson!: string | null;
   @Field(t.nullable(t.string())) previousValueJson!: string | null;
@@ -127,6 +128,7 @@ export class CritiqueIssueDetailDto {
   @Field(t.string()) category!: string;
   @Field(t.string()) status!: string;
   @Field(t.nullable(t.string())) participantRegistration!: string | null;
+  @Field(t.nullable(t.string())) campoUnicoLgpd!: string | null;
   @Field(t.nullable(t.string())) fieldPath!: string | null;
   @Field(t.nullable(t.string())) currentValueJson!: string | null;
   @Field(t.nullable(t.string())) previousValueJson!: string | null;

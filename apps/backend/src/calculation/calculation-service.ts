@@ -180,6 +180,7 @@ export async function listCalculationParticipantResults(id: string, page: number
         population: item.population,
         sourceRowNumber: item.sourceRowNumber,
         participantRegistration: item.participantRegistration ?? null,
+        campoUnicoLgpd: item.campoUnicoLgpd ?? null,
         resultJson: item.resultJson,
         ordinal: item.ordinal
       })),
@@ -535,6 +536,7 @@ export async function executeCalculation(
         stored.population = participant.population;
         stored.sourceRowNumber = participant.sourceRowNumber;
         stored.participantRegistration = participant.participantRegistration;
+        stored.campoUnicoLgpd = participant.campoUnicoLgpd;
         stored.resultJson = JSON.stringify(participant.result);
         stored.ordinal = ordinal;
         session.trackNew(tableOf(CalculationParticipantResult), stored, stored.id);

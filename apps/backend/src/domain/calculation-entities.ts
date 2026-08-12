@@ -199,6 +199,9 @@ export class CalculationParticipantResult {
   @Column(col.text())
   participantRegistration?: string | null;
 
+  @Column(col.text())
+  campoUnicoLgpd?: string | null;
+
   @Column(col.notNull(col.text()))
   resultJson!: string;
 

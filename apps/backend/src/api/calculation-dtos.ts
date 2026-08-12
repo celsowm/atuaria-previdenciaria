@@ -66,6 +66,7 @@ export class CalculationParticipantResultDto {
   @Field(t.string()) population!: string;
   @Field(t.integer({ minimum: 1 })) sourceRowNumber!: number;
   @Field(t.nullable(t.string())) participantRegistration!: string | null;
+  @Field(t.nullable(t.string())) campoUnicoLgpd!: string | null;
   @Field(t.string()) resultJson!: string;
   @Field(t.integer({ minimum: 0 })) ordinal!: number;
 }

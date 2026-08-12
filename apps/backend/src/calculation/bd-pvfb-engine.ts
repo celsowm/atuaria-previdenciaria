@@ -292,6 +292,7 @@ export async function executeBdPvfb(context: CalculationEngineContext): Promise<
       population: row.population,
       sourceRowNumber: row.rowNumber,
       participantRegistration: String(row.data["participant.registration"] ?? "").trim() || null,
+      campoUnicoLgpd: String(row.data["participant.campo_unico_lgpd"] ?? row.data["campo_unico_lgpd"] ?? "").trim() || null,
       result: {
         currentAge,
         eligibilityDate: isoDate(eligibilityDate),

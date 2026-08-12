@@ -33,6 +33,19 @@ function runSql(db: sqlite3.Database, sql: string, params: unknown[]): Promise<v
   });
 }
 
+function allSql<T extends object>(db: sqlite3.Database, sql: string, params: unknown[] = []): Promise<T[]> {
+  return new Promise((resolvePromise, reject) => {
+    db.all(sql, params, (error, rows) => error ? reject(error) : resolvePromise(rows as T[]));
+  });
+}
+
+async function garantirColunaCampoUnicoLgpd(db: sqlite3.Database, tabela: string) {
+  const colunas = await allSql<{ name: string }>(db, `PRAGMA table_info(${tabela})`);
+  if (!colunas.some((coluna) => coluna.name === "campo_unico_lgpd")) {
+    await execSql(db, `ALTER TABLE ${tabela} ADD COLUMN campo_unico_lgpd TEXT`);
+  }
+}
+
 function sqliteClient(db: sqlite3.Database): SqliteClientLike {
   return {
     all(sql, params = []) {
@@ -64,6 +77,8 @@ export async function initializeDatabase() {
 
   const executor = createSqliteExecutor(sqliteClient(database));
   await synchronizeEntitySchema(executor);
+  await garantirColunaCampoUnicoLgpd(database, "resultados_participantes_calculo");
+  await garantirColunaCampoUnicoLgpd(database, "inconsistencias_critica");
   await seedReferenceData(database);
   await seedDemoData(database);
   await linkLegacyEvaluationsToPlans(database);

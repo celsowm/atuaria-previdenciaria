@@ -33,7 +33,7 @@ export type UserView = {
   lastLoginAt: string | null;
 };
 
-const camposUsuario = `id,email,nome_exibicao AS displayName,resumo_senha AS passwordHash,perfil AS role,ativo,criado_em AS createdAt,atualizado_em AS updatedAt,ultimo_acesso_em AS lastLoginAt`;
+const camposUsuario = `id,email,nome_exibicao AS displayName,resumo_senha AS passwordHash,perfil AS role,ativo AS active,criado_em AS createdAt,atualizado_em AS updatedAt,ultimo_acesso_em AS lastLoginAt`;
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();

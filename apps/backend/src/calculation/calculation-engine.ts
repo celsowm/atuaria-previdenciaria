@@ -84,6 +84,7 @@ export type CalculationParticipantOutput = {
   population: string;
   sourceRowNumber: number;
   participantRegistration: string | null;
+  campoUnicoLgpd: string | null;
   result: Record<string, string | number | boolean | null>;
 };
 
