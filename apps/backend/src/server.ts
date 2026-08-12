@@ -2,22 +2,22 @@ import "./load-env.js";
 import { createExpressApp } from "adorn-api";
 import { getApplicationName } from "./application-config.js";
 import { bootstrapAdminFromEnvironment, verifyBearerToken } from "./auth/auth-service.js";
-import { AuthController, UserController } from "./api/auth-controller.js";
-import { PlanController } from "./api/plan-controller.js";
+import { AuthController, UsuarioController } from "./api/auth-controller.js";
+import { PlanoController } from "./api/plano-controller.js";
 import { PrevidenciaController } from "./api/previdencia-controller.js";
-import { ParameterizationController } from "./api/parameterization-controller.js";
-import { CalculationController } from "./api/calculation-controller.js";
-import { ClosingController } from "./api/closing-controller.js";
+import { ParametrizacaoController } from "./api/parametrizacao-controller.js";
+import { CalculoController } from "./api/calculo-controller.js";
+import { FechamentoController } from "./api/fechamento-controller.js";
 import {
-  CritiqueController,
-  EvaluationController,
-  ImportController,
-  LlmProviderController,
-  MappingProfileController,
+  CriticaController,
+  AvaliacaoController,
+  ImportacaoController,
+  ProvedorLlmController,
+  PerfilMapeamentoController,
   SystemController
 } from "./api/controllers.js";
-import { BiometricTableController, BiometricVersionController } from "./api/biometric-controller.js";
-import { AdherenceCandidateController, AdherenceStudyController } from "./api/adherence-controller.js";
+import { TabuaBiometriaController, VersaoBiometriaController } from "./api/biometria-controller.js";
+import { AderenciaCandidatoController, EstudoAderenciaController } from "./api/aderencia-controller.js";
 import { closeDatabase, initializeDatabase } from "./db.js";
 
 async function start() {
@@ -28,22 +28,22 @@ async function start() {
   const app = await createExpressApp({
     controllers: [
       AuthController,
-      UserController,
+      UsuarioController,
       SystemController,
-      PlanController,
+      PlanoController,
       PrevidenciaController,
-      EvaluationController,
-      ParameterizationController,
-      CalculationController,
-      ClosingController,
-      MappingProfileController,
-      ImportController,
-      CritiqueController,
-      BiometricTableController,
-      BiometricVersionController,
-      AdherenceStudyController,
-      AdherenceCandidateController,
-      LlmProviderController
+      AvaliacaoController,
+      ParametrizacaoController,
+      CalculoController,
+      FechamentoController,
+      PerfilMapeamentoController,
+      ImportacaoController,
+      CriticaController,
+      TabuaBiometriaController,
+      VersaoBiometriaController,
+      EstudoAderenciaController,
+      AderenciaCandidatoController,
+      ProvedorLlmController
     ],
     bearerAuth: { verifyToken: verifyBearerToken },
     inputCoercion: "safe",
@@ -57,7 +57,7 @@ async function start() {
       info: {
         title: `${applicationName} API`,
         version: "0.0.1",
-        description: "Actuarial valuation, pension plans, versioned plan rules, data studio, biometrics, adherence studies, parameterization, deterministic calculation, drafting and AI orchestration API."
+        description: "Actuarial valuation, pension plans, versioned plan rules, data studio, biometrics, adherence studies, parametrizacao, deterministic calculation, drafting and AI orchestration API."
       },
       path: "/openapi.json",
       docs: { path: "/docs" }

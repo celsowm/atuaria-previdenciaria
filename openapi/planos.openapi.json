@@ -1,133 +1,306 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Plans API fragment",
+    "title": "Fragmento da API de planos",
     "version": "0.0.1"
   },
-  "tags": [{ "name": "Plans" }],
+  "tags": [
+    {
+      "name": "Planos"
+    }
+  ],
   "paths": {
-    "/api/plans/": {
+    "/api/planos/": {
       "get": {
-        "tags": ["Plans"],
-        "operationId": "listPlans",
-        "security": [{ "bearerAuth": [] }],
+        "tags": [
+          "Planos"
+        ],
+        "operationId": "listarPlanos",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Plans",
+            "description": "Planos",
             "content": {
               "application/json": {
-                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Plan" } }
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Plano"
+                  }
+                }
               }
             }
           }
         }
       },
       "post": {
-        "tags": ["Plans"],
-        "operationId": "createPlan",
-        "security": [{ "bearerAuth": [] }],
+        "tags": [
+          "Planos"
+        ],
+        "operationId": "criarPlano",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/CreatePlan" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriarPlano"
+              }
+            }
           }
         },
         "responses": {
           "201": {
             "description": "Created plan",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Plan" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Plano"
+                }
+              }
             }
           }
         }
       }
     },
-    "/api/plans/{id}": {
+    "/api/planos/{id}": {
       "get": {
-        "tags": ["Plans"],
-        "operationId": "getPlan",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string", "format": "uuid" }
-        }],
+        "tags": [
+          "Planos"
+        ],
+        "operationId": "obterPlano",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Plan",
+            "description": "Plano",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Plan" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Plano"
+                }
+              }
             }
           },
-          "404": { "description": "Plan not found" }
+          "404": {
+            "description": "Plano não encontrado"
+          }
         }
       },
       "patch": {
-        "tags": ["Plans"],
-        "operationId": "updatePlan",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string", "format": "uuid" }
-        }],
+        "tags": [
+          "Planos"
+        ],
+        "operationId": "atualizarPlano",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/UpdatePlan" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtualizarPlano"
+              }
+            }
           }
         },
         "responses": {
           "200": {
             "description": "Updated plan",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Plan" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Plano"
+                }
+              }
             }
           },
-          "404": { "description": "Plan not found" }
+          "404": {
+            "description": "Plano não encontrado"
+          }
         }
       }
     }
   },
   "components": {
     "schemas": {
-      "Plan": {
+      "CriarPlano": {
         "type": "object",
-        "required": ["id", "code", "name", "modality", "sponsorName", "cnpj", "status", "createdAt", "updatedAt"],
+        "required": [
+          "codigo",
+          "nome",
+          "modalidade"
+        ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "code": { "type": "string" },
-          "name": { "type": "string" },
-          "modality": { "type": "string", "enum": ["BD", "CD", "CV"] },
-          "sponsorName": { "type": ["string", "null"] },
-          "cnpj": { "type": ["string", "null"] },
-          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "CLOSED"] },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "cnpj": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "nomePatrocinador": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "modalidade": {
+            "type": "string",
+            "enum": [
+              "BD",
+              "CD",
+              "CV"
+            ]
+          },
+          "codigo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
         }
       },
-      "CreatePlan": {
+      "Plano": {
         "type": "object",
-        "required": ["code", "name", "modality"],
+        "required": [
+          "id",
+          "codigo",
+          "nome",
+          "modalidade",
+          "nomePatrocinador",
+          "cnpj",
+          "situacao",
+          "criadoEm",
+          "atualizadoEm"
+        ],
         "properties": {
-          "code": { "type": "string", "minLength": 1, "maxLength": 40 },
-          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
-          "modality": { "type": "string", "enum": ["BD", "CD", "CV"] },
-          "sponsorName": { "type": "string", "maxLength": 200 },
-          "cnpj": { "type": "string", "maxLength": 20 }
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cnpj": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nomePatrocinador": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "atualizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "situacao": {
+            "type": "string",
+            "enum": [
+              "ATIVO",
+              "INATIVO",
+              "ENCERRADO"
+            ]
+          },
+          "modalidade": {
+            "type": "string",
+            "enum": [
+              "BD",
+              "CD",
+              "CV"
+            ]
+          }
         }
       },
-      "UpdatePlan": {
+      "AtualizarPlano": {
         "type": "object",
         "properties": {
-          "code": { "type": "string", "minLength": 1, "maxLength": 40 },
-          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
-          "modality": { "type": "string", "enum": ["BD", "CD", "CV"] },
-          "sponsorName": { "type": ["string", "null"], "maxLength": 200 },
-          "cnpj": { "type": ["string", "null"], "maxLength": 20 },
-          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "CLOSED"] }
+          "cnpj": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 20
+          },
+          "nomePatrocinador": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "codigo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "situacao": {
+            "type": "string",
+            "enum": [
+              "ATIVO",
+              "INATIVO",
+              "ENCERRADO"
+            ]
+          },
+          "modalidade": {
+            "type": "string",
+            "enum": [
+              "BD",
+              "CD",
+              "CV"
+            ]
+          }
         }
       }
     }

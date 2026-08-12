@@ -11,42 +11,42 @@ import {
   type RequestContext
 } from "adorn-api";
 import {
-  createBiometricTable,
-  deriveBiometricVersion,
-  getBiometricTable,
-  getBiometricVersionPoints,
-  listBiometricTables
-} from "../biometrics/biometric-service.js";
+  createTabuaBiometria,
+  deriveVersaoBiometria,
+  getTabuaBiometria,
+  getVersaoBiometriaPoints,
+  listTabuaBiometrias
+} from "../biometria/biometria-service.js";
 import {
-  BiometricTableDetailDto,
-  BiometricTableParamsDto,
-  BiometricTableSummaryDto,
-  BiometricVersionParamsDto,
-  BiometricVersionPointsDto,
-  CreateBiometricTableDto,
-  DeriveBiometricVersionDto
-} from "./biometric-dtos.js";
+  TabuaBiometriaDetailDto,
+  TabuaBiometriaParamsDto,
+  TabuaBiometriaSummaryDto,
+  VersaoBiometriaParamsDto,
+  VersaoBiometriaPointsDto,
+  CriarTabuaBiometriaDto,
+  DerivarVersaoBiometriaDto
+} from "./biometria-dtos.js";
 
 @Auth()
-@Controller({ path: "/api/biometric-tables", tags: ["Biometrics"] })
-export class BiometricTableController {
+@Controller({ path: "/api/tabuas-biometricas", tags: ["Biometria"] })
+export class TabuaBiometriaController {
   @Get("/")
-  @Returns(t.array(t.ref(BiometricTableSummaryDto)))
-  async list(): Promise<BiometricTableSummaryDto[]> {
-    return listBiometricTables();
+  @Returns(t.array(t.ref(TabuaBiometriaSummaryDto)))
+  async list(): Promise<TabuaBiometriaSummaryDto[]> {
+    return listTabuaBiometrias();
   }
 
   @Post("/")
-  @Body(CreateBiometricTableDto)
-  @Returns({ status: 201, schema: BiometricTableDetailDto })
-  async create(ctx: RequestContext<CreateBiometricTableDto>): Promise<BiometricTableDetailDto> {
+  @Body(CriarTabuaBiometriaDto)
+  @Returns({ status: 201, schema: TabuaBiometriaDetailDto })
+  async create(ctx: RequestContext<CriarTabuaBiometriaDto>): Promise<TabuaBiometriaDetailDto> {
     try {
-      const result = await createBiometricTable({
+      const result = await createTabuaBiometria({
         ...ctx.body,
-        points: ctx.body.points.map((point) => ({
-          age: point.age,
-          sex: point.sex as "MALE" | "FEMALE" | "UNISEX",
-          qx: point.qx
+        pontos: ctx.body.pontos.map((ponto) => ({
+          idade: ponto.idade,
+          sexo: ponto.sexo as "MASCULINO" | "FEMININO" | "UNISSEX",
+          qx: ponto.qx
         }))
       });
       if (!result) throw new HttpError(500, "A tábua criada não pôde ser recuperada.");
@@ -58,27 +58,27 @@ export class BiometricTableController {
   }
 
   @Get("/:id")
-  @Params(BiometricTableParamsDto)
-  @Returns(BiometricTableDetailDto)
-  async getOne(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<BiometricTableDetailDto> {
-    const result = await getBiometricTable(ctx.params.id);
+  @Params(TabuaBiometriaParamsDto)
+  @Returns(TabuaBiometriaDetailDto)
+  async getOne(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<TabuaBiometriaDetailDto> {
+    const result = await getTabuaBiometria(ctx.params.id);
     if (!result) throw new HttpError(404, "Tábua não encontrada.");
     return result;
   }
 
-  @Post("/:id/derive")
-  @Params(BiometricTableParamsDto)
-  @Body(DeriveBiometricVersionDto)
-  @Returns({ status: 201, schema: BiometricVersionPointsDto })
+  @Post("/:id/derivar")
+  @Params(TabuaBiometriaParamsDto)
+  @Body(DerivarVersaoBiometriaDto)
+  @Returns({ status: 201, schema: VersaoBiometriaPointsDto })
   async derive(
-    ctx: RequestContext<DeriveBiometricVersionDto, undefined, { id: string }>
-  ): Promise<BiometricVersionPointsDto> {
-    const transform = ctx.body.transform as "QX_SCALE" | "AGE_SHIFT";
-    if (!["QX_SCALE", "AGE_SHIFT"].includes(transform)) {
-      throw new HttpError(400, "transform deve ser QX_SCALE ou AGE_SHIFT.");
+    ctx: RequestContext<DerivarVersaoBiometriaDto, undefined, { id: string }>
+  ): Promise<VersaoBiometriaPointsDto> {
+    const transformacao = ctx.body.transformacao as "QX_SCALE" | "AGE_SHIFT";
+    if (!["QX_SCALE", "AGE_SHIFT"].includes(transformacao)) {
+      throw new HttpError(400, "transformacao deve ser QX_SCALE ou AGE_SHIFT.");
     }
     try {
-      const result = await deriveBiometricVersion(ctx.params.id, { ...ctx.body, transform });
+      const result = await deriveVersaoBiometria(ctx.params.id, { ...ctx.body, transformacao });
       if (!result) throw new HttpError(500, "A versão derivada não pôde ser recuperada.");
       return result;
     } catch (error) {
@@ -89,13 +89,13 @@ export class BiometricTableController {
 }
 
 @Auth()
-@Controller({ path: "/api/biometric-versions", tags: ["Biometrics"] })
-export class BiometricVersionController {
-  @Get("/:id/points")
-  @Params(BiometricVersionParamsDto)
-  @Returns(BiometricVersionPointsDto)
-  async points(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<BiometricVersionPointsDto> {
-    const result = await getBiometricVersionPoints(ctx.params.id);
+@Controller({ path: "/api/versoes-tabuas-biometricas", tags: ["Biometria"] })
+export class VersaoBiometriaController {
+  @Get("/:id/pontos")
+  @Params(VersaoBiometriaParamsDto)
+  @Returns(VersaoBiometriaPointsDto)
+  async pontos(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<VersaoBiometriaPointsDto> {
+    const result = await getVersaoBiometriaPoints(ctx.params.id);
     if (!result) throw new HttpError(404, "Versão biométrica não encontrada.");
     return result;
   }

@@ -16,34 +16,34 @@ import {
   defaultApplicationConfig,
   getAuthToken,
   unauthorizedEventName,
-  type ApplicationConfig,
-  type AuthUser
+  type ConfiguracaoAplicacao,
+  type UsuarioAutenticado
 } from "./api/client";
-import { AdherenceStudiesPage } from "./features/adherence/AdherenceStudiesPage";
+import { EstudosAderenciaPage } from "./features/aderencia/EstudosAderenciaPage";
 import { AdminUsersPage } from "./features/admin/AdminUsersPage";
 import { AiProvidersPage } from "./features/ai/AiProvidersPage";
 import { LoginPage } from "./features/auth/LoginPage";
-import { BiometricTablesPage } from "./features/biometrics/BiometricTablesPage";
-import { CalculationPage } from "./features/calculation/CalculationPage";
-import { ClosingPage } from "./features/closing/ClosingPage";
-import { CritiquePage } from "./features/critique/CritiquePage";
+import { TabuasBiometricasPage } from "./features/biometria/TabuasBiometricasPage";
+import { CalculoPage } from "./features/calculo/CalculoPage";
+import { FechamentoPage } from "./features/fechamento/FechamentoPage";
+import { CriticaPage } from "./features/critica/CriticaPage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
-import { EvaluationPage } from "./features/evaluations/EvaluationPage";
-import { ImportWizardPage } from "./features/data-studio/ImportWizardPage";
-import { ParameterizationPage } from "./features/parameterization/ParameterizationPage";
-import { PlanRulesPage } from "./features/plans/PlanRulesPage";
-import { PlansPage } from "./features/plans/PlansPage";
+import { AvaliacaoPage } from "./features/avaliacoes/AvaliacaoPage";
+import { AssistenteImportacaoPage } from "./features/estudio-dados/AssistenteImportacaoPage";
+import { ParametrizacaoPage } from "./features/parametrizacao/ParametrizacaoPage";
+import { RegrasPlanoPage } from "./features/planos/RegrasPlanoPage";
+import { PlanosPage } from "./features/planos/PlanosPage";
 import { navigate, parseRoute, usePathname, type AppRoute } from "./routing";
 
-const nav: Array<{ path: string; label: string; icon: ReactNode; active: AppRoute["name"][] }> = [
-  { path: "/avaliacoes", label: "Avaliações", icon: <AssessmentOutlined />, active: ["evaluations", "parameterization", "calculation", "closing"] },
-  { path: "/planos", label: "Planos", icon: <ApartmentOutlined />, active: ["plans", "plan-rules"] },
-  { path: "/data-studio", label: "Data Studio", icon: <TableViewOutlined />, active: ["data-studio", "critique"] },
-  { path: "/hipoteses-e-tabuas", label: "Hipóteses & Tábuas", icon: <HubOutlined />, active: ["assumptions"] },
-  { path: "/estudos-de-aderencia", label: "Estudos", icon: <BiotechOutlined />, active: ["studies"] },
-  { path: "/documentos", label: "Documentos", icon: <DescriptionOutlined />, active: ["documents"] },
-  { path: "/biblioteca", label: "Biblioteca", icon: <FolderOutlined />, active: ["library"] },
-  { path: "/inteligencia-artificial", label: "IA", icon: <AutoAwesomeOutlined />, active: ["ai"] }
+const nav: Array<{ path: string; rotulo: string; icon: ReactNode; active: AppRoute["name"][] }> = [
+  { path: "/avaliacoes", rotulo: "Avaliações", icon: <AssessmentOutlined />, active: ["avaliacoes", "parametrizacao", "calculation", "closing"] },
+  { path: "/planos", rotulo: "Planos", icon: <ApartmentOutlined />, active: ["plans", "plan-regras"] },
+  { path: "/data-studio", rotulo: "Data Studio", icon: <TableViewOutlined />, active: ["data-studio", "critique"] },
+  { path: "/hipoteses-e-tabuas", rotulo: "Hipóteses & Tábuas", icon: <HubOutlined />, active: ["assumptions"] },
+  { path: "/estudos-de-aderencia", rotulo: "Estudos", icon: <BiotechOutlined />, active: ["studies"] },
+  { path: "/documentos", rotulo: "Documentos", icon: <DescriptionOutlined />, active: ["documents"] },
+  { path: "/biblioteca", rotulo: "Biblioteca", icon: <FolderOutlined />, active: ["library"] },
+  { path: "/inteligencia-artificial", rotulo: "IA", icon: <AutoAwesomeOutlined />, active: ["ai"] }
 ];
 
 function initials(name: string) {
@@ -61,18 +61,18 @@ export default function App() {
   const pathname = usePathname();
   const route = parseRoute(pathname);
   const requestedPath = useRef(pathname === "/" || pathname === "/login" ? "/avaliacoes" : pathname);
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [appConfig, setAppConfig] = useState<ApplicationConfig>(defaultApplicationConfig);
+  const [user, setUser] = useState<UsuarioAutenticado | null>(null);
+  const [appConfig, setAppConfig] = useState<ConfiguracaoAplicacao>(defaultApplicationConfig);
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     void api.publicConfig()
       .then((config) => {
         setAppConfig(config);
-        document.title = config.organizationName ? `${config.name} — ${config.organizationName}` : config.name;
+        document.title = config.organizationName ? `${config.nome} — ${config.organizationName}` : config.nome;
       })
       .catch(() => {
-        document.title = defaultApplicationConfig.name;
+        document.title = defaultApplicationConfig.nome;
       });
   }, []);
 
@@ -109,7 +109,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && user && route.name === "admin-users" && user.role !== "admin") {
+    if (!authLoading && user && route.name === "admin-usuarios" && user.perfil !== "admin") {
       navigate("/avaliacoes", { replace: true });
     }
   }, [authLoading, route.name, user]);
@@ -139,36 +139,36 @@ export default function App() {
   return <Box sx={{ minHeight: "100vh", display: "grid", gridTemplateColumns: { xs: "1fr", md: "248px minmax(0, 1fr)" } }}>
     <Box component="aside" sx={{ display: { xs: "none", md: "flex" }, flexDirection: "column", p: 2, borderRight: "1px solid", borderColor: "divider", bgcolor: "background.paper", minHeight: "100vh", position: "sticky", top: 0, height: "100vh" }}>
       <Stack direction="row" spacing={1.25} alignItems="center" sx={{ px: 1, py: 1.5, mb: 2 }}>
-        <Avatar variant="rounded" sx={{ width: 34, height: 34, bgcolor: "primary.main", fontWeight: 800 }}>{initials(appConfig.name).slice(0, 1)}</Avatar>
-        <Box sx={{ minWidth: 0 }}><Typography fontWeight={800} letterSpacing="-.02em" lineHeight={1.15}>{appConfig.name}</Typography><Typography variant="caption" color="text.secondary">{appConfig.organizationName ?? "Previdência Complementar"}</Typography></Box>
+        <Avatar variant="rounded" sx={{ width: 34, height: 34, bgcolor: "primary.main", fontWeight: 800 }}>{initials(appConfig.nome).slice(0, 1)}</Avatar>
+        <Box sx={{ minWidth: 0 }}><Typography fontWeight={800} letterSpacing="-.02em" lineHeight={1.15}>{appConfig.nome}</Typography><Typography variant="caption" color="text.secondary">{appConfig.organizationName ?? "Previdência Complementar"}</Typography></Box>
       </Stack>
       <Stack spacing={.5} sx={{ flex: 1 }}>
-        {nav.map((item) => <NavItem key={item.path} selected={item.active.includes(route.name)} icon={item.icon} label={item.label} onClick={() => navigate(item.path)} />)}
+        {nav.map((item) => <NavItem key={item.path} selected={item.active.includes(route.name)} icon={item.icon} label={item.rotulo} onClick={() => navigate(item.path)} />)}
       </Stack>
       <Divider sx={{ my: 1.5 }} />
-      {user.role === "admin" && <NavItem selected={route.name === "admin-users"} icon={<SettingsOutlined />} label="Administração" onClick={() => navigate("/administracao/usuarios")} />}
+      {user.perfil === "admin" && <NavItem selected={route.name === "admin-usuarios"} icon={<SettingsOutlined />} label="Administração" onClick={() => navigate("/administracao/usuarios")} />}
       <Stack direction="row" spacing={1.2} alignItems="center" sx={{ p: 1, mt: 1.5 }}>
-        <Avatar sx={{ width: 32, height: 32 }}>{initials(user.displayName)}</Avatar>
-        <Box sx={{ minWidth: 0, flex: 1 }}><Typography variant="body2" fontWeight={700} noWrap>{user.displayName}</Typography><Typography variant="caption" color="text.secondary">{roleLabel(user.role)}</Typography></Box>
+        <Avatar sx={{ width: 32, height: 32 }}>{initials(user.nomeExibicao)}</Avatar>
+        <Box sx={{ minWidth: 0, flex: 1 }}><Typography variant="body2" fontWeight={700} noWrap>{user.nomeExibicao}</Typography><Typography variant="caption" color="text.secondary">{roleLabel(user.perfil)}</Typography></Box>
         <Tooltip title="Sair"><IconButton size="small" onClick={() => void logout()}><LogoutRounded fontSize="small" /></IconButton></Tooltip>
       </Stack>
     </Box>
 
     <Box component="main" sx={{ minWidth: 0 }}>
       <Box sx={{ px: { xs: 2, sm: 3, lg: 5 }, py: { xs: 3, lg: 4 }, maxWidth: 1480, mx: "auto" }}>
-        {route.name === "evaluations" && route.evaluationId === undefined && <DashboardPage onOpenEvaluation={(id) => navigate(`/avaliacoes/${id}`)} onImport={() => navigate("/data-studio")} />}
-        {route.name === "evaluations" && route.evaluationId !== undefined && <EvaluationPage evaluationId={route.evaluationId} onBack={() => navigate("/avaliacoes")} onOpenParameterization={() => navigate(`/avaliacoes/${route.evaluationId}/parametrizacao`)} onOpenCalculation={() => navigate(`/avaliacoes/${route.evaluationId}/calculos`)} onOpenClosing={() => navigate(`/avaliacoes/${route.evaluationId}/fechamento`)} />}
-        {route.name === "parameterization" && <ParameterizationPage evaluationId={route.evaluationId} parameterizationId={route.parameterizationId} onOpen={(id) => navigate(`/avaliacoes/${route.evaluationId}/parametrizacao/${id}`, { replace: route.parameterizationId === undefined })} onBack={() => navigate(`/avaliacoes/${route.evaluationId}`)} />}
-        {route.name === "calculation" && <CalculationPage evaluationId={route.evaluationId} calculationId={route.calculationId} onOpen={(id) => navigate(`/avaliacoes/${route.evaluationId}/calculos/${id}`, { replace: route.calculationId === undefined })} onBack={() => navigate(`/avaliacoes/${route.evaluationId}`)} onOpenParameterization={() => navigate(`/avaliacoes/${route.evaluationId}/parametrizacao`)} onOpenPlanRules={(planId) => navigate(`/planos/${planId}/regras`)} />}
-        {route.name === "closing" && <ClosingPage evaluationId={route.evaluationId} onBack={() => navigate(`/avaliacoes/${route.evaluationId}`)} />}
-        {route.name === "plans" && <PlansPage planId={route.planId} onOpenPlan={(id) => navigate(`/planos/${id}`)} onOpenRules={(id) => navigate(`/planos/${id}/regras`)} onBack={() => navigate("/planos")} />}
-        {route.name === "plan-rules" && <PlanRulesPage planId={route.planId} rulesVersionId={route.rulesVersionId} onOpen={(id) => navigate(`/planos/${route.planId}/regras/${id}`, { replace: route.rulesVersionId === undefined })} onBack={() => navigate(`/planos/${route.planId}`)} />}
-        {route.name === "data-studio" && <ImportWizardPage onClose={() => navigate("/avaliacoes")} onCritique={(id) => navigate(`/data-studio/criticas/${id}`)} />}
-        {route.name === "critique" && <CritiquePage importJobId={route.importJobId} onBack={() => navigate("/data-studio")} />}
-        {route.name === "assumptions" && <BiometricTablesPage />}
-        {route.name === "studies" && <AdherenceStudiesPage />}
+        {route.name === "avaliacoes" && route.avaliacaoId === undefined && <DashboardPage onAbrirAvaliacao={(id) => navigate(`/avaliacoes/${id}`)} onImport={() => navigate("/data-studio")} />}
+        {route.name === "avaliacoes" && route.avaliacaoId !== undefined && <AvaliacaoPage avaliacaoId={route.avaliacaoId} onBack={() => navigate("/avaliacoes")} onAbrirParametrizacao={() => navigate(`/avaliacoes/${route.avaliacaoId}/parametrizacao`)} onAbrirCalculo={() => navigate(`/avaliacoes/${route.avaliacaoId}/calculos`)} onOpenClosing={() => navigate(`/avaliacoes/${route.avaliacaoId}/fechamento`)} />}
+        {route.name === "parametrizacao" && <ParametrizacaoPage avaliacaoId={route.avaliacaoId} parameterizationId={route.parameterizationId} onOpen={(id) => navigate(`/avaliacoes/${route.avaliacaoId}/parametrizacao/${id}`, { replace: route.parameterizationId === undefined })} onBack={() => navigate(`/avaliacoes/${route.avaliacaoId}`)} />}
+        {route.name === "calculation" && <CalculoPage avaliacaoId={route.avaliacaoId} execucaoCalculoId={route.execucaoCalculoId} onOpen={(id) => navigate(`/avaliacoes/${route.avaliacaoId}/calculos/${id}`, { replace: route.execucaoCalculoId === undefined })} onBack={() => navigate(`/avaliacoes/${route.avaliacaoId}`)} onAbrirParametrizacao={() => navigate(`/avaliacoes/${route.avaliacaoId}/parametrizacao`)} onAbrirRegrasPlano={(planoId) => navigate(`/planos/${planoId}/regras`)} />}
+        {route.name === "closing" && <FechamentoPage avaliacaoId={route.avaliacaoId} onBack={() => navigate(`/avaliacoes/${route.avaliacaoId}`)} />}
+        {route.name === "plans" && <PlanosPage planoId={route.planoId} onAbrirPlano={(id) => navigate(`/planos/${id}`)} onOpenRules={(id) => navigate(`/planos/${id}/regras`)} onBack={() => navigate("/planos")} />}
+        {route.name === "plan-regras" && <RegrasPlanoPage planoId={route.planoId} rulesVersionId={route.rulesVersionId} onOpen={(id) => navigate(`/planos/${route.planoId}/regras/${id}`, { replace: route.rulesVersionId === undefined })} onBack={() => navigate(`/planos/${route.planoId}`)} />}
+        {route.name === "data-studio" && <AssistenteImportacaoPage onClose={() => navigate("/avaliacoes")} onCritique={(id) => navigate(`/data-studio/criticas/${id}`)} />}
+        {route.name === "critique" && <CriticaPage importacaoId={route.importacaoId} onBack={() => navigate("/data-studio")} />}
+        {route.name === "assumptions" && <TabuasBiometricasPage />}
+        {route.name === "studies" && <EstudosAderenciaPage />}
         {route.name === "ai" && <AiProvidersPage />}
-        {route.name === "admin-users" && user.role === "admin" && <AdminUsersPage />}
+        {route.name === "admin-usuarios" && user.perfil === "admin" && <AdminUsersPage />}
         {route.name === "documents" && <Placeholder config={appConfig} title="Documentos" />}
         {route.name === "library" && <Placeholder config={appConfig} title="Biblioteca" />}
         {route.name === "not-found" && <NotFound />}
@@ -181,8 +181,8 @@ function NavItem({ selected, icon, label, onClick }: { selected: boolean; icon: 
   return <ButtonBase onClick={onClick} sx={{ width: "100%", borderRadius: 2, px: 1.25, py: 1, justifyContent: "flex-start", gap: 1.25, color: selected ? "primary.main" : "text.secondary", bgcolor: selected ? "primary.light" : "transparent", "&:hover": { bgcolor: selected ? "primary.light" : "action.hover" } }}><Box sx={{ display: "grid", placeItems: "center", "& svg": { fontSize: 20 } }}>{icon}</Box><Typography variant="body2" fontWeight={selected ? 750 : 600}>{label}</Typography></ButtonBase>;
 }
 
-function Placeholder({ config, title }: { config: ApplicationConfig; title: string }) {
-  return <Stack spacing={2} sx={{ py: 3 }}><Typography variant="overline" color="text.secondary">{config.name}</Typography><Typography variant="h4">{title}</Typography><Typography color="text.secondary" sx={{ maxWidth: 620 }}>Módulo reservado na arquitetura atual. A URL já é estável e pode ser compartilhada ou reaberta diretamente.</Typography></Stack>;
+function Placeholder({ config, title }: { config: ConfiguracaoAplicacao; title: string }) {
+  return <Stack spacing={2} sx={{ py: 3 }}><Typography variant="overline" color="text.secondary">{config.nome}</Typography><Typography variant="h4">{title}</Typography><Typography color="text.secondary" sx={{ maxWidth: 620 }}>Módulo reservado na arquitetura atual. A URL já é estável e pode ser compartilhada ou reaberta diretamente.</Typography></Stack>;
 }
 
 function NotFound() {

@@ -1,118 +1,118 @@
 import { Dto, Field, t } from "adorn-api";
 
-@Dto({ name: "AdherenceObservation", description: "Historical exposure and observed events by year, age and sex." })
-export class AdherenceObservationDto {
-  @Field(t.integer({ minimum: 1900, maximum: 2200 })) year!: number;
-  @Field(t.integer({ minimum: 0, maximum: 130 })) age!: number;
-  @Field(t.enum(["MALE", "FEMALE", "UNISEX"])) sex!: string;
-  @Field(t.number({ exclusiveMinimum: 0 })) exposure!: number;
-  @Field(t.integer({ minimum: 0 })) observedEvents!: number;
+@Dto({ name: "ObservacaoAderencia", description: "Historical exposicao and observado events by year, age and sex." })
+export class ObservacaoAderenciaDto {
+  @Field(t.integer({ minimum: 1900, maximum: 2200 })) ano!: number;
+  @Field(t.integer({ minimum: 0, maximum: 130 })) idade!: number;
+  @Field(t.enum(["MASCULINO", "FEMININO", "UNISSEX"])) sexo!: string;
+  @Field(t.number({ exclusiveMinimum: 0 })) exposicao!: number;
+  @Field(t.integer({ minimum: 0 })) eventosObservados!: number;
 }
 
-@Dto({ name: "CreateAdherenceStudy", description: "Execute and persist an adherence study against biometric table versions." })
-export class CreateAdherenceStudyDto {
-  @Field(t.optional(t.integer({ minimum: 1 }))) evaluationId?: number;
-  @Field(t.string({ minLength: 1 })) name!: string;
-  @Field(t.string({ minLength: 1 })) hypothesisType!: string;
-  @Field(t.integer({ minimum: 1900, maximum: 2200 })) periodStart!: number;
-  @Field(t.integer({ minimum: 1900, maximum: 2200 })) periodEnd!: number;
-  @Field(t.enum(["BOTH", "MALE", "FEMALE", "UNISEX"])) sexScope!: string;
+@Dto({ name: "CriarEstudoAderencia", description: "Execute and persist an adherence study against biometric table versions." })
+export class CriarEstudoAderenciaDto {
+  @Field(t.optional(t.integer({ minimum: 1 }))) avaliacaoId?: number;
+  @Field(t.string({ minLength: 1 })) nome!: string;
+  @Field(t.string({ minLength: 1 })) tipoHipotese!: string;
+  @Field(t.integer({ minimum: 1900, maximum: 2200 })) periodoInicial!: number;
+  @Field(t.integer({ minimum: 1900, maximum: 2200 })) periodoFinal!: number;
+  @Field(t.enum(["AMBOS", "MASCULINO", "FEMININO", "UNISSEX"])) escopoSexo!: string;
   @Field(t.number({ exclusiveMinimum: 0, exclusiveMaximum: 1 })) alpha!: number;
-  @Field(t.integer({ minimum: 0, maximum: 130 })) fisherSplitAge!: number;
-  @Field(t.array(t.string({ format: "uuid" }), { minItems: 1, uniqueItems: true })) candidateVersionIds!: string[];
-  @Field(t.array(t.ref(AdherenceObservationDto), { minItems: 1 })) observations!: AdherenceObservationDto[];
+  @Field(t.integer({ minimum: 0, maximum: 130 })) idadeDivisaoFisher!: number;
+  @Field(t.array(t.string({ format: "uuid" }), { minItems: 1, uniqueItems: true })) idsVersoesCandidatas!: string[];
+  @Field(t.array(t.ref(ObservacaoAderenciaDto), { minItems: 1 })) observacoes!: ObservacaoAderenciaDto[];
 }
 
-@Dto({ name: "AdherenceStudySummary", description: "Persisted adherence study summary." })
-export class AdherenceStudySummaryDto {
+@Dto({ name: "EstudoAderenciaSummary", description: "Persisted adherence study summary." })
+export class EstudoAderenciaSummaryDto {
   @Field(t.string({ format: "uuid" })) id!: string;
-  @Field(t.nullable(t.integer())) evaluationId!: number | null;
-  @Field(t.string()) name!: string;
-  @Field(t.string()) hypothesisType!: string;
-  @Field(t.integer()) periodStart!: number;
-  @Field(t.integer()) periodEnd!: number;
-  @Field(t.string()) sexScope!: string;
+  @Field(t.nullable(t.integer())) avaliacaoId!: number | null;
+  @Field(t.string()) nome!: string;
+  @Field(t.string()) tipoHipotese!: string;
+  @Field(t.integer()) periodoInicial!: number;
+  @Field(t.integer()) periodoFinal!: number;
+  @Field(t.string()) escopoSexo!: string;
   @Field(t.number()) alpha!: number;
-  @Field(t.string()) status!: string;
-  @Field(t.string()) engineVersion!: string;
-  @Field(t.integer({ minimum: 0 })) observationCount!: number;
-  @Field(t.integer({ minimum: 0 })) candidateCount!: number;
-  @Field(t.string({ format: "date-time" })) createdAt!: string;
-  @Field(t.nullable(t.string({ format: "date-time" }))) completedAt!: string | null;
+  @Field(t.string()) situacao!: string;
+  @Field(t.string()) versaoMotor!: string;
+  @Field(t.integer({ minimum: 0 })) quantidadeObservacoes!: number;
+  @Field(t.integer({ minimum: 0 })) quantidadeCandidatos!: number;
+  @Field(t.string({ format: "date-time" })) criadoEm!: string;
+  @Field(t.nullable(t.string({ format: "date-time" }))) concluidoEm!: string | null;
 }
 
-@Dto({ name: "AdherenceCandidateResult", description: "Statistical adherence result for one immutable biometric version." })
-export class AdherenceCandidateResultDto {
+@Dto({ name: "ResultadoCandidatoAderencia", description: "Statistical adherence result for one immutable biometric versao." })
+export class ResultadoCandidatoAderenciaDto {
   @Field(t.string({ format: "uuid" })) id!: string;
-  @Field(t.string({ format: "uuid" })) biometricVersionId!: string;
-  @Field(t.string()) tableCode!: string;
-  @Field(t.string()) tableName!: string;
-  @Field(t.string()) versionLabel!: string;
+  @Field(t.string({ format: "uuid" })) versaoBiometriaId!: string;
+  @Field(t.string()) codigoTabua!: string;
+  @Field(t.string()) nomeTabua!: string;
+  @Field(t.string()) rotuloVersao!: string;
   @Field(t.integer({ minimum: 1 })) rank!: number;
-  @Field(t.number({ minimum: 0 })) observedEvents!: number;
-  @Field(t.number({ minimum: 0 })) expectedEvents!: number;
-  @Field(t.number({ minimum: 0 })) chiSquare!: number;
-  @Field(t.integer({ minimum: 1 })) chiSquareDf!: number;
-  @Field(t.number({ minimum: 0 })) chiSquareCritical!: number;
-  @Field(t.number({ minimum: 0, maximum: 1 })) chiSquareP!: number;
-  @Field(t.boolean()) chiSquarePass!: boolean;
+  @Field(t.number({ minimum: 0 })) eventosObservados!: number;
+  @Field(t.number({ minimum: 0 })) eventosEsperados!: number;
+  @Field(t.number({ minimum: 0 })) quiQuadrado!: number;
+  @Field(t.integer({ minimum: 1 })) quiQuadradoDf!: number;
+  @Field(t.number({ minimum: 0 })) quiQuadradoCritical!: number;
+  @Field(t.number({ minimum: 0, maximum: 1 })) quiQuadradoP!: number;
+  @Field(t.boolean()) quiQuadradoPass!: boolean;
   @Field(t.number({ minimum: 0, maximum: 1 })) ksD!: number;
-  @Field(t.number({ minimum: 0, maximum: 1 })) ksCritical!: number;
-  @Field(t.number({ minimum: 0, maximum: 1 })) ksP!: number;
-  @Field(t.boolean()) ksPass!: boolean;
-  @Field(t.number()) zStatistic!: number;
-  @Field(t.number({ minimum: 0 })) zCritical!: number;
-  @Field(t.number({ minimum: 0, maximum: 1 })) zP!: number;
-  @Field(t.boolean()) zPass!: boolean;
-  @Field(t.number({ minimum: 0, maximum: 1 })) fisherP!: number;
-  @Field(t.boolean()) fisherPass!: boolean;
+  @Field(t.number({ minimum: 0, maximum: 1 })) ksCritico!: number;
+  @Field(t.number({ minimum: 0, maximum: 1 })) pKs!: number;
+  @Field(t.boolean()) pKsass!: boolean;
+  @Field(t.number()) estatisticaZ!: number;
+  @Field(t.number({ minimum: 0 })) zCritico!: number;
+  @Field(t.number({ minimum: 0, maximum: 1 })) pZ!: number;
+  @Field(t.boolean()) pZass!: boolean;
+  @Field(t.number({ minimum: 0, maximum: 1 })) pFisher!: number;
+  @Field(t.boolean()) pFisherass!: boolean;
   @Field(t.number({ minimum: 0 })) dqm!: number;
-  @Field(t.integer({ minimum: 0, maximum: 4 })) rejectedTests!: number;
+  @Field(t.integer({ minimum: 0, maximum: 4 })) testesRejeitados!: number;
 }
 
-@Dto({ name: "AdherenceStudyDetail", description: "Study metadata and ranked candidate results." })
-export class AdherenceStudyDetailDto {
+@Dto({ name: "EstudoAderenciaDetail", description: "Study metadata and ranked candidato results." })
+export class EstudoAderenciaDetailDto {
   @Field(t.string({ format: "uuid" })) id!: string;
-  @Field(t.nullable(t.integer())) evaluationId!: number | null;
-  @Field(t.string()) name!: string;
-  @Field(t.string()) hypothesisType!: string;
-  @Field(t.integer()) periodStart!: number;
-  @Field(t.integer()) periodEnd!: number;
-  @Field(t.string()) sexScope!: string;
+  @Field(t.nullable(t.integer())) avaliacaoId!: number | null;
+  @Field(t.string()) nome!: string;
+  @Field(t.string()) tipoHipotese!: string;
+  @Field(t.integer()) periodoInicial!: number;
+  @Field(t.integer()) periodoFinal!: number;
+  @Field(t.string()) escopoSexo!: string;
   @Field(t.number()) alpha!: number;
-  @Field(t.integer()) fisherSplitAge!: number;
-  @Field(t.string()) status!: string;
-  @Field(t.string()) engineVersion!: string;
-  @Field(t.integer({ minimum: 0 })) observationCount!: number;
-  @Field(t.integer({ minimum: 0 })) candidateCount!: number;
-  @Field(t.string({ format: "date-time" })) createdAt!: string;
-  @Field(t.nullable(t.string({ format: "date-time" }))) completedAt!: string | null;
-  @Field(t.array(t.ref(AdherenceCandidateResultDto))) candidates!: AdherenceCandidateResultDto[];
+  @Field(t.integer()) idadeDivisaoFisher!: number;
+  @Field(t.string()) situacao!: string;
+  @Field(t.string()) versaoMotor!: string;
+  @Field(t.integer({ minimum: 0 })) quantidadeObservacoes!: number;
+  @Field(t.integer({ minimum: 0 })) quantidadeCandidatos!: number;
+  @Field(t.string({ format: "date-time" })) criadoEm!: string;
+  @Field(t.nullable(t.string({ format: "date-time" }))) concluidoEm!: string | null;
+  @Field(t.array(t.ref(ResultadoCandidatoAderenciaDto))) candidatos!: ResultadoCandidatoAderenciaDto[];
 }
 
-@Dto({ name: "AdherenceCandidatePoint", description: "Observed versus expected cell used by the statistical engine." })
-export class AdherenceCandidatePointDto {
-  @Field(t.integer()) age!: number;
-  @Field(t.string()) sex!: string;
-  @Field(t.number({ exclusiveMinimum: 0 })) exposure!: number;
-  @Field(t.integer({ minimum: 0 })) observedEvents!: number;
+@Dto({ name: "PontoCandidatoAderencia", description: "Observed versus esperado cell used by the statistical engine." })
+export class PontoCandidatoAderenciaDto {
+  @Field(t.integer()) idade!: number;
+  @Field(t.string()) sexo!: string;
+  @Field(t.number({ exclusiveMinimum: 0 })) exposicao!: number;
+  @Field(t.integer({ minimum: 0 })) eventosObservados!: number;
   @Field(t.number({ minimum: 0, maximum: 1 })) qx!: number;
-  @Field(t.number({ minimum: 0 })) expectedEvents!: number;
-  @Field(t.number()) residual!: number;
+  @Field(t.number({ minimum: 0 })) eventosEsperados!: number;
+  @Field(t.number()) residuo!: number;
 }
 
-@Dto({ name: "AdherenceCandidatePoints", description: "Candidate result with complete observed-versus-expected detail." })
-export class AdherenceCandidatePointsDto {
-  @Field(t.ref(AdherenceCandidateResultDto)) candidate!: AdherenceCandidateResultDto;
-  @Field(t.array(t.ref(AdherenceCandidatePointDto))) points!: AdherenceCandidatePointDto[];
+@Dto({ name: "PontosCandidatoAderencia", description: "Candidato result with complete observado-versus-esperado detail." })
+export class PontosCandidatoAderenciaDto {
+  @Field(t.ref(ResultadoCandidatoAderenciaDto)) candidato!: ResultadoCandidatoAderenciaDto;
+  @Field(t.array(t.ref(PontoCandidatoAderenciaDto))) pontos!: PontoCandidatoAderenciaDto[];
 }
 
-@Dto({ name: "AdherenceStudyParams" })
-export class AdherenceStudyParamsDto {
+@Dto({ name: "EstudoAderenciaParams" })
+export class EstudoAderenciaParamsDto {
   @Field(t.string({ format: "uuid" })) id!: string;
 }
 
-@Dto({ name: "AdherenceCandidateParams" })
-export class AdherenceCandidateParamsDto {
+@Dto({ name: "AderenciaCandidatoParams" })
+export class AderenciaCandidatoParamsDto {
   @Field(t.string({ format: "uuid" })) id!: string;
 }

@@ -1,196 +1,614 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Atuária Previdenciária Calculation API fragment",
+    "title": "Fragmento da API de cálculos da Atuária Previdenciária",
     "version": "0.0.1"
   },
-  "tags": [{ "name": "Calculation" }],
+  "tags": [
+    {
+      "name": "Calculo"
+    }
+  ],
   "paths": {
-    "/api/calculation-engines": {
+    "/api/motores-calculo": {
       "get": {
-        "tags": ["Calculation"],
-        "operationId": "listCalculationEngines",
-        "security": [{ "bearerAuth": [] }],
+        "tags": [
+          "Calculo"
+        ],
+        "operationId": "listarMotoresCalculo",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Registered calculation engines",
-            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/CalculationEngine" } } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MotorCalculo"
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/evaluations/{evaluationId}/calculations": {
+    "/api/avaliacoes/{avaliacaoId}/calculos": {
       "get": {
-        "tags": ["Calculation"],
-        "operationId": "listCalculationRuns",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "evaluationId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }],
+        "tags": [
+          "Calculo"
+        ],
+        "operationId": "listarExecucoesCalculo",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "avaliacaoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Calculation runs for an evaluation",
-            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/CalculationRunSummary" } } } }
+            "description": "Execuções de cálculo de uma avaliação",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResumoExecucaoCalculo"
+                  }
+                }
+              }
+            }
           }
         }
       },
       "post": {
-        "tags": ["Calculation"],
-        "operationId": "createCalculationRun",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "evaluationId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateCalculationRun" } } } },
-        "responses": {
-          "201": { "description": "Executed or reused deterministic calculation run", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CalculationRun" } } } }
-        }
-      }
-    },
-    "/api/calculations/{id}": {
-      "get": {
-        "tags": ["Calculation"],
-        "operationId": "getCalculationRun",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": {
-          "200": { "description": "Complete immutable calculation run", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CalculationRun" } } } },
-          "404": { "description": "Calculation run not found" }
-        }
-      }
-    },
-    "/api/calculations/{id}/participants": {
-      "get": {
-        "tags": ["Calculation"],
-        "operationId": "listCalculationParticipantResults",
-        "security": [{ "bearerAuth": [] }],
+        "tags": [
+          "Calculo"
+        ],
+        "operationId": "criarExecucaoCalculo",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
-          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1 } },
-          { "name": "pageSize", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 200 } }
+          {
+            "name": "avaliacaoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriarExecucaoCalculo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Executed or reused deterministic calculation run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecucaoCalculo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/calculos/{id}": {
+      "get": {
+        "tags": [
+          "Calculo"
+        ],
+        "operationId": "obterExecucaoCalculo",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Paged participant reconciliation results", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CalculationParticipantResultPage" } } } },
-          "404": { "description": "Calculation run not found" }
+          "200": {
+            "description": "Complete immutable calculation run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecucaoCalculo"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Execução de cálculo não encontrada"
+          }
+        }
+      }
+    },
+    "/api/calculos/{id}/participantes": {
+      "get": {
+        "tags": [
+          "Calculo"
+        ],
+        "operationId": "listarParticipantesCalculo",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paged participant reconciliation results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaResultadosParticipantesCalculo"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Execução de cálculo não encontrada"
+          }
         }
       }
     }
   },
   "components": {
     "schemas": {
-      "CalculationEngine": {
+      "EntradaCalculo": {
         "type": "object",
-        "required": ["code", "version", "label", "description", "resultKind", "requiresPlanRules", "supportedModalities"],
+        "required": [
+          "id",
+          "importacaoId",
+          "populacao",
+          "arquivoSha256",
+          "schemaFingerprint",
+          "impressaoDigitalCanonica",
+          "quantidadeLinhas",
+          "linhasValidas",
+          "linhasInvalidas",
+          "importedAt"
+        ],
         "properties": {
-          "code": { "type": "string" },
-          "version": { "type": "string" },
-          "label": { "type": "string" },
-          "description": { "type": "string" },
-          "resultKind": { "type": "string", "enum": ["PRECALCULATION", "ACTUARIAL"] },
-          "requiresPlanRules": { "type": "boolean" },
-          "supportedModalities": {
-            "type": "array",
-            "minItems": 1,
-            "items": { "type": "string", "enum": ["BD", "CD", "CV"] }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "linhasInvalidas": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "impressaoDigitalCanonica": {
+            "type": "string"
+          },
+          "arquivoSha256": {
+            "type": "string"
+          },
+          "quantidadeLinhas": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "importedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "linhasValidas": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "populacao": {
+            "type": "string"
+          },
+          "importacaoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "schemaFingerprint": {
+            "type": "string"
           }
         }
       },
-      "CalculationRunSummary": {
+      "MotorCalculo": {
         "type": "object",
-        "required": ["id", "evaluationId", "parameterizationId", "planRulesVersionId", "planRulesFingerprint", "engineCode", "engineVersion", "status", "inputFingerprint", "resultFingerprint", "inputImportCount", "inputRowCount", "validRowCount", "invalidRowCount", "participantResultCount", "createdAt", "completedAt", "errorMessage"],
+        "required": [
+          "codigo",
+          "versao",
+          "rotulo",
+          "descricao",
+          "tipoResultado",
+          "exigeRegrasPlano",
+          "modalidadesSuportadas"
+        ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "evaluationId": { "type": "integer", "minimum": 1 },
-          "parameterizationId": { "type": "string", "format": "uuid" },
-          "planRulesVersionId": { "type": ["string", "null"], "format": "uuid" },
-          "planRulesFingerprint": { "type": ["string", "null"] },
-          "engineCode": { "type": "string" },
-          "engineVersion": { "type": "string" },
-          "status": { "type": "string", "enum": ["PROCESSING", "COMPLETED", "FAILED"] },
-          "inputFingerprint": { "type": "string" },
-          "resultFingerprint": { "type": ["string", "null"] },
-          "inputImportCount": { "type": "integer", "minimum": 0 },
-          "inputRowCount": { "type": "integer", "minimum": 0 },
-          "validRowCount": { "type": "integer", "minimum": 0 },
-          "invalidRowCount": { "type": "integer", "minimum": 0 },
-          "participantResultCount": { "type": "integer", "minimum": 0 },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "completedAt": { "type": ["string", "null"], "format": "date-time" },
-          "errorMessage": { "type": ["string", "null"] }
+          "modalidadesSuportadas": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "enum": [
+                "BD",
+                "CD",
+                "CV"
+              ]
+            }
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "tipoResultado": {
+            "type": "string",
+            "enum": [
+              "PRECALCULO",
+              "ATUARIAL"
+            ]
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "exigeRegrasPlano": {
+            "type": "boolean"
+          },
+          "versao": {
+            "type": "string"
+          },
+          "rotulo": {
+            "type": "string"
+          }
         }
       },
-      "CalculationInput": {
+      "PaginaResultadosParticipantesCalculo": {
         "type": "object",
-        "required": ["id", "importJobId", "population", "fileSha256", "schemaFingerprint", "canonicalFingerprint", "rowCount", "validRows", "invalidRows", "importedAt"],
+        "required": [
+          "items",
+          "totalItems",
+          "page",
+          "pageSize"
+        ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "importJobId": { "type": "string", "format": "uuid" },
-          "population": { "type": "string" },
-          "fileSha256": { "type": "string" },
-          "schemaFingerprint": { "type": "string" },
-          "canonicalFingerprint": { "type": "string" },
-          "rowCount": { "type": "integer", "minimum": 0 },
-          "validRows": { "type": "integer", "minimum": 0 },
-          "invalidRows": { "type": "integer", "minimum": 0 },
-          "importedAt": { "type": "string", "format": "date-time" }
+          "totalItems": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResultadoParticipanteCalculo"
+            }
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
         }
       },
-      "CalculationResultMetric": {
+      "ResultadoParticipanteCalculo": {
         "type": "object",
-        "required": ["id", "code", "category", "label", "valueType", "valueJson", "unit", "ordinal"],
+        "required": [
+          "id",
+          "importacaoId",
+          "populacao",
+          "numeroLinhaOrigem",
+          "matriculaParticipante",
+          "jsonResultado",
+          "ordem"
+        ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "code": { "type": "string" },
-          "category": { "type": "string" },
-          "label": { "type": "string" },
-          "valueType": { "type": "string", "enum": ["NUMBER", "INTEGER", "TEXT", "BOOLEAN"] },
-          "valueJson": { "type": "string" },
-          "unit": { "type": ["string", "null"] },
-          "ordinal": { "type": "integer", "minimum": 0 }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jsonResultado": {
+            "type": "string"
+          },
+          "ordem": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "populacao": {
+            "type": "string"
+          },
+          "numeroLinhaOrigem": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "importacaoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "matriculaParticipante": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       },
-      "CalculationParticipantResult": {
+      "CriarExecucaoCalculo": {
         "type": "object",
-        "required": ["id", "importJobId", "population", "sourceRowNumber", "participantRegistration", "resultJson", "ordinal"],
+        "required": [
+          "parametrizacaoId"
+        ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "importJobId": { "type": "string", "format": "uuid" },
-          "population": { "type": "string" },
-          "sourceRowNumber": { "type": "integer", "minimum": 1 },
-          "participantRegistration": { "type": ["string", "null"] },
-          "resultJson": { "type": "string" },
-          "ordinal": { "type": "integer", "minimum": 0 }
+          "codigoMotor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "parametrizacaoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versaoRegrasPlanoId": {
+            "type": "string",
+            "format": "uuid"
+          }
         }
       },
-      "CalculationParticipantResultPage": {
+      "ResumoExecucaoCalculo": {
         "type": "object",
-        "required": ["items", "totalItems", "page", "pageSize"],
+        "required": [
+          "id",
+          "avaliacaoId",
+          "parametrizacaoId",
+          "versaoRegrasPlanoId",
+          "planRulesFingerprint",
+          "codigoMotor",
+          "versaoMotor",
+          "situacao",
+          "impressaoDigitalEntrada",
+          "impressaoDigitalResultado",
+          "quantidadeImportacoesEntrada",
+          "quantidadeLinhasEntrada",
+          "quantidadeLinhasValidas",
+          "quantidadeLinhasInvalidas",
+          "quantidadeResultadosParticipantes",
+          "criadoEm",
+          "concluidoEm",
+          "mensagemErro"
+        ],
         "properties": {
-          "items": { "type": "array", "items": { "$ref": "#/components/schemas/CalculationParticipantResult" } },
-          "totalItems": { "type": "integer", "minimum": 0 },
-          "page": { "type": "integer", "minimum": 1 },
-          "pageSize": { "type": "integer", "minimum": 1, "maximum": 200 }
+          "concluidoEm": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "avaliacaoId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "parametrizacaoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantidadeLinhasEntrada": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "versaoMotor": {
+            "type": "string"
+          },
+          "planRulesFingerprint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "impressaoDigitalEntrada": {
+            "type": "string"
+          },
+          "versaoRegrasPlanoId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "quantidadeResultadosParticipantes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "impressaoDigitalResultado": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quantidadeLinhasValidas": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "quantidadeLinhasInvalidas": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "situacao": {
+            "type": "string",
+            "enum": [
+              "PROCESSANDO",
+              "CONCLUIDO",
+              "FALHO"
+            ]
+          },
+          "mensagemErro": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantidadeImportacoesEntrada": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "codigoMotor": {
+            "type": "string"
+          }
         }
       },
-      "CalculationRun": {
+      "MetricaResultadoCalculo": {
+        "type": "object",
+        "required": [
+          "id",
+          "codigo",
+          "categoria",
+          "rotulo",
+          "tipoValor",
+          "jsonValor",
+          "unidade",
+          "ordem"
+        ],
+        "properties": {
+          "tipoValor": {
+            "type": "string",
+            "enum": [
+              "NUMBER",
+              "INTEGER",
+              "TEXT",
+              "BOOLEAN"
+            ]
+          },
+          "unidade": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "jsonValor": {
+            "type": "string"
+          },
+          "ordem": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "categoria": {
+            "type": "string"
+          },
+          "rotulo": {
+            "type": "string"
+          }
+        }
+      },
+      "ExecucaoCalculo": {
         "allOf": [
-          { "$ref": "#/components/schemas/CalculationRunSummary" },
+          {
+            "$ref": "#/components/schemas/ResumoExecucaoCalculo"
+          },
           {
             "type": "object",
-            "required": ["parameterFingerprint", "dataFingerprint", "inputs", "metrics"],
+            "required": [
+              "impressaoDigitalParametros",
+              "impressaoDigitalDados",
+              "entradas",
+              "metricas"
+            ],
             "properties": {
-              "parameterFingerprint": { "type": "string" },
-              "dataFingerprint": { "type": "string" },
-              "inputs": { "type": "array", "items": { "$ref": "#/components/schemas/CalculationInput" } },
-              "metrics": { "type": "array", "items": { "$ref": "#/components/schemas/CalculationResultMetric" } }
+              "impressaoDigitalParametros": {
+                "type": "string"
+              },
+              "impressaoDigitalDados": {
+                "type": "string"
+              },
+              "entradas": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EntradaCalculo"
+                }
+              },
+              "metricas": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MetricaResultadoCalculo"
+                }
+              }
             }
           }
         ]
-      },
-      "CreateCalculationRun": {
-        "type": "object",
-        "required": ["parameterizationId"],
-        "properties": {
-          "parameterizationId": { "type": "string", "format": "uuid" },
-          "planRulesVersionId": { "type": "string", "format": "uuid" },
-          "engineCode": { "type": "string", "minLength": 1 }
-        }
       }
     }
   }

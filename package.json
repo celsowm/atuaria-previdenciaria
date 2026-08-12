@@ -16,7 +16,8 @@
     "api:generate": "npm run api:generate -w @atuaria-previdenciaria/frontend",
     "calculation:self-test": "npm run calculation:self-test -w @atuaria-previdenciaria/backend",
     "bd-pvfb:self-test": "npm run bd-pvfb:self-test -w @atuaria-previdenciaria/backend",
-    "plan-rules:self-test": "npm run plan-rules:self-test -w @atuaria-previdenciaria/backend"
+    "plan-rules:self-test": "npm run plan-rules:self-test -w @atuaria-previdenciaria/backend",
+    "domain:naming-check": "node scripts/check-domain-naming.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

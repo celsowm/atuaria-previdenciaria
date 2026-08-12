@@ -2,7 +2,7 @@ import { Entity, col } from "metal-orm";
 import { Column, PrimaryKey } from "./colunas-portuguesas.js";
 
 @Entity({ tableName: "plan_rules_versions" })
-export class PlanRulesVersion {
+export class VersaoRegrasPlano {
   @PrimaryKey(col.text())
   id!: string;
 
@@ -11,44 +11,44 @@ export class PlanRulesVersion {
     column: "id",
     onDelete: "RESTRICT"
   })))
-  planId!: string;
+  planoId!: string;
 
   @Column(col.notNull(col.int()))
-  version!: number;
+  versao!: number;
 
   @Column(col.notNull(col.text()))
-  name!: string;
+  nome!: string;
 
   @Column(col.notNull(col.text()))
-  modality!: string;
+  modalidade!: string;
 
   @Column(col.notNull(col.text()))
-  status!: string;
+  situacao!: string;
 
   @Column(col.text())
-  effectiveFrom?: string | null;
+  vigenciaInicial?: string | null;
 
   @Column(col.text())
-  effectiveTo?: string | null;
+  vigenciaFinal?: string | null;
 
   @Column(col.text())
-  rulesFingerprint?: string | null;
+  impressaoDigitalRegras?: string | null;
 
   @Column(col.text())
-  notes?: string | null;
+  observacoes?: string | null;
 
   @Column(col.notNull(col.text()))
-  createdAt!: string;
+  criadoEm!: string;
 
   @Column(col.notNull(col.text()))
-  updatedAt!: string;
+  atualizadoEm!: string;
 
   @Column(col.text())
-  approvedAt?: string | null;
+  aprovadoEm?: string | null;
 }
 
 @Entity({ tableName: "plan_rule_values" })
-export class PlanRuleValue {
+export class ValorRegraPlano {
   @PrimaryKey(col.text())
   id!: string;
 
@@ -57,32 +57,32 @@ export class PlanRuleValue {
     column: "id",
     onDelete: "CASCADE"
   })))
-  planRulesVersionId!: string;
+  versaoRegrasPlanoId!: string;
 
   @Column(col.notNull(col.text()))
-  code!: string;
+  codigo!: string;
 
   @Column(col.notNull(col.text()))
-  category!: string;
+  categoria!: string;
 
   @Column(col.notNull(col.text()))
-  label!: string;
+  rotulo!: string;
 
   @Column(col.notNull(col.text()))
-  valueType!: string;
+  tipoValor!: string;
 
   @Column(col.notNull(col.text()))
-  valueJson!: string;
+  jsonValor!: string;
 
   @Column(col.text())
-  unit?: string | null;
+  unidade?: string | null;
 
   @Column(col.notNull(col.text()))
-  source!: string;
+  origem!: string;
 
   @Column(col.int())
-  active?: number | null;
+  ativo?: number | null;
 
   @Column(col.notNull(col.text()))
-  updatedAt!: string;
+  atualizadoEm!: string;
 }

@@ -16,21 +16,21 @@ A base funcional inclui:
 - OpenAPI + contratos gerados por `better-openapi-typescript`;
 - autenticação bearer, usuários e RBAC básico;
 - identificação configurável da organização responsável pelo deployment;
-- cadastro de Planos BD/CD/CV;
+- cadastro de Planoos BD/CD/CV;
 - regras atuariais dos planos versionadas por vigência, modalidade e fingerprint;
-- vínculo estável `Evaluation.planId` com backfill conservador para bases anteriores;
+- vínculo estável `Avaliacao.planoId` com backfill conservador para bases anteriores;
 - Dashboard e Workspace de Avaliação;
 - Data Studio com wizard XLSX/XLS/CSV;
 - mapping N:N e transformações;
 - persistência auditável `RAW → NORMALIZED → CANONICAL`;
-- Mapping Profiles versionados e detecção de mudança de layout;
+- Mapeamento Profiles versionados e detecção de mudança de layout;
 - Crítica Cadastral determinística e comparação com exercício anterior;
 - Biblioteca de Tábuas Biométricas versionada;
 - derivação imutável por escala de qx e deslocamento etário;
 - Hypothesis Lab com observado × esperado, χ², KS, Z, Fisher e DQM;
 - ranking persistido das versões biométricas candidatas;
 - Parametrização Atuarial versionada, com promoção de hipóteses, parâmetros tipados e snapshot aprovado imutável;
-- Motor de Cálculo com `CalculationRun` imutável, registry de engines, inputs congelados e fingerprints reproduzíveis;
+- Motor de Cálculo com `ExecucaoCalculo` imutável, registry de engines, inputs congelados e fingerprints reproduzíveis;
 - `CORE_PRECALCULATION` para consolidação determinística comum a BD/CD/CV;
 - primeiro engine `ACTUARIAL`, `BD_PVFB`, para valor presente dos benefícios futuros de aposentadoria de Ativos em plano BD;
 - fundação para providers LLM OpenAI-compatible.
@@ -75,7 +75,7 @@ Os workspaces são:
 O domínio é organizado ao redor de uma **Avaliação Atuarial**:
 
 ```text
-Plano + regras versionadas
+Planoo + regras versionadas
           ↓
 Dados
   ↓
@@ -101,7 +101,7 @@ Regulatório
 A massa não é importada cegamente:
 
 ```text
-Arquivo → Estrutura → Mapping → Transformações → Preview → Validação → Concluir
+Arquivo → Estrutura → Mapeamento → Transformações → Preview → Validação → Concluir
 ```
 
 O mapping é N:N e permite, por exemplo:
@@ -162,11 +162,11 @@ As severidades são `BLOCKING`, `INCONSISTENCY`, `WARNING` e `INFO`. Uma ocorrê
 ## Biblioteca de Tábuas Biométricas
 
 ```text
-BiometricTable
+TabuaBiometria
       ↓ 1:N
-BiometricTableVersion
+TabuaBiometriaVersion
       ↓ 1:N
-BiometricTablePoint
+TabuaBiometriaPoint
 ```
 
 Cada ponto possui idade, sexo e `qx`. Versões são imutáveis e derivações registram versão-mãe, transformação e parâmetros.
@@ -199,23 +199,23 @@ O ranking inicial usa:
 
 O ranking é auxílio operacional e não aprova automaticamente uma hipótese.
 
-## Regras Atuariais do Plano
+## Regras Atuariais do Planoo
 
 O cadastro mestre do plano permanece pequeno. Elegibilidade, contribuições e regras de benefício ficam em versões próprias:
 
 ```text
-Plan
-  └─ PlanRulesVersion 1:N
-        └─ PlanRuleValue 1:N
+Plano
+  └─ VersaoRegrasPlanoo 1:N
+        └─ PlanoRuleValue 1:N
 ```
 
 Cada versão congela a modalidade `BD/CD/CV`, vigência, valores tipados e fingerprint SHA-256. O fluxo é:
 
 ```text
-DRAFT → APPROVED → SUPERSEDED
+RASCUNHO → APROVADO → SUBSTITUIDO
 ```
 
-`APPROVED` e `SUPERSEDED` são snapshots imutáveis. `SUPERSEDED` significa apenas que uma versão mais nova foi aprovada; a versão antiga continua válida para reprodução histórica quando sua vigência cobre a data-base da avaliação.
+`APROVADO` e `SUBSTITUIDO` são snapshots imutáveis. `SUBSTITUIDO` significa apenas que uma versão mais nova foi aprovada; a versão antiga continua válida para reprodução histórica quando sua vigência cobre a data-base da avaliação.
 
 A UI oferece um catálogo inicial sem qualquer valor regulatório default. Valores devem ser transcritos do regulamento/nota técnica. Uma nova versão pode copiar os valores da anterior, mas a vigência é deliberadamente zerada para exigir confirmação explícita antes da aprovação.
 
@@ -223,19 +223,19 @@ URLs:
 
 ```text
 /planos/:id/regras
-/planos/:id/regras/:rulesVersionId
+/planos/:id/regras/:versaoRegrasId
 ```
 
-`Evaluation` possui `planId` com FK opcional para o cadastro mestre. Bases anteriores só são ligadas automaticamente quando existe exatamente um plano com o mesmo nome histórico; casos ambíguos permanecem sem vínculo.
+`Avaliacao` possui `planoId` com FK opcional para o cadastro mestre. Bases anteriores só são ligadas automaticamente quando existe exatamente um plano com o mesmo nome histórico; casos ambíguos permanecem sem vínculo.
 
 Detalhes estão em `docs/PLAN_RULES.md`.
 
 ## Parametrização Atuarial
 
-Cada avaliação pode possuir uma sequência versionada de parametrizações. Existe no máximo um `DRAFT`; após aprovação, a versão vira um snapshot imutável e a aprovada anterior passa para `SUPERSEDED`.
+Cada avaliação pode possuir uma sequência versionada de parametrizações. Existe no máximo um `RASCUNHO`; após aprovação, a versão vira um snapshot imutável e a aprovada anterior passa para `SUBSTITUIDO`.
 
 ```text
-ActuarialParameterization
+ParametrizacaoAtuarial
   ├─ ActuarialParameterValue 1:N
   └─ ActuarialHypothesisSelection 1:N
 ```
@@ -250,7 +250,7 @@ URLs:
 
 ```text
 /avaliacoes/:id/parametrizacao
-/avaliacoes/:id/parametrizacao/:parameterizationId
+/avaliacoes/:id/parametrizacao/:parametrizacaoId
 ```
 
 Detalhes estão em `docs/PARAMETERIZATION.md`.
@@ -260,18 +260,18 @@ Detalhes estão em `docs/PARAMETERIZATION.md`.
 O cálculo não consulta estado mutável depois de iniciado.
 
 ```text
-PlanRulesVersion APPROVED/SUPERSEDED   # engines atuariais
+VersaoRegrasPlanoo APROVADO/SUBSTITUIDO   # engines atuariais
                   +
-ActuarialParameterization APPROVED/SUPERSEDED
+ParametrizacaoAtuarial APROVADO/SUBSTITUIDO
                   +
 frozen canonical imports
                   ↓
-            CalculationRun
+            ExecucaoCalculo
               ├─ CalculationInput 1:N
               └─ CalculationResultMetric 1:N
 ```
 
-Cada `CalculationRun` guarda, conforme o engine:
+Cada `ExecucaoCalculo` guarda, conforme o engine:
 
 - avaliação e data-base;
 - parametrização imutável;
@@ -314,7 +314,7 @@ O v1 implementa explicitamente `BENEFIT.CALCULATION_BASIS = FINAL_SALARY`.
 
 **PVFB não é reserva matemática nem provisão técnica.** O engine ainda não apropria o valor presente por serviço passado/futuro segundo método de financiamento, não calcula contribuições futuras e não determina déficit ou superávit.
 
-Solicitar novamente o mesmo engine com exatamente os mesmos inputs reutiliza o `CalculationRun COMPLETED` pelo `inputFingerprint`.
+Solicitar novamente o mesmo engine com exatamente os mesmos inputs reutiliza o `ExecucaoCalculo CONCLUIDO` pelo `inputFingerprint`.
 
 Self-tests determinísticos:
 
@@ -366,41 +366,41 @@ GET   /api/config
 POST  /api/auth/login
 GET   /api/auth/me
 POST  /api/auth/logout
-GET   /api/users/
-GET   /api/plans/
-POST  /api/plans/
-GET   /api/plans/:planId/rules
-POST  /api/plans/:planId/rules
-GET   /api/plan-rules/:id
-PATCH /api/plan-rules/:id
-PATCH /api/plan-rules/:id/values
-POST  /api/plan-rules/:id/approve
+GET   /api/usuarios/
+GET   /api/planos/
+POST  /api/planos/
+GET   /api/planos/:planoId/regras
+POST  /api/planos/:planoId/regras
+GET   /api/regras-plano/:id
+PATCH /api/regras-plano/:id
+PATCH /api/regras-plano/:id/valores
+POST  /api/regras-plano/:id/approve
 GET   /api/dashboard
-GET   /api/evaluations/
-GET   /api/evaluations/:evaluationId/parameterizations
-POST  /api/evaluations/:evaluationId/parameterizations
-GET   /api/parameterizations/:id
-PATCH /api/parameterizations/:id/parameters
-POST  /api/parameterizations/:id/adherence-candidate
-POST  /api/parameterizations/:id/hypothesis/remove
-POST  /api/parameterizations/:id/approve
-GET   /api/calculation-engines
-GET   /api/evaluations/:evaluationId/calculations
-POST  /api/evaluations/:evaluationId/calculations
-GET   /api/calculations/:id
-POST  /api/imports/
-POST  /api/mapping-profiles/match
-POST  /api/critique/runs
-GET   /api/critique/runs/:id/issues
-PATCH /api/critique/issues/:id
-GET   /api/biometric-tables/
-POST  /api/biometric-tables/
-POST  /api/biometric-tables/:id/derive
-GET   /api/biometric-versions/:id/points
-GET   /api/adherence-studies/
-POST  /api/adherence-studies/
-GET   /api/adherence-studies/:id
-GET   /api/adherence-candidates/:id/points
+GET   /api/avaliacoes/
+GET   /api/avaliacoes/:avaliacaoId/parametrizacoes
+POST  /api/avaliacoes/:avaliacaoId/parametrizacoes
+GET   /api/parametrizacoes/:id
+PATCH /api/parametrizacoes/:id/parameters
+POST  /api/parametrizacoes/:id/adherence-candidate
+POST  /api/parametrizacoes/:id/hypothesis/remove
+POST  /api/parametrizacoes/:id/approve
+GET   /api/motores-calculo
+GET   /api/avaliacoes/:avaliacaoId/calculos
+POST  /api/avaliacoes/:avaliacaoId/calculos
+GET   /api/calculos/:id
+POST  /api/importacoes/
+POST  /api/perfis-mapeamento/match
+POST  /api/critica/runs
+GET   /api/critica/runs/:id/issues
+PATCH /api/critica/issues/:id
+GET   /api/tabuas-biometricas/
+POST  /api/tabuas-biometricas/
+POST  /api/tabuas-biometricas/:id/derive
+GET   /api/versoes-tabuas-biometricas/:id/points
+GET   /api/estudos-aderencia/
+POST  /api/estudos-aderencia/
+GET   /api/estudos-aderencia/:id
+GET   /api/candidatos-aderencia/:id/points
 GET   /api/llm/providers/
 ```
 
@@ -479,6 +479,6 @@ O primeiro engine `ACTUARIAL` já existe, mas ele produz **PVFB**, não reserva 
 
 O próximo passo técnico é modelar a apropriação do passivo de um plano BD segundo um **método de financiamento explicitamente suportado e validado**, começando por uma implementação concreta — por exemplo `PROJECTED_UNIT_CREDIT` — e persistir também resultados suficientemente detalhados para reconciliação atuarial.
 
-Somente depois de existir uma rodada de cálculo com passivo/provisão validável o módulo de **Fechamento Atuarial** deve selecionar explicitamente um `CalculationRun COMPLETED`, reconciliar valores e congelar a rodada final.
+Somente depois de existir uma rodada de cálculo com passivo/provisão validável o módulo de **Fechamento Atuarial** deve selecionar explicitamente um `ExecucaoCalculo CONCLUIDO`, reconciliar valores e congelar a rodada final.
 
 Detalhes adicionais da fundação SaaS estão em `docs/SAAS_FOUNDATION.md`.

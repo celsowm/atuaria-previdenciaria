@@ -2,93 +2,93 @@ import { Entity, col } from "metal-orm";
 import { Column, PrimaryKey } from "./colunas-portuguesas.js";
 
 @Entity({ tableName: "biometric_tables" })
-export class BiometricTable {
+export class TabuaBiometria {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.notNull(col.text()))
-  code!: string;
+  codigo!: string;
 
   @Column(col.notNull(col.text()))
-  name!: string;
+  nome!: string;
 
   @Column(col.notNull(col.text()))
-  kind!: string;
+  tipo!: string;
 
   @Column(col.notNull(col.text()))
-  sexScope!: string;
+  escopoSexo!: string;
 
   @Column(col.text())
-  source?: string | null;
+  origem?: string | null;
 
   @Column(col.text())
-  description?: string | null;
+  descricao?: string | null;
 
   @Column(col.notNull(col.int()))
-  enabled!: number;
+  habilitada!: number;
 
   @Column(col.notNull(col.text()))
-  createdAt!: string;
+  criadoEm!: string;
 
   @Column(col.notNull(col.text()))
-  updatedAt!: string;
+  atualizadoEm!: string;
 }
 
 @Entity({ tableName: "biometric_table_versions" })
-export class BiometricTableVersion {
+export class VersaoTabuaBiometria {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.notNull(col.text()))
-  tableId!: string;
+  tabuaId!: string;
 
   @Column(col.notNull(col.text()))
-  version!: string;
+  versao!: string;
 
   @Column(col.notNull(col.text()))
-  status!: string;
+  situacao!: string;
 
   @Column(col.text())
-  effectiveFrom?: string | null;
+  vigenciaInicial?: string | null;
 
   @Column(col.text())
-  effectiveTo?: string | null;
+  vigenciaFinal?: string | null;
 
   @Column(col.text())
-  parentVersionId?: string | null;
+  versaoOrigemId?: string | null;
 
   @Column(col.text())
-  derivationType?: string | null;
+  tipoDerivacao?: string | null;
 
   @Column(col.notNull(col.text()))
-  derivationParametersJson!: string;
+  parametrosDerivacaoJson!: string;
 
   @Column(col.notNull(col.int()))
-  minAge!: number;
+  idadeMinima!: number;
 
   @Column(col.notNull(col.int()))
-  maxAge!: number;
+  idadeMaxima!: number;
 
   @Column(col.notNull(col.int()))
-  pointCount!: number;
+  quantidadePontos!: number;
 
   @Column(col.notNull(col.text()))
-  createdAt!: string;
+  criadoEm!: string;
 }
 
 @Entity({ tableName: "biometric_table_points" })
-export class BiometricTablePoint {
+export class PontoTabuaBiometria {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.notNull(col.text()))
-  versionId!: string;
+  versaoId!: string;
 
   @Column(col.notNull(col.int()))
-  age!: number;
+  idade!: number;
 
   @Column(col.notNull(col.text()))
-  sex!: string;
+  sexo!: string;
 
   @Column(col.notNull(col.decimal(18, 12)))
   qx!: number;

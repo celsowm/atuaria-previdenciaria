@@ -6,13 +6,13 @@ const basePath = resolve("../../openapi/core.openapi.json");
 const fragments = [
   resolve("../../openapi/config.openapi.json"),
   resolve("../../openapi/auth.openapi.json"),
-  resolve("../../openapi/evaluations.openapi.json"),
-  resolve("../../openapi/plans.openapi.json"),
+  resolve("../../openapi/avaliacoes.openapi.json"),
+  resolve("../../openapi/planos.openapi.json"),
   resolve("../../openapi/previdencia.openapi.json"),
-  resolve("../../openapi/plan-rules.openapi.json"),
-  resolve("../../openapi/adherence.openapi.json"),
-  resolve("../../openapi/parameterization.openapi.json"),
-  resolve("../../openapi/calculation.openapi.json")
+  resolve("../../openapi/regras-plano.openapi.json"),
+  resolve("../../openapi/aderencia.openapi.json"),
+  resolve("../../openapi/parametrizacao.openapi.json"),
+  resolve("../../openapi/calculo.openapi.json")
 ];
 const mergedPath = resolve("./.openapi.merged.json");
 

@@ -1,8 +1,8 @@
 import { Entity, col } from "metal-orm";
 import { Column, PrimaryKey } from "./colunas-portuguesas.js";
 
-@Entity({ tableName: "users" })
-export class User {
+@Entity({ tableName: "usuarios" })
+export class Usuario {
   @PrimaryKey(col.text())
   id!: string;
 
@@ -10,48 +10,48 @@ export class User {
   email!: string;
 
   @Column(col.notNull(col.text()))
-  displayName!: string;
+  nomeExibicao!: string;
 
   @Column(col.notNull(col.text()))
-  passwordHash!: string;
+  resumoSenha!: string;
 
   @Column(col.notNull(col.text()))
-  role!: string;
+  perfil!: string;
 
   @Column(col.notNull(col.int()))
-  active!: number;
+  ativo!: number;
 
   @Column(col.notNull(col.text()))
-  createdAt!: string;
+  criadoEm!: string;
 
   @Column(col.notNull(col.text()))
-  updatedAt!: string;
+  atualizadoEm!: string;
 
   @Column(col.text())
-  lastLoginAt?: string | null;
+  ultimoAcessoEm?: string | null;
 }
 
 @Entity({ tableName: "user_sessions" })
-export class UserSession {
+export class SessaoUsuario {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.notNull(col.references(col.text(), {
-    table: "users",
+    table: "usuarios",
     column: "id",
     onDelete: "CASCADE"
   })))
-  userId!: string;
+  usuarioId!: string;
 
   @Column(col.notNull(col.unique(col.text())))
-  tokenHash!: string;
+  resumoToken!: string;
 
   @Column(col.notNull(col.text()))
-  createdAt!: string;
+  criadoEm!: string;
 
   @Column(col.notNull(col.text()))
-  expiresAt!: string;
+  expiraEm!: string;
 
   @Column(col.text())
-  revokedAt?: string | null;
+  revogadoEm?: string | null;
 }

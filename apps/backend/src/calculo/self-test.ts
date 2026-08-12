@@ -1,63 +1,63 @@
-import "./core-precalculation-engine.js";
-import { getCalculationEngine, validateCalculationOutput } from "./calculation-engine.js";
+import "./pre-calculo-nuclear-engine.js";
+import { getCalculoEngine, validateCalculationOutput } from "./calculo-engine.js";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
-function metricNumber(metrics: ReturnType<typeof validateCalculationOutput>["metrics"], code: string) {
-  const metric = metrics.find((item) => item.code === code);
-  assert(metric, `Métrica ausente: ${code}`);
-  assert(typeof metric.value === "number", `Métrica ${code} não é numérica.`);
+function metricNumber(metrics: ReturnType<typeof validateCalculationOutput>["metrics"], codigo: string) {
+  const metric = metrics.find((item) => item.codigo === codigo);
+  assert(metric, `Métrica ausente: ${codigo}`);
+  assert(typeof metric.value === "number", `Métrica ${codigo} não é numérica.`);
   return metric.value;
 }
 
-const engine = getCalculationEngine("CORE_PRECALCULATION");
+const engine = getCalculoEngine("CORE_PRECALCULATION");
 const output = validateCalculationOutput(await engine.execute({
   evaluation: {
     id: 1,
-    planId: null,
-    planName: "Plano Teste",
-    referenceDate: "2025-12-31"
+    planoId: null,
+    nomePlano: "Plano Teste",
+    dataReferencia: "2025-12-31"
   },
   planRules: null,
-  parameterization: {
+  parametrizacao: {
     id: "00000000-0000-4000-8000-000000000001",
-    version: 1,
+    versao: 1,
     parameters: [{
-      code: "ECONOMIC.REAL_INTEREST_RATE",
-      category: "Econômicas",
-      label: "Taxa real de juros",
-      valueType: "NUMBER",
-      valueJson: "5",
-      unit: "% a.a.",
-      source: "SELF_TEST"
+      codigo: "ECONOMIC.REAL_INTEREST_RATE",
+      categoria: "Econômicas",
+      rotulo: "Taxa real de juros",
+      tipoValor: "NUMBER",
+      jsonValor: "5",
+      unidade: "% a.a.",
+      origem: "SELF_TEST"
     }],
     hypotheses: []
   },
   rows: [
     {
-      importJobId: "10000000-0000-4000-8000-000000000001",
-      population: "Ativos",
-      rowNumber: 2,
+      importacaoId: "10000000-0000-4000-8000-000000000001",
+      populacao: "Ativos",
+      numeroLinha: 2,
       data: {
         "participant.registration": "1",
         "participant.birthDate": "1985-11-25",
-        "participant.sex": "MALE"
+        "participant.sexo": "MASCULINO"
       }
     },
     {
-      importJobId: "10000000-0000-4000-8000-000000000001",
-      population: "Ativos",
-      rowNumber: 3,
+      importacaoId: "10000000-0000-4000-8000-000000000001",
+      populacao: "Ativos",
+      numeroLinha: 3,
       data: {
         "participant.registration": "2",
         "participant.birthDate": "1990-04-03",
-        "participant.sex": "FEMALE"
+        "participant.sexo": "FEMININO"
       }
     }
   ],
-  invalidRowCount: 0,
+  quantidadeLinhasInvalidas: 0,
   importCount: 1
 }));
 

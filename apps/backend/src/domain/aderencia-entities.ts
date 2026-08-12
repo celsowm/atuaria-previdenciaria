@@ -2,187 +2,187 @@ import { Entity, col } from "metal-orm";
 import { Column, PrimaryKey } from "./colunas-portuguesas.js";
 
 @Entity({ tableName: "adherence_studies" })
-export class AdherenceStudy {
+export class EstudoAderencia {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.int())
-  evaluationId?: number | null;
+  avaliacaoId?: number | null;
 
   @Column(col.notNull(col.text()))
-  name!: string;
+  nome!: string;
 
   @Column(col.notNull(col.text()))
-  hypothesisType!: string;
+  tipoHipotese!: string;
 
   @Column(col.notNull(col.int()))
-  periodStart!: number;
+  periodoInicial!: number;
 
   @Column(col.notNull(col.int()))
-  periodEnd!: number;
+  periodoFinal!: number;
 
   @Column(col.notNull(col.text()))
-  sexScope!: string;
+  escopoSexo!: string;
 
   @Column(col.notNull(col.decimal(8, 6)))
   alpha!: number;
 
   @Column(col.notNull(col.int()))
-  fisherSplitAge!: number;
+  idadeDivisaoFisher!: number;
 
   @Column(col.notNull(col.text()))
-  status!: string;
+  situacao!: string;
 
   @Column(col.notNull(col.text()))
-  engineVersion!: string;
+  versaoMotor!: string;
 
   @Column(col.notNull(col.int()))
-  observationCount!: number;
+  quantidadeObservacoes!: number;
 
   @Column(col.notNull(col.int()))
-  candidateCount!: number;
+  quantidadeCandidatos!: number;
 
   @Column(col.notNull(col.text()))
-  createdAt!: string;
+  criadoEm!: string;
 
   @Column(col.text())
-  completedAt?: string | null;
+  concluidoEm?: string | null;
 }
 
 @Entity({ tableName: "adherence_observations" })
-export class AdherenceObservation {
+export class ObservacaoAderencia {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.notNull(col.text()))
-  studyId!: string;
+  estudoId!: string;
 
   @Column(col.notNull(col.int()))
-  year!: number;
+  ano!: number;
 
   @Column(col.notNull(col.int()))
-  age!: number;
+  idade!: number;
 
   @Column(col.notNull(col.text()))
-  sex!: string;
+  sexo!: string;
 
   @Column(col.notNull(col.decimal(20, 8)))
-  exposure!: number;
+  exposicao!: number;
 
   @Column(col.notNull(col.int()))
-  observedEvents!: number;
+  eventosObservados!: number;
 }
 
 @Entity({ tableName: "adherence_candidate_results" })
-export class AdherenceCandidateResult {
+export class ResultadoCandidatoAderencia {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.notNull(col.text()))
-  studyId!: string;
+  estudoId!: string;
 
   @Column(col.notNull(col.text()))
-  biometricVersionId!: string;
+  versaoBiometriaId!: string;
 
   @Column(col.notNull(col.text()))
-  tableCode!: string;
+  codigoTabua!: string;
 
   @Column(col.notNull(col.text()))
-  tableName!: string;
+  nomeTabua!: string;
 
   @Column(col.notNull(col.text()))
-  versionLabel!: string;
+  rotuloVersao!: string;
 
   @Column(col.notNull(col.int()))
   rank!: number;
 
   @Column(col.notNull(col.decimal(20, 8)))
-  observedEvents!: number;
+  eventosObservados!: number;
 
   @Column(col.notNull(col.decimal(20, 8)))
-  expectedEvents!: number;
+  eventosEsperados!: number;
 
   @Column(col.notNull(col.decimal(20, 10)))
-  chiSquare!: number;
+  quiQuadrado!: number;
 
   @Column(col.notNull(col.int()))
-  chiSquareDf!: number;
+  quiQuadradoDf!: number;
 
   @Column(col.notNull(col.decimal(20, 10)))
-  chiSquareCritical!: number;
+  quiQuadradoCritical!: number;
 
   @Column(col.notNull(col.decimal(18, 12)))
-  chiSquareP!: number;
+  quiQuadradoP!: number;
 
   @Column(col.notNull(col.int()))
-  chiSquarePass!: number;
+  quiQuadradoPass!: number;
 
   @Column(col.notNull(col.decimal(18, 12)))
   ksD!: number;
 
   @Column(col.notNull(col.decimal(18, 12)))
-  ksCritical!: number;
+  ksCritico!: number;
 
   @Column(col.notNull(col.decimal(18, 12)))
-  ksP!: number;
+  pKs!: number;
 
   @Column(col.notNull(col.int()))
-  ksPass!: number;
+  pKsass!: number;
 
   @Column(col.notNull(col.decimal(18, 12)))
-  zStatistic!: number;
+  estatisticaZ!: number;
 
   @Column(col.notNull(col.decimal(18, 12)))
-  zCritical!: number;
+  zCritico!: number;
 
   @Column(col.notNull(col.decimal(18, 12)))
-  zP!: number;
+  pZ!: number;
 
   @Column(col.notNull(col.int()))
-  zPass!: number;
+  pZass!: number;
 
   @Column(col.notNull(col.decimal(18, 12)))
-  fisherP!: number;
+  pFisher!: number;
 
   @Column(col.notNull(col.int()))
-  fisherPass!: number;
+  pFisherass!: number;
 
   @Column(col.notNull(col.decimal(24, 16)))
   dqm!: number;
 
   @Column(col.notNull(col.int()))
-  rejectedTests!: number;
+  testesRejeitados!: number;
 
   @Column(col.notNull(col.text()))
-  createdAt!: string;
+  criadoEm!: string;
 }
 
 @Entity({ tableName: "adherence_candidate_points" })
-export class AdherenceCandidatePoint {
+export class PontoCandidatoAderencia {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.notNull(col.text()))
-  candidateResultId!: string;
+  resultadoCandidatoId!: string;
 
   @Column(col.notNull(col.int()))
-  age!: number;
+  idade!: number;
 
   @Column(col.notNull(col.text()))
-  sex!: string;
+  sexo!: string;
 
   @Column(col.notNull(col.decimal(20, 8)))
-  exposure!: number;
+  exposicao!: number;
 
   @Column(col.notNull(col.int()))
-  observedEvents!: number;
+  eventosObservados!: number;
 
   @Column(col.notNull(col.decimal(18, 12)))
   qx!: number;
 
   @Column(col.notNull(col.decimal(20, 10)))
-  expectedEvents!: number;
+  eventosEsperados!: number;
 
   @Column(col.notNull(col.decimal(20, 10)))
-  residual!: number;
+  residuo!: number;
 }

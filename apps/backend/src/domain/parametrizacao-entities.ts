@@ -2,41 +2,41 @@ import { Entity, col } from "metal-orm";
 import { Column, PrimaryKey } from "./colunas-portuguesas.js";
 
 @Entity({ tableName: "actuarial_parameterizations" })
-export class ActuarialParameterization {
+export class ParametrizacaoAtuarial {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.notNull(col.references(col.int(), {
-    table: "evaluations",
+    table: "avaliacoes",
     column: "id",
     onDelete: "CASCADE"
   })))
-  evaluationId!: number;
+  avaliacaoId!: number;
 
   @Column(col.notNull(col.int()))
-  version!: number;
+  versao!: number;
 
   @Column(col.notNull(col.text()))
-  name!: string;
+  nome!: string;
 
   @Column(col.notNull(col.text()))
-  status!: string;
+  situacao!: string;
 
   @Column(col.text())
-  notes?: string | null;
+  observacoes?: string | null;
 
   @Column(col.notNull(col.text()))
-  createdAt!: string;
+  criadoEm!: string;
 
   @Column(col.notNull(col.text()))
-  updatedAt!: string;
+  atualizadoEm!: string;
 
   @Column(col.text())
-  approvedAt?: string | null;
+  aprovadoEm?: string | null;
 }
 
 @Entity({ tableName: "actuarial_parameter_values" })
-export class ActuarialParameterValue {
+export class ValorParametroAtuarial {
   @PrimaryKey(col.text())
   id!: string;
 
@@ -45,38 +45,38 @@ export class ActuarialParameterValue {
     column: "id",
     onDelete: "CASCADE"
   })))
-  parameterizationId!: string;
+  parametrizacaoId!: string;
 
   @Column(col.notNull(col.text()))
-  code!: string;
+  codigo!: string;
 
   @Column(col.notNull(col.text()))
-  category!: string;
+  categoria!: string;
 
   @Column(col.notNull(col.text()))
-  label!: string;
+  rotulo!: string;
 
   @Column(col.notNull(col.text()))
-  valueType!: string;
+  tipoValor!: string;
 
   @Column(col.notNull(col.text()))
-  valueJson!: string;
+  jsonValor!: string;
 
   @Column(col.text())
-  unit?: string | null;
+  unidade?: string | null;
 
   @Column(col.notNull(col.text()))
-  source!: string;
+  origem!: string;
 
   @Column(col.int())
-  active?: number | null;
+  ativo?: number | null;
 
   @Column(col.notNull(col.text()))
-  updatedAt!: string;
+  atualizadoEm!: string;
 }
 
 @Entity({ tableName: "actuarial_hypothesis_selections" })
-export class ActuarialHypothesisSelection {
+export class SelecaoHipoteseAtuarial {
   @PrimaryKey(col.text())
   id!: string;
 
@@ -85,47 +85,47 @@ export class ActuarialHypothesisSelection {
     column: "id",
     onDelete: "CASCADE"
   })))
-  parameterizationId!: string;
+  parametrizacaoId!: string;
 
   @Column(col.notNull(col.text()))
-  hypothesisType!: string;
+  tipoHipotese!: string;
 
   @Column(col.notNull(col.references(col.text(), {
     table: "adherence_studies",
     column: "id",
     onDelete: "RESTRICT"
   })))
-  adherenceStudyId!: string;
+  estudoAderenciaId!: string;
 
   @Column(col.notNull(col.references(col.text(), {
     table: "adherence_candidate_results",
     column: "id",
     onDelete: "RESTRICT"
   })))
-  candidateResultId!: string;
+  resultadoCandidatoId!: string;
 
   @Column(col.notNull(col.references(col.text(), {
     table: "biometric_table_versions",
     column: "id",
     onDelete: "RESTRICT"
   })))
-  biometricVersionId!: string;
+  versaoBiometriaId!: string;
 
   @Column(col.notNull(col.text()))
-  tableCode!: string;
+  codigoTabua!: string;
 
   @Column(col.notNull(col.text()))
-  tableName!: string;
+  nomeTabua!: string;
 
   @Column(col.notNull(col.text()))
-  versionLabel!: string;
+  rotuloVersao!: string;
 
   @Column(col.notNull(col.int()))
-  candidateRank!: number;
+  posicaoCandidato!: number;
 
   @Column(col.int())
-  active?: number | null;
+  ativo?: number | null;
 
   @Column(col.notNull(col.text()))
-  selectedAt!: string;
+  selecionadoEm!: string;
 }

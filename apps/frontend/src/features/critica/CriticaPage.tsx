@@ -23,26 +23,26 @@ import {
 import ArrowBackRounded from "@mui/icons-material/ArrowBackRounded";
 import CheckCircleOutlineRounded from "@mui/icons-material/CheckCircleOutlineRounded";
 import FactCheckOutlined from "@mui/icons-material/FactCheckOutlined";
-import { api, type CritiqueIssue, type CritiqueIssueDetail, type CritiqueRun } from "../../api/client";
+import { api, type InconsistenciaCritica, type DetalheInconsistenciaCritica, type ExecucaoCritica } from "../../api/client";
 
 type Props = {
-  importJobId: string;
+  importacaoId: string;
   onBack: () => void;
 };
 
-function severityColor(severity: string): "error" | "warning" | "info" | "default" {
-  if (severity === "BLOCKING") return "error";
-  if (severity === "INCONSISTENCY" || severity === "WARNING") return "warning";
-  if (severity === "INFO") return "info";
+function severityColor(severidade: string): "error" | "warning" | "info" | "default" {
+  if (severidade === "BLOCKING") return "error";
+  if (severidade === "INCONSISTENCY" || severidade === "WARNING") return "warning";
+  if (severidade === "INFO") return "info";
   return "default";
 }
 
-function severityLabel(severity: string) {
-  return ({ BLOCKING: "Bloqueante", INCONSISTENCY: "Inconsistência", WARNING: "Alerta", INFO: "Informativo" } as Record<string, string>)[severity] ?? severity;
+function severityLabel(severidade: string) {
+  return ({ BLOCKING: "Bloqueante", INCONSISTENCY: "Inconsistência", WARNING: "Alerta", INFO: "Informativo" } as Record<string, string>)[severidade] ?? severidade;
 }
 
 function statusLabel(status: string) {
-  return ({ OPEN: "Aberta", JUSTIFIED: "Justificada", RESOLVED: "Resolvida", IGNORED: "Ignorada" } as Record<string, string>)[status] ?? status;
+  return ({ ABERTO: "Aberta", JUSTIFICADO: "Justificada", RESOLVIDO: "Resolvida", IGNORADO: "Ignorada" } as Record<string, string>)[status] ?? status;
 }
 
 function prettyJson(value: string | null | undefined) {
@@ -64,24 +64,24 @@ function displayJsonValue(value: string | null) {
   }
 }
 
-export function CritiquePage({ importJobId, onBack }: Props) {
-  const [run, setRun] = useState<CritiqueRun | null>(null);
-  const [issues, setIssues] = useState<CritiqueIssue[]>([]);
+export function CriticaPage({ importacaoId, onBack }: Props) {
+  const [run, setRun] = useState<ExecucaoCritica | null>(null);
+  const [issues, setIssues] = useState<InconsistenciaCritica[]>([]);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [severity, setSeverity] = useState("ALL");
+  const [severidade, setSeverity] = useState("ALL");
   const [status, setStatus] = useState("ALL");
-  const [detail, setDetail] = useState<CritiqueIssueDetail | null>(null);
+  const [detail, setDetail] = useState<DetalheInconsistenciaCritica | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [resolutionNote, setResolutionNote] = useState("");
+  const [notaResolucao, setResolutionNote] = useState("");
   const [resolving, setResolving] = useState(false);
 
   const execute = async () => {
     setRunning(true);
     setError(null);
     try {
-      const nextRun = await api.createCritiqueRun(importJobId);
-      const nextIssues = await api.critiqueIssues(nextRun.id);
+      const nextRun = await api.criarExecucaoCritica(importacaoId);
+      const nextIssues = await api.inconsistenciasCritica(nextRun.id);
       setRun(nextRun);
       setIssues(nextIssues);
     } catch (reason) {
@@ -94,9 +94,9 @@ export function CritiquePage({ importJobId, onBack }: Props) {
   const openIssue = async (id: string) => {
     setDetailLoading(true);
     try {
-      const value = await api.critiqueIssue(id);
+      const value = await api.inconsistenciaCritica(id);
       setDetail(value);
-      setResolutionNote(value.resolutionNote ?? "");
+      setResolutionNote(value.notaResolucao ?? "");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível abrir a ocorrência.");
     } finally {
@@ -104,13 +104,13 @@ export function CritiquePage({ importJobId, onBack }: Props) {
     }
   };
 
-  const resolve = async (nextStatus: "JUSTIFIED" | "RESOLVED" | "IGNORED") => {
-    if (!detail || !resolutionNote.trim()) return;
+  const resolve = async (nextStatus: "JUSTIFICADO" | "RESOLVIDO" | "IGNORADO") => {
+    if (!detail || !notaResolucao.trim()) return;
     setResolving(true);
     try {
-      const updated = await api.resolveCritiqueIssue(detail.id, nextStatus, resolutionNote.trim());
+      const updated = await api.resolverInconsistenciaCritica(detail.id, nextStatus, notaResolucao.trim());
       setDetail(updated);
-      setIssues((current) => current.map((issue) => issue.id === updated.id ? { ...issue, status: updated.status } : issue));
+      setIssues((current) => current.map((issue) => issue.id === updated.id ? { ...issue, status: updated.situacao } : issue));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível resolver a ocorrência.");
     } finally {
@@ -119,8 +119,8 @@ export function CritiquePage({ importJobId, onBack }: Props) {
   };
 
   const filtered = useMemo(
-    () => issues.filter((issue) => (severity === "ALL" || issue.severity === severity) && (status === "ALL" || issue.status === status)),
-    [issues, severity, status]
+    () => issues.filter((issue) => (severidade === "ALL" || issue.severidade === severidade) && (status === "ALL" || issue.situacao === status)),
+    [issues, severidade, status]
   );
 
   return <Stack spacing={3}>
@@ -129,7 +129,7 @@ export function CritiquePage({ importJobId, onBack }: Props) {
       <Box sx={{ flex: 1 }}>
         <Typography variant="overline" color="text.secondary">Qualidade cadastral</Typography>
         <Typography variant="h4">Crítica da massa</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ fontFamily: "monospace", mt: .5 }}>{importJobId}</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ fontFamily: "monospace", mt: .5 }}>{importacaoId}</Typography>
       </Box>
       {!run && <Button variant="contained" onClick={() => void execute()} disabled={running} startIcon={running ? <CircularProgress size={18} color="inherit" /> : <FactCheckOutlined />}>
         {running ? "Executando…" : "Executar crítica"}
@@ -164,8 +164,8 @@ export function CritiquePage({ importJobId, onBack }: Props) {
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ md: "center" }}>
         <Typography variant="h6" sx={{ flex: 1 }}>{filtered.length} ocorrências</Typography>
-        <FormControl size="small" sx={{ minWidth: 190 }}><InputLabel>Severidade</InputLabel><Select label="Severidade" value={severity} onChange={(event) => setSeverity(event.target.value)}><MenuItem value="ALL">Todas</MenuItem><MenuItem value="BLOCKING">Bloqueantes</MenuItem><MenuItem value="INCONSISTENCY">Inconsistências</MenuItem><MenuItem value="WARNING">Alertas</MenuItem><MenuItem value="INFO">Informativos</MenuItem></Select></FormControl>
-        <FormControl size="small" sx={{ minWidth: 170 }}><InputLabel>Status</InputLabel><Select label="Status" value={status} onChange={(event) => setStatus(event.target.value)}><MenuItem value="ALL">Todos</MenuItem><MenuItem value="OPEN">Abertas</MenuItem><MenuItem value="JUSTIFIED">Justificadas</MenuItem><MenuItem value="RESOLVED">Resolvidas</MenuItem><MenuItem value="IGNORED">Ignoradas</MenuItem></Select></FormControl>
+        <FormControl size="small" sx={{ minWidth: 190 }}><InputLabel>Severidade</InputLabel><Select label="Severidade" value={severidade} onChange={(event) => setSeverity(event.target.value)}><MenuItem value="ALL">Todas</MenuItem><MenuItem value="BLOCKING">Bloqueantes</MenuItem><MenuItem value="INCONSISTENCY">Inconsistências</MenuItem><MenuItem value="WARNING">Alertas</MenuItem><MenuItem value="INFO">Informativos</MenuItem></Select></FormControl>
+        <FormControl size="small" sx={{ minWidth: 170 }}><InputLabel>Status</InputLabel><Select label="Status" value={status} onChange={(event) => setStatus(event.target.value)}><MenuItem value="ALL">Todos</MenuItem><MenuItem value="ABERTO">Abertas</MenuItem><MenuItem value="JUSTIFICADO">Justificadas</MenuItem><MenuItem value="RESOLVIDO">Resolvidas</MenuItem><MenuItem value="IGNORADO">Ignoradas</MenuItem></Select></FormControl>
       </Stack>
 
       <Paper variant="outlined" sx={{ overflow: "hidden" }}>
@@ -174,11 +174,11 @@ export function CritiquePage({ importJobId, onBack }: Props) {
             <TableHead><TableRow><TableCell>Severidade</TableCell><TableCell>Matrícula</TableCell><TableCell>Campo</TableCell><TableCell>Ocorrência</TableCell><TableCell>Status</TableCell><TableCell /></TableRow></TableHead>
             <TableBody>
               {filtered.map((issue) => <TableRow key={issue.id} hover sx={{ cursor: "pointer" }} onClick={() => void openIssue(issue.id)}>
-                <TableCell><Chip size="small" color={severityColor(issue.severity)} label={severityLabel(issue.severity)} /></TableCell>
-                <TableCell sx={{ fontFamily: "monospace" }}>{issue.participantRegistration ?? "—"}</TableCell>
-                <TableCell>{issue.fieldPath?.replace("participant.", "") ?? issue.category}</TableCell>
-                <TableCell sx={{ minWidth: 300 }}>{issue.message}</TableCell>
-                <TableCell><Chip size="small" variant="outlined" label={statusLabel(issue.status)} /></TableCell>
+                <TableCell><Chip size="small" color={severityColor(issue.severidade)} label={severityLabel(issue.severidade)} /></TableCell>
+                <TableCell sx={{ fontFamily: "monospace" }}>{issue.matriculaParticipante ?? "—"}</TableCell>
+                <TableCell>{issue.caminhoCampo?.replace("participant.", "") ?? issue.categoria}</TableCell>
+                <TableCell sx={{ minWidth: 300 }}>{issue.mensagem}</TableCell>
+                <TableCell><Chip size="small" variant="outlined" label={statusLabel(issue.situacao)} /></TableCell>
                 <TableCell><Button size="small">Abrir</Button></TableCell>
               </TableRow>)}
               {filtered.length === 0 && <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: "text.secondary" }}>Nenhuma ocorrência neste filtro.</TableCell></TableRow>}
@@ -191,33 +191,33 @@ export function CritiquePage({ importJobId, onBack }: Props) {
     <Drawer anchor="right" open={Boolean(detail) || detailLoading} onClose={() => setDetail(null)} slotProps={{ paper: { sx: { width: { xs: "100%", md: 720 }, p: 3 } } }}>
       {detailLoading && !detail ? <Box sx={{ display: "grid", placeItems: "center", minHeight: 300 }}><CircularProgress size={28} /></Box> : detail && <Stack spacing={3}>
         <Box>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}><Chip size="small" color={severityColor(detail.severity)} label={severityLabel(detail.severity)} /><Chip size="small" variant="outlined" label={statusLabel(detail.status)} /></Stack>
-          <Typography variant="h5">{detail.message}</Typography>
-          <Typography color="text.secondary" sx={{ mt: .75 }}>Matrícula {detail.participantRegistration ?? "não identificada"} · {detail.ruleCode}</Typography>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}><Chip size="small" color={severityColor(detail.severidade)} label={severityLabel(detail.severidade)} /><Chip size="small" variant="outlined" label={statusLabel(detail.situacao)} /></Stack>
+          <Typography variant="h5">{detail.mensagem}</Typography>
+          <Typography color="text.secondary" sx={{ mt: .75 }}>Matrícula {detail.matriculaParticipante ?? "não identificada"} · {detail.codigoRegra}</Typography>
         </Box>
 
-        {(detail.currentValueJson || detail.previousValueJson) && <Paper variant="outlined" sx={{ p: 2 }}>
+        {(detail.jsonValorAtual || detail.jsonValorAnterior) && <Paper variant="outlined" sx={{ p: 2 }}>
           <Typography variant="subtitle2" sx={{ mb: 1.5 }}>Valor criticado</Typography>
           <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-            <Box><Typography variant="caption" color="text.secondary">Anterior</Typography><Typography>{displayJsonValue(detail.previousValueJson)}</Typography></Box>
-            <Box><Typography variant="caption" color="text.secondary">Atual</Typography><Typography>{displayJsonValue(detail.currentValueJson)}</Typography></Box>
+            <Box><Typography variant="caption" color="text.secondary">Anterior</Typography><Typography>{displayJsonValue(detail.jsonValorAnterior)}</Typography></Box>
+            <Box><Typography variant="caption" color="text.secondary">Atual</Typography><Typography>{displayJsonValue(detail.jsonValorAtual)}</Typography></Box>
           </Box>
         </Paper>}
 
         <Typography variant="h6">Proveniência do dado</Typography>
-        <Provenance title="RAW · como chegou" value={detail.rawJson} />
-        <Provenance title="NORMALIZED · após normalização" value={detail.normalizedJson} />
-        <Provenance title="CANONICAL · usado pela crítica" value={detail.canonicalJson} />
-        {detail.previousCanonicalJson && <Provenance title="CANONICAL · exercício anterior" value={detail.previousCanonicalJson} />}
+        <Provenance title="RAW · como chegou" value={detail.jsonBruto} />
+        <Provenance title="NORMALIZED · após normalização" value={detail.jsonNormalizado} />
+        <Provenance title="CANONICAL · usado pela crítica" value={detail.jsonCanonico} />
+        {detail.jsonCanonicoAnterior && <Provenance title="CANONICAL · exercício anterior" value={detail.jsonCanonicoAnterior} />}
 
-        {detail.status === "OPEN" ? <Stack spacing={2}>
-          <TextField label="Justificativa / providência" value={resolutionNote} onChange={(event) => setResolutionNote(event.target.value)} multiline minRows={3} placeholder="Registre por que a ocorrência é aceitável ou qual correção foi realizada." />
+        {detail.situacao === "ABERTO" ? <Stack spacing={2}>
+          <TextField label="Justificativa / providência" value={notaResolucao} onChange={(event) => setResolutionNote(event.target.value)} multiline minRows={3} placeholder="Registre por que a ocorrência é aceitável ou qual correção foi realizada." />
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-            <Button variant="contained" disabled={resolving || !resolutionNote.trim()} onClick={() => void resolve("RESOLVED")} startIcon={<CheckCircleOutlineRounded />}>Marcar resolvida</Button>
-            <Button variant="outlined" disabled={resolving || !resolutionNote.trim()} onClick={() => void resolve("JUSTIFIED")}>Justificar exceção</Button>
-            <Button color="inherit" disabled={resolving || !resolutionNote.trim()} onClick={() => void resolve("IGNORED")}>Ignorar</Button>
+            <Button variant="contained" disabled={resolving || !notaResolucao.trim()} onClick={() => void resolve("RESOLVIDO")} startIcon={<CheckCircleOutlineRounded />}>Marcar resolvida</Button>
+            <Button variant="outlined" disabled={resolving || !notaResolucao.trim()} onClick={() => void resolve("JUSTIFICADO")}>Justificar exceção</Button>
+            <Button color="inherit" disabled={resolving || !notaResolucao.trim()} onClick={() => void resolve("IGNORADO")}>Ignorar</Button>
           </Stack>
-        </Stack> : <Alert severity="success">{statusLabel(detail.status)}: {detail.resolutionNote}</Alert>}
+        </Stack> : <Alert severity="success">{statusLabel(detail.situacao)}: {detail.notaResolucao}</Alert>}
       </Stack>}
     </Drawer>
   </Stack>;

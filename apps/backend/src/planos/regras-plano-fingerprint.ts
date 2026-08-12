@@ -1,41 +1,41 @@
 import { createHash } from "node:crypto";
 
-export type FingerprintPlanRule = {
-  code: string;
-  category: string;
-  label: string;
-  valueType: string;
-  valueJson: string;
-  unit: string | null;
-  source: string;
+export type FingerprintRegraPlano = {
+  codigo: string;
+  categoria: string;
+  rotulo: string;
+  tipoValor: string;
+  jsonValor: string;
+  unidade: string | null;
+  origem: string;
 };
 
-export function comparePlanRuleCode(a: { code: string }, b: { code: string }) {
-  return a.code < b.code ? -1 : a.code > b.code ? 1 : 0;
+export function compareRegraPlanoCode(a: { codigo: string }, b: { codigo: string }) {
+  return a.codigo < b.codigo ? -1 : a.codigo > b.codigo ? 1 : 0;
 }
 
-export function calculatePlanRulesFingerprint(input: {
-  planId: string;
-  version: number;
-  modality: string;
-  effectiveFrom: string;
-  effectiveTo: string | null;
-  rules: FingerprintPlanRule[];
+export function calculateRegrasPlanoFingerprint(input: {
+  planoId: string;
+  versao: number;
+  modalidade: string;
+  vigenciaInicial: string;
+  vigenciaFinal: string | null;
+  rules: FingerprintRegraPlano[];
 }) {
   const canonical = {
-    planId: input.planId,
-    version: input.version,
-    modality: input.modality,
-    effectiveFrom: input.effectiveFrom,
-    effectiveTo: input.effectiveTo,
-    rules: [...input.rules].sort(comparePlanRuleCode).map((rule) => ({
-      code: rule.code,
-      category: rule.category,
-      label: rule.label,
-      valueType: rule.valueType,
-      valueJson: rule.valueJson,
-      unit: rule.unit,
-      source: rule.source
+    planoId: input.planoId,
+    versao: input.versao,
+    modalidade: input.modalidade,
+    vigenciaInicial: input.vigenciaInicial,
+    vigenciaFinal: input.vigenciaFinal,
+    rules: [...input.rules].sort(compareRegraPlanoCode).map((rule) => ({
+      codigo: rule.codigo,
+      categoria: rule.categoria,
+      rotulo: rule.rotulo,
+      tipoValor: rule.tipoValor,
+      jsonValor: rule.jsonValor,
+      unidade: rule.unidade,
+      origem: rule.origem
     }))
   };
 

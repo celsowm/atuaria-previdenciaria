@@ -5,19 +5,27 @@
     "version": "0.0.1"
   },
   "tags": [
-    { "name": "Authentication" },
-    { "name": "Users" }
+    {
+      "name": "Autenticacao"
+    },
+    {
+      "name": "Usuarios"
+    }
   ],
   "paths": {
     "/api/auth/login": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Autenticacao"
+        ],
         "operationId": "login",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/SolicitacaoLogin"
+              }
             }
           }
         },
@@ -26,43 +34,65 @@
             "description": "Authenticated session",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/LoginResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/RespostaLogin"
+                }
               }
             }
           },
-          "401": { "description": "Invalid credentials" }
+          "401": {
+            "description": "Invalid credentials"
+          }
         }
       }
     },
     "/api/auth/me": {
       "get": {
-        "tags": ["Authentication"],
-        "operationId": "currentUser",
-        "security": [{ "bearerAuth": [] }],
+        "tags": [
+          "Autenticacao"
+        ],
+        "operationId": "usuarioAtual",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Current user",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthUser" }
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioAutenticado"
+                }
               }
             }
           },
-          "401": { "description": "Invalid or expired session" }
+          "401": {
+            "description": "Invalid or expired session"
+          }
         }
       }
     },
     "/api/auth/logout": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Autenticacao"
+        ],
         "operationId": "logout",
-        "security": [{ "bearerAuth": [] }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Session revoked",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/LogoutResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/RespostaLogout"
+                }
               }
             }
           }
@@ -71,33 +101,51 @@
     },
     "/api/users/": {
       "get": {
-        "tags": ["Users"],
-        "operationId": "listUsers",
-        "security": [{ "bearerAuth": [] }],
+        "tags": [
+          "Usuarios"
+        ],
+        "operationId": "listarUsuarios",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Users",
+            "description": "Usuários",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { "$ref": "#/components/schemas/AuthUser" }
+                  "items": {
+                    "$ref": "#/components/schemas/UsuarioAutenticado"
+                  }
                 }
               }
             }
           },
-          "403": { "description": "Administrator role required" }
+          "403": {
+            "description": "Administrator role required"
+          }
         }
       },
       "post": {
-        "tags": ["Users"],
-        "operationId": "createUser",
-        "security": [{ "bearerAuth": [] }],
+        "tags": [
+          "Usuarios"
+        ],
+        "operationId": "criarUsuario",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateUser" }
+              "schema": {
+                "$ref": "#/components/schemas/CriarUsuario"
+              }
             }
           }
         },
@@ -106,32 +154,47 @@
             "description": "Created user",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthUser" }
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioAutenticado"
+                }
               }
             }
           },
-          "403": { "description": "Administrator role required" }
+          "403": {
+            "description": "Administrator role required"
+          }
         }
       }
     },
     "/api/users/{id}": {
       "patch": {
-        "tags": ["Users"],
-        "operationId": "updateUser",
-        "security": [{ "bearerAuth": [] }],
+        "tags": [
+          "Usuarios"
+        ],
+        "operationId": "atualizarUsuario",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdateUser" }
+              "schema": {
+                "$ref": "#/components/schemas/AtualizarUsuario"
+              }
             }
           }
         },
@@ -140,12 +203,18 @@
             "description": "Updated user",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthUser" }
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioAutenticado"
+                }
               }
             }
           },
-          "403": { "description": "Administrator role required" },
-          "404": { "description": "User not found" }
+          "403": {
+            "description": "Administrator role required"
+          },
+          "404": {
+            "description": "Usuário não encontrado"
+          }
         }
       }
     }
@@ -158,61 +227,159 @@
       }
     },
     "schemas": {
-      "AuthUser": {
+      "RespostaLogout": {
         "type": "object",
-        "required": ["id", "email", "displayName", "role", "active", "createdAt", "updatedAt", "lastLoginAt"],
+        "required": [
+          "ok"
+        ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "email": { "type": "string", "format": "email" },
-          "displayName": { "type": "string" },
-          "role": { "type": "string", "enum": ["admin", "actuary", "reviewer"] },
-          "active": { "type": "boolean" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" },
-          "lastLoginAt": { "type": ["string", "null"], "format": "date-time" }
+          "ok": {
+            "type": "boolean"
+          }
         }
       },
-      "LoginRequest": {
+      "RespostaLogin": {
         "type": "object",
-        "required": ["email", "password"],
+        "required": [
+          "token",
+          "expiraEm",
+          "user"
+        ],
         "properties": {
-          "email": { "type": "string", "format": "email" },
-          "password": { "type": "string", "minLength": 1 }
+          "user": {
+            "$ref": "#/components/schemas/UsuarioAutenticado"
+          },
+          "expiraEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "token": {
+            "type": "string"
+          }
         }
       },
-      "LoginResponse": {
+      "AtualizarUsuario": {
         "type": "object",
-        "required": ["token", "expiresAt", "user"],
         "properties": {
-          "token": { "type": "string" },
-          "expiresAt": { "type": "string", "format": "date-time" },
-          "user": { "$ref": "#/components/schemas/AuthUser" }
+          "ativo": {
+            "type": "boolean"
+          },
+          "perfil": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "actuary",
+              "reviewer"
+            ]
+          },
+          "password": {
+            "type": "string",
+            "minLength": 10
+          },
+          "nomeExibicao": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
-      "CreateUser": {
+      "SolicitacaoLogin": {
         "type": "object",
-        "required": ["email", "displayName", "password", "role"],
+        "required": [
+          "email",
+          "password"
+        ],
         "properties": {
-          "email": { "type": "string", "format": "email" },
-          "displayName": { "type": "string", "minLength": 1 },
-          "password": { "type": "string", "minLength": 10 },
-          "role": { "type": "string", "enum": ["admin", "actuary", "reviewer"] }
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
-      "UpdateUser": {
+      "UsuarioAutenticado": {
         "type": "object",
+        "required": [
+          "id",
+          "email",
+          "nomeExibicao",
+          "perfil",
+          "ativo",
+          "criadoEm",
+          "atualizadoEm",
+          "ultimoAcessoEm"
+        ],
         "properties": {
-          "displayName": { "type": "string", "minLength": 1 },
-          "password": { "type": "string", "minLength": 10 },
-          "role": { "type": "string", "enum": ["admin", "actuary", "reviewer"] },
-          "active": { "type": "boolean" }
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "perfil": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "actuary",
+              "reviewer"
+            ]
+          },
+          "nomeExibicao": {
+            "type": "string"
+          },
+          "ultimoAcessoEm": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "atualizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ativo": {
+            "type": "boolean"
+          }
         }
       },
-      "LogoutResponse": {
+      "CriarUsuario": {
         "type": "object",
-        "required": ["ok"],
+        "required": [
+          "email",
+          "nomeExibicao",
+          "password",
+          "perfil"
+        ],
         "properties": {
-          "ok": { "type": "boolean" }
+          "perfil": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "actuary",
+              "reviewer"
+            ]
+          },
+          "password": {
+            "type": "string",
+            "minLength": 10
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "nomeExibicao": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     }

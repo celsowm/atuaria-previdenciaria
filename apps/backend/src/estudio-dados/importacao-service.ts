@@ -5,12 +5,12 @@ import type { UploadedFileInfo } from "adorn-api";
 import { getTableDefFromEntity, selectFromEntity } from "metal-orm";
 import { createSession } from "../db.js";
 import {
-  Evaluation,
-  ImportFile,
-  ImportJob,
-  ImportRow,
-  MappingProfile,
-  MappingRule
+  Avaliacao,
+  ArquivoImportacao,
+  ImportacaoJob,
+  LinhaImportacao,
+  PerfilMapeamento,
+  RegraMapeamento
 } from "../domain/entities.js";
 import { Submassa } from "../domain/previdencia-entities.js";
 import { storageRootPath } from "../runtime-paths.js";
@@ -23,34 +23,34 @@ import {
   rowToObject,
   toCanonicalRow,
   validateCanonicalRow,
-  type MappingRuleInput
-} from "./mapping.js";
+  type RegraMapeamentoInput
+} from "./mapeamento.js";
 
-type ImportOptions = {
-  evaluationId?: number;
+type ImportacaoOptions = {
+  avaliacaoId?: number;
   submassaId: string;
-  population: string;
-  profileId?: number;
-  profileName?: string;
-  saveProfile: boolean;
-  sheetName?: string;
-  headerRow: number;
-  rules: MappingRuleInput[];
+  populacao: string;
+  perfilMapeamentoId?: number;
+  nomePerfil?: string;
+  savePerfil: boolean;
+  nomeAba?: string;
+  linhaCabecalho: number;
+  regras: RegraMapeamentoInput[];
 };
 
-export type ImportResult = {
+export type ImportacaoResult = {
   id: string;
-  fileId: string;
-  mappingProfileId: number | null;
-  mappingProfileVersion: string | null;
-  fileName: string;
-  fileSha256: string;
-  population: string;
-  sheetName: string;
-  rowCount: number;
-  validRows: number;
-  invalidRows: number;
-  status: string;
+  arquivoId: string;
+  perfilMapeamentoId: number | null;
+  versaoPerfilMapeamento: string | null;
+  nomeArquivo: string;
+  arquivoSha256: string;
+  populacao: string;
+  nomeAba: string;
+  quantidadeLinhas: number;
+  linhasValidas: number;
+  linhasInvalidas: number;
+  situacao: string;
 };
 
 async function withSession<T>(handler: (session: ReturnType<typeof createSession>) => Promise<T>) {
@@ -62,40 +62,40 @@ async function withSession<T>(handler: (session: ReturnType<typeof createSession
   }
 }
 
-function requireTable(entity: typeof MappingProfile | typeof MappingRule | typeof ImportFile | typeof ImportJob | typeof ImportRow) {
+function requireTable(entity: typeof PerfilMapeamento | typeof RegraMapeamento | typeof ArquivoImportacao | typeof ImportacaoJob | typeof LinhaImportacao) {
   const table = getTableDefFromEntity(entity);
   if (!table) throw new Error(`Metal ORM metadata not bootstrapped for ${entity.name}`);
   return table;
 }
 
-function parseProfileVersion(version: string) {
-  const match = /^v(\d+)$/i.exec(version.trim());
+function parsePerfilVersion(versao: string) {
+  const match = /^v(\d+)$/i.exec(versao.trim());
   return match ? Number(match[1]) : 0;
 }
 
-async function loadRules(profileId: number) {
+async function loadRules(perfilMapeamentoId: number) {
   return withSession(async (session) => {
-    const rows = await selectFromEntity(MappingRule).execute(session);
+    const rows = await selectFromEntity(RegraMapeamento).execute(session);
     return rows
-      .filter((row) => row.profileId === profileId)
+      .filter((row) => row.perfilMapeamentoId === perfilMapeamentoId)
       .sort((a, b) => a.ordinal - b.ordinal)
-      .map<MappingRuleInput>((row) => ({
-        sources: JSON.parse(row.sourcesJson) as string[],
-        targets: JSON.parse(row.targetsJson) as string[],
-        transform: row.transform as MappingRuleInput["transform"]
+      .map<RegraMapeamentoInput>((row) => ({
+        sources: JSON.parse(row.jsonOrigens) as string[],
+        targets: JSON.parse(row.jsonDestinos) as string[],
+        transform: row.transform as RegraMapeamentoInput["transform"]
       }));
   });
 }
 
-export async function matchMappingProfile(headers: string[], population: string) {
-  const profiles = await withSession((session) => selectFromEntity(MappingProfile).execute(session));
-  const candidates = profiles
-    .filter((profile) => profile.population === population && profile.sourceHeadersJson)
-    .map((profile) => {
-      const profileHeaders = JSON.parse(profile.sourceHeadersJson ?? "[]") as string[];
-      return { profile, profileHeaders, ...compareHeaders(headers, profileHeaders) };
+export async function matchPerfilMapeamento(headers: string[], populacao: string) {
+  const perfils = await withSession((session) => selectFromEntity(PerfilMapeamento).execute(session));
+  const candidates = perfils
+    .filter((perfil) => perfil.populacao === populacao && perfil.jsonCabecalhosOrigem)
+    .map((perfil) => {
+      const perfilHeaders = JSON.parse(perfil.jsonCabecalhosOrigem ?? "[]") as string[];
+      return { perfil, perfilHeaders, ...compareHeaders(headers, perfilHeaders) };
     })
-    .sort((a, b) => b.compatibility - a.compatibility || b.profile.updatedAt.localeCompare(a.profile.updatedAt));
+    .sort((a, b) => b.compatibility - a.compatibility || b.perfil.atualizadoEm.localeCompare(a.perfil.atualizadoEm));
 
   const best = candidates[0];
   if (!best || best.compatibility < 50) {
@@ -105,83 +105,83 @@ export async function matchMappingProfile(headers: string[], population: string)
       exact: false,
       missingColumns: [] as string[],
       newColumns: [] as string[],
-      rulesJson: "[]"
+      regrasJson: "[]"
     };
   }
 
-  const rules = await loadRules(best.profile.id);
+  const regras = await loadRules(best.perfil.id);
   return {
     matched: true,
-    profileId: best.profile.id,
-    profileName: best.profile.name,
-    version: best.profile.version,
+    perfilMapeamentoId: best.perfil.id,
+    nomePerfil: best.perfil.nome,
+    versao: best.perfil.versao,
     compatibility: best.compatibility,
     exact: best.exact,
     missingColumns: best.missingColumns,
     newColumns: best.newColumns,
-    rulesJson: JSON.stringify(rules)
+    regrasJson: JSON.stringify(regras)
   };
 }
 
-async function resolveProfile(
-  options: ImportOptions,
+async function resolvePerfil(
+  options: ImportacaoOptions,
   headers: string[],
-  schemaFingerprint: string
-): Promise<MappingProfile | null> {
-  if (!options.saveProfile && !options.profileId) return null;
+  impressaoDigitalEsquema: string
+): Promise<PerfilMapeamento | null> {
+  if (!options.savePerfil && !options.perfilMapeamentoId) return null;
 
-  const rulesFingerprint = fingerprintRules(options.rules);
-  const profiles = await withSession((session) => selectFromEntity(MappingProfile).execute(session));
-  const requested = options.profileId
-    ? profiles.find((profile) => profile.id === options.profileId)
+  const impressaoDigitalRegras = fingerprintRules(options.regras);
+  const perfils = await withSession((session) => selectFromEntity(PerfilMapeamento).execute(session));
+  const requested = options.perfilMapeamentoId
+    ? perfils.find((perfil) => perfil.id === options.perfilMapeamentoId)
     : undefined;
-  const reusable = profiles.find(
-    (profile) =>
-      profile.population === options.population &&
-      profile.schemaFingerprint === schemaFingerprint &&
-      profile.rulesFingerprint === rulesFingerprint
+  const reusable = perfils.find(
+    (perfil) =>
+      perfil.populacao === options.populacao &&
+      perfil.impressaoDigitalEsquema === impressaoDigitalEsquema &&
+      perfil.impressaoDigitalRegras === impressaoDigitalRegras
   );
   if (reusable) return reusable;
-  if (!options.saveProfile) return requested ?? null;
+  if (!options.savePerfil) return requested ?? null;
 
-  const name = options.profileName?.trim() || requested?.name || `${options.population} mapping`;
-  const siblings = profiles.filter(
-    (profile) => profile.population === options.population && profile.name === name
+  const nome = options.nomePerfil?.trim() || requested?.nome || `${options.populacao} mapping`;
+  const siblings = perfils.filter(
+    (perfil) => perfil.populacao === options.populacao && perfil.nome === nome
   );
-  const version = `v${Math.max(0, ...siblings.map((profile) => parseProfileVersion(profile.version))) + 1}`;
-  const profile = new MappingProfile();
-  profile.id = Math.max(0, ...profiles.map((item) => item.id)) + 1;
-  profile.name = name;
-  profile.population = options.population;
-  profile.version = version;
-  profile.schemaFingerprint = schemaFingerprint;
-  profile.rulesFingerprint = rulesFingerprint;
-  profile.sourceHeadersJson = JSON.stringify(headers);
-  profile.mappedFields = new Set(options.rules.flatMap((rule) => rule.targets)).size;
-  profile.totalFields = headers.length;
-  profile.updatedAt = new Date().toISOString();
+  const versao = `v${Math.max(0, ...siblings.map((perfil) => parsePerfilVersion(perfil.versao))) + 1}`;
+  const perfil = new PerfilMapeamento();
+  perfil.id = Math.max(0, ...perfils.map((item) => item.id)) + 1;
+  perfil.nome = nome;
+  perfil.populacao = options.populacao;
+  perfil.versao = versao;
+  perfil.impressaoDigitalEsquema = impressaoDigitalEsquema;
+  perfil.impressaoDigitalRegras = impressaoDigitalRegras;
+  perfil.jsonCabecalhosOrigem = JSON.stringify(headers);
+  perfil.camposMapeados = new Set(options.regras.flatMap((rule) => rule.targets)).size;
+  perfil.quantidadeCampos = headers.length;
+  perfil.atualizadoEm = new Date().toISOString();
 
   await withSession(async (session) => {
-    session.trackNew(requireTable(MappingProfile), profile, profile.id);
+    session.trackNew(requireTable(PerfilMapeamento), perfil, perfil.id);
     await session.commit();
   });
 
   await withSession(async (session) => {
-    const table = requireTable(MappingRule);
-    for (const [index, input] of options.rules.entries()) {
-      const rule = new MappingRule();
+    const table = requireTable(RegraMapeamento);
+    for (const [index, input] of options.regras.entries()) {
+      const rule = new RegraMapeamento();
       rule.id = randomUUID();
-      rule.profileId = profile.id;
+      rule.perfilMapeamentoId = perfil.id;
       rule.ordinal = index;
-      rule.sourcesJson = JSON.stringify(input.sources);
-      rule.targetsJson = JSON.stringify(input.targets);
+      rule.jsonOrigens = JSON.stringify(input.sources);
+      rule.jsonDestinos = JSON.stringify(input.targets);
       rule.transform = input.transform;
       session.trackNew(table, rule, rule.id);
     }
     await session.commit();
   });
 
-  return profile;
+  return perfil;
 }
 
 async function uploadedBuffer(file: UploadedFileInfo) {
@@ -190,112 +190,112 @@ async function uploadedBuffer(file: UploadedFileInfo) {
   throw new Error("O upload não possui buffer nem caminho temporário.");
 }
 
-function safeName(name: string) {
-  return basename(name).replace(/[^a-zA-Z0-9._-]/g, "_");
+function safeName(nome: string) {
+  return basename(nome).replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
 async function markJobFailed(jobId: string) {
   await withSession(async (session) => {
-    const job = await session.find(ImportJob, jobId);
+    const job = await session.find(ImportacaoJob, jobId);
     if (!job) return;
-    job.status = "FAILED";
-    job.completedAt = new Date().toISOString();
+    job.situacao = "FALHO";
+    job.concluidoEm = new Date().toISOString();
     session.markDirty(job);
     await session.commit();
   });
 }
 
-export async function persistImport(file: UploadedFileInfo, options: ImportOptions): Promise<ImportResult> {
+export async function persistImportacao(file: UploadedFileInfo, options: ImportacaoOptions): Promise<ImportacaoResult> {
   await withSession(async (session) => {
     const submassa = await session.find(Submassa, options.submassaId);
     if (!submassa || submassa.situacao !== "APROVADA") throw new Error("A importação exige uma submassa aprovada.");
-    if (!options.evaluationId) return;
-    const avaliacao = await session.find(Evaluation, options.evaluationId);
+    if (!options.avaliacaoId) return;
+    const avaliacao = await session.find(Avaliacao, options.avaliacaoId);
     if (!avaliacao) throw new Error("Avaliação não encontrada.");
-    if (avaliacao.planId !== submassa.planoId || avaliacao.submassaId !== submassa.id) {
+    if (avaliacao.planoId !== submassa.planoId || avaliacao.submassaId !== submassa.id) {
       throw new Error("A submassa informada não corresponde à avaliação.");
     }
-    if (avaliacao.referenceDate < submassa.vigenciaInicial || (submassa.vigenciaFinal && avaliacao.referenceDate > submassa.vigenciaFinal)) {
+    if (avaliacao.dataReferencia < submassa.vigenciaInicial || (submassa.vigenciaFinal && avaliacao.dataReferencia > submassa.vigenciaFinal)) {
       throw new Error("A submassa não está vigente na data-base da avaliação.");
     }
   });
   const buffer = await uploadedBuffer(file);
   const parsed = parseWorkbookBuffer(buffer, {
-    sheetName: options.sheetName,
-    headerRow: options.headerRow
+    nomeAba: options.nomeAba,
+    linhaCabecalho: options.linhaCabecalho
   });
-  const schemaFingerprint = fingerprintHeaders(parsed.headers);
-  const profile = await resolveProfile(options, parsed.headers, schemaFingerprint);
+  const impressaoDigitalEsquema = fingerprintHeaders(parsed.headers);
+  const perfil = await resolvePerfil(options, parsed.headers, impressaoDigitalEsquema);
 
-  const fileId = randomUUID();
+  const arquivoId = randomUUID();
   const jobId = randomUUID();
-  const fileSha256 = createHash("sha256").update(buffer).digest("hex");
+  const arquivoSha256 = createHash("sha256").update(buffer).digest("hex");
   const storageRoot = storageRootPath();
-  const relativePath = join("imports", fileId, safeName(file.originalName));
+  const relativePath = join("imports", arquivoId, safeName(file.originalName));
   const absolutePath = join(storageRoot, relativePath);
   await mkdir(dirname(absolutePath), { recursive: true });
   await writeFile(absolutePath, buffer);
 
-  const createdAt = new Date().toISOString();
-  const sourceFile = new ImportFile();
-  sourceFile.id = fileId;
-  sourceFile.originalName = file.originalName;
+  const criadoEm = new Date().toISOString();
+  const sourceFile = new ArquivoImportacao();
+  sourceFile.id = arquivoId;
+  sourceFile.nomeOriginal = file.originalName;
   sourceFile.mimeType = file.mimeType || "application/octet-stream";
-  sourceFile.sizeBytes = file.size;
-  sourceFile.sha256 = fileSha256;
-  sourceFile.storagePath = relativePath;
-  sourceFile.createdAt = createdAt;
+  sourceFile.tamanhoBytes = file.size;
+  sourceFile.sha256 = arquivoSha256;
+  sourceFile.caminhoArmazenamento = relativePath;
+  sourceFile.criadoEm = criadoEm;
 
-  const job = new ImportJob();
+  const job = new ImportacaoJob();
   job.id = jobId;
-  job.evaluationId = options.evaluationId ?? null;
+  job.avaliacaoId = options.avaliacaoId ?? null;
   job.submassaId = options.submassaId;
-  job.fileId = fileId;
-  job.mappingProfileId = profile?.id ?? null;
-  job.population = options.population;
-  job.sheetName = parsed.sheetName;
-  job.headerRow = options.headerRow;
-  job.sourceHeadersJson = JSON.stringify(parsed.headers);
-  job.schemaFingerprint = schemaFingerprint;
-  job.status = "PROCESSING";
-  job.rowCount = parsed.rows.length;
-  job.validRows = 0;
-  job.invalidRows = 0;
-  job.createdAt = createdAt;
-  job.completedAt = null;
+  job.arquivoId = arquivoId;
+  job.perfilMapeamentoId = perfil?.id ?? null;
+  job.populacao = options.populacao;
+  job.nomeAba = parsed.nomeAba;
+  job.linhaCabecalho = options.linhaCabecalho;
+  job.jsonCabecalhosOrigem = JSON.stringify(parsed.headers);
+  job.impressaoDigitalEsquema = impressaoDigitalEsquema;
+  job.situacao = "PROCESSANDO";
+  job.quantidadeLinhas = parsed.rows.length;
+  job.linhasValidas = 0;
+  job.linhasInvalidas = 0;
+  job.criadoEm = criadoEm;
+  job.concluidoEm = null;
 
   await withSession(async (session) => {
-    session.trackNew(requireTable(ImportFile), sourceFile, sourceFile.id);
-    session.trackNew(requireTable(ImportJob), job, job.id);
+    session.trackNew(requireTable(ArquivoImportacao), sourceFile, sourceFile.id);
+    session.trackNew(requireTable(ImportacaoJob), job, job.id);
     await session.commit();
   });
 
-  let validRows = 0;
-  let invalidRows = 0;
+  let linhasValidas = 0;
+  let linhasInvalidas = 0;
   const batchSize = 250;
 
   try {
     for (let offset = 0; offset < parsed.rows.length; offset += batchSize) {
       const batch = parsed.rows.slice(offset, offset + batchSize);
       await withSession(async (session) => {
-        const table = requireTable(ImportRow);
+        const table = requireTable(LinhaImportacao);
         for (const [batchIndex, sourceRow] of batch.entries()) {
           const raw = rowToObject(parsed.headers, sourceRow);
           const normalized = normalizeSourceRow(raw);
-          const canonical = toCanonicalRow(normalized, options.rules);
+          const canonical = toCanonicalRow(normalized, options.regras);
           const validationErrors = validateCanonicalRow(canonical);
-          if (validationErrors.length) invalidRows += 1;
-          else validRows += 1;
+          if (validationErrors.length) linhasInvalidas += 1;
+          else linhasValidas += 1;
 
-          const row = new ImportRow();
+          const row = new LinhaImportacao();
           row.id = randomUUID();
-          row.importJobId = jobId;
-          row.rowNumber = options.headerRow + offset + batchIndex + 1;
-          row.rawJson = JSON.stringify(raw);
-          row.normalizedJson = JSON.stringify(normalized);
-          row.canonicalJson = JSON.stringify(canonical);
-          row.validationStatus = validationErrors.length ? "INVALID" : "VALID";
-          row.validationErrorsJson = JSON.stringify(validationErrors);
+          row.importacaoId = jobId;
+          row.numeroLinha = options.linhaCabecalho + offset + batchIndex + 1;
+          row.jsonBruto = JSON.stringify(raw);
+          row.jsonNormalizado = JSON.stringify(normalized);
+          row.jsonCanonico = JSON.stringify(canonical);
+          row.situacaoValidacao = validationErrors.length ? "INVALID" : "VALID";
+          row.jsonErrosValidacao = JSON.stringify(validationErrors);
           session.trackNew(table, row, row.id);
         }
         await session.commit();
@@ -303,12 +303,12 @@ export async function persistImport(file: UploadedFileInfo, options: ImportOptio
     }
 
     await withSession(async (session) => {
-      const storedJob = await session.find(ImportJob, jobId);
-      if (!storedJob) throw new Error(`Import job ${jobId} desapareceu durante o processamento.`);
-      storedJob.status = "COMPLETED";
-      storedJob.validRows = validRows;
-      storedJob.invalidRows = invalidRows;
-      storedJob.completedAt = new Date().toISOString();
+      const storedJob = await session.find(ImportacaoJob, jobId);
+      if (!storedJob) throw new Error(`Importacao job ${jobId} desapareceu durante o processamento.`);
+      storedJob.situacao = "CONCLUIDO";
+      storedJob.linhasValidas = linhasValidas;
+      storedJob.linhasInvalidas = linhasInvalidas;
+      storedJob.concluidoEm = new Date().toISOString();
       session.markDirty(storedJob);
       await session.commit();
     });
@@ -319,16 +319,16 @@ export async function persistImport(file: UploadedFileInfo, options: ImportOptio
 
   return {
     id: jobId,
-    fileId,
-    mappingProfileId: profile?.id ?? null,
-    mappingProfileVersion: profile?.version ?? null,
-    fileName: file.originalName,
-    fileSha256,
-    population: options.population,
-    sheetName: parsed.sheetName,
-    rowCount: parsed.rows.length,
-    validRows,
-    invalidRows,
-    status: "COMPLETED"
+    arquivoId,
+    perfilMapeamentoId: perfil?.id ?? null,
+    versaoPerfilMapeamento: perfil?.versao ?? null,
+    nomeArquivo: file.originalName,
+    arquivoSha256,
+    populacao: options.populacao,
+    nomeAba: parsed.nomeAba,
+    quantidadeLinhas: parsed.rows.length,
+    linhasValidas,
+    linhasInvalidas,
+    situacao: "CONCLUIDO"
   };
 }

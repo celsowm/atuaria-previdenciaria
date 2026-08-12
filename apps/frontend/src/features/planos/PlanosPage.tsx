@@ -18,11 +18,11 @@ import {
 import AddRounded from "@mui/icons-material/AddRounded";
 import ArrowBackRounded from "@mui/icons-material/ArrowBackRounded";
 import ArrowForwardRounded from "@mui/icons-material/ArrowForwardRounded";
-import { api, type Plan } from "../../api/client";
+import { api, type Plano } from "../../api/client";
 
 type Props = {
-  planId?: string;
-  onOpenPlan: (id: string) => void;
+  planoId?: string;
+  onAbrirPlano: (id: string) => void;
   onOpenRules: (id: string) => void;
   onBack: () => void;
 };
@@ -34,13 +34,13 @@ const modalityLabels: Record<string, string> = {
 };
 
 const statusLabels: Record<string, string> = {
-  ACTIVE: "Ativo",
-  INACTIVE: "Inativo",
-  CLOSED: "Encerrado"
+  ATIVO: "Ativo",
+  INATIVO: "Inativo",
+  ENCERRADO: "Encerrado"
 };
 
-export function PlansPage({ planId, onOpenPlan, onOpenRules, onBack }: Props) {
-  const [plans, setPlans] = useState<Plan[]>([]);
+export function PlanosPage({ planoId, onAbrirPlano, onOpenRules, onBack }: Props) {
+  const [plans, setPlans] = useState<Plano[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -61,13 +61,13 @@ export function PlansPage({ planId, onOpenPlan, onOpenRules, onBack }: Props) {
     void reload();
   }, []);
 
-  const selected = useMemo(() => plans.find((plan) => plan.id === planId), [plans, planId]);
+  const selected = useMemo(() => plans.find((plan) => plan.id === planoId), [plans, planoId]);
 
   if (loading && plans.length === 0) {
     return <Box sx={{ minHeight: 360, display: "grid", placeItems: "center" }}><CircularProgress size={28} /></Box>;
   }
 
-  if (planId && !selected) {
+  if (planoId && !selected) {
     return <Stack spacing={2}><Button onClick={onBack} startIcon={<ArrowBackRounded />} sx={{ alignSelf: "flex-start" }}>Planos</Button><Alert severity="warning">Plano não encontrado.</Alert></Stack>;
   }
 
@@ -99,17 +99,17 @@ export function PlansPage({ planId, onOpenPlan, onOpenRules, onBack }: Props) {
           {plans.map((plan) => (
             <Paper key={plan.id} elevation={0} sx={{ p: 2.25, border: "1px solid", borderColor: "divider" }}>
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "minmax(280px,1.5fr) 180px 180px 120px 40px" }, gap: 2, alignItems: "center" }}>
-                <Box minWidth={0}>
+                <Box sx={{ minWidth: 0 }}>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography fontWeight={750} noWrap>{plan.name}</Typography>
-                    <Chip size="small" variant="outlined" label={plan.code} />
+                    <Typography fontWeight={750} noWrap>{plan.nome}</Typography>
+                    <Chip size="small" variant="outlined" label={plan.codigo} />
                   </Stack>
-                  <Typography variant="body2" color="text.secondary" noWrap sx={{ mt: .4 }}>{plan.sponsorName || "Patrocinador não informado"}</Typography>
+                  <Typography variant="body2" color="text.secondary" noWrap sx={{ mt: .4 }}>{plan.nomePatrocinador || "Patrocinador não informado"}</Typography>
                 </Box>
-                <Box><Typography variant="caption" color="text.secondary">Modalidade</Typography><Typography variant="body2" fontWeight={650}>{modalityLabels[plan.modality] ?? plan.modality}</Typography></Box>
+                <Box><Typography variant="caption" color="text.secondary">Modalidade</Typography><Typography variant="body2" fontWeight={650}>{modalityLabels[plan.modalidade] ?? plan.modalidade}</Typography></Box>
                 <Box><Typography variant="caption" color="text.secondary">CNPJ</Typography><Typography variant="body2">{plan.cnpj || "—"}</Typography></Box>
-                <Chip size="small" label={statusLabels[plan.status] ?? plan.status} color={plan.status === "ACTIVE" ? "success" : "default"} variant={plan.status === "ACTIVE" ? "filled" : "outlined"} />
-                <Button aria-label={`Abrir ${plan.name}`} onClick={() => onOpenPlan(plan.id)} sx={{ minWidth: 36, px: 0 }}><ArrowForwardRounded /></Button>
+                <Chip size="small" label={statusLabels[plan.situacao] ?? plan.situacao} color={plan.situacao === "ATIVO" ? "success" : "default"} variant={plan.situacao === "ATIVO" ? "filled" : "outlined"} />
+                <Button aria-label={`Abrir ${plan.nome}`} onClick={() => onAbrirPlano(plan.id)} sx={{ minWidth: 36, px: 0 }}><ArrowForwardRounded /></Button>
               </Box>
             </Paper>
           ))}
@@ -117,28 +117,28 @@ export function PlansPage({ planId, onOpenPlan, onOpenRules, onBack }: Props) {
       )}
 
       <CreatePlanDialog open={open} onClose={() => setOpen(false)} onCreated={(plan) => {
-        setPlans((current) => [...current, plan].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
+        setPlans((current) => [...current, plan].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")));
         setOpen(false);
-        onOpenPlan(plan.id);
+        onAbrirPlano(plan.id);
       }} />
     </Stack>
   );
 }
 
-function PlanDetail({ plan, onBack, onOpenRules, onUpdated }: { plan: Plan; onBack: () => void; onOpenRules: () => void; onUpdated: (plan: Plan) => void }) {
-  const [status, setStatus] = useState(plan.status);
+function PlanDetail({ plan, onBack, onOpenRules, onUpdated }: { plan: Plano; onBack: () => void; onOpenRules: () => void; onUpdated: (plan: Plano) => void }) {
+  const [status, setStatus] = useState(plan.situacao);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const saveStatus = async (next: string) => {
-    setStatus(next as Plan["status"]);
+    setStatus(next as Plano["situacao"]);
     setSaving(true);
     try {
-      const updated = await api.updatePlan(plan.id, { status: next as Plan["status"] });
+      const updated = await api.atualizarPlano(plan.id, { situacao: next as Plano["situacao"] });
       onUpdated(updated);
       setError(null);
     } catch (reason) {
-      setStatus(plan.status);
+      setStatus(plan.situacao);
       setError(reason instanceof Error ? reason.message : "Não foi possível atualizar o plano.");
     } finally {
       setSaving(false);
@@ -150,14 +150,14 @@ function PlanDetail({ plan, onBack, onOpenRules, onUpdated }: { plan: Plan; onBa
       <Button onClick={onBack} startIcon={<ArrowBackRounded />} sx={{ alignSelf: "flex-start" }}>Planos</Button>
       {error && <Alert severity="error">{error}</Alert>}
       <Box>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}><Chip size="small" variant="outlined" label={plan.code} /><Chip size="small" label={modalityLabels[plan.modality] ?? plan.modality} /></Stack>
-        <Typography variant="h4">{plan.name}</Typography>
-        <Typography color="text.secondary" sx={{ mt: .75 }}>{plan.sponsorName || "Patrocinador não informado"}</Typography>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}><Chip size="small" variant="outlined" label={plan.codigo} /><Chip size="small" label={modalityLabels[plan.modalidade] ?? plan.modalidade} /></Stack>
+        <Typography variant="h4">{plan.nome}</Typography>
+        <Typography color="text.secondary" sx={{ mt: .75 }}>{plan.nomePatrocinador || "Patrocinador não informado"}</Typography>
       </Box>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, minmax(0, 1fr))" }, gap: 2 }}>
-        <Paper elevation={0} sx={{ p: 2.25, border: "1px solid", borderColor: "divider" }}><Typography variant="caption" color="text.secondary">Modalidade</Typography><Typography fontWeight={700} sx={{ mt: .5 }}>{modalityLabels[plan.modality] ?? plan.modality}</Typography></Paper>
+        <Paper elevation={0} sx={{ p: 2.25, border: "1px solid", borderColor: "divider" }}><Typography variant="caption" color="text.secondary">Modalidade</Typography><Typography fontWeight={700} sx={{ mt: .5 }}>{modalityLabels[plan.modalidade] ?? plan.modalidade}</Typography></Paper>
         <Paper elevation={0} sx={{ p: 2.25, border: "1px solid", borderColor: "divider" }}><Typography variant="caption" color="text.secondary">CNPJ</Typography><Typography fontWeight={700} sx={{ mt: .5 }}>{plan.cnpj || "Não informado"}</Typography></Paper>
-        <Paper elevation={0} sx={{ p: 2.25, border: "1px solid", borderColor: "divider" }}><TextField select fullWidth size="small" label="Situação" value={status} disabled={saving} onChange={(event) => void saveStatus(event.target.value)}><MenuItem value="ACTIVE">Ativo</MenuItem><MenuItem value="INACTIVE">Inativo</MenuItem><MenuItem value="CLOSED">Encerrado</MenuItem></TextField></Paper>
+        <Paper elevation={0} sx={{ p: 2.25, border: "1px solid", borderColor: "divider" }}><TextField select fullWidth size="small" label="Situação" value={status} disabled={saving} onChange={(event) => void saveStatus(event.target.value)}><MenuItem value="ATIVO">Ativo</MenuItem><MenuItem value="INATIVO">Inativo</MenuItem><MenuItem value="ENCERRADO">Encerrado</MenuItem></TextField></Paper>
       </Box>
       <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider" }}>
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={2} alignItems={{ sm: "center" }}>
@@ -169,11 +169,11 @@ function PlanDetail({ plan, onBack, onOpenRules, onUpdated }: { plan: Plan; onBa
   );
 }
 
-function CreatePlanDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (plan: Plan) => void }) {
+function CreatePlanDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (plan: Plano) => void }) {
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [modality, setModality] = useState<"BD" | "CD" | "CV">("BD");
-  const [sponsorName, setSponsorName] = useState("");
+  const [nomePatrocinador, setSponsorName] = useState("");
   const [cnpj, setCnpj] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -183,7 +183,7 @@ function CreatePlanDialog({ open, onClose, onCreated }: { open: boolean; onClose
     setSaving(true);
     setError(null);
     try {
-      const plan = await api.createPlan({ code, name, modality, sponsorName: sponsorName || undefined, cnpj: cnpj || undefined });
+      const plan = await api.criarPlano({ codigo: code, nome: name, modalidade: modality, nomePatrocinador: nomePatrocinador || undefined, cnpj: cnpj || undefined });
       setCode("");
       setName("");
       setModality("BD");
@@ -206,7 +206,7 @@ function CreatePlanDialog({ open, onClose, onCreated }: { open: boolean; onClose
           <TextField label="Código" value={code} onChange={(event) => setCode(event.target.value)} required autoFocus />
           <TextField label="Nome do plano" value={name} onChange={(event) => setName(event.target.value)} required />
           <TextField select label="Modalidade" value={modality} onChange={(event) => setModality(event.target.value as "BD" | "CD" | "CV")}><MenuItem value="BD">Benefício Definido (BD)</MenuItem><MenuItem value="CD">Contribuição Definida (CD)</MenuItem><MenuItem value="CV">Contribuição Variável (CV)</MenuItem></TextField>
-          <TextField label="Patrocinador" value={sponsorName} onChange={(event) => setSponsorName(event.target.value)} />
+          <TextField label="Patrocinador" value={nomePatrocinador} onChange={(event) => setSponsorName(event.target.value)} />
           <TextField label="CNPJ" value={cnpj} onChange={(event) => setCnpj(event.target.value)} />
         </Stack>
       </DialogContent>

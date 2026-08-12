@@ -3,23 +3,23 @@
 O módulo de cálculo transforma snapshots aprovados e uma fotografia explícita das massas canônicas em uma execução imutável e reproduzível.
 
 ```text
-Evaluation
+Avaliacao
    │
-   ├── ActuarialParameterization APPROVED/SUPERSEDED
+   ├── ParametrizacaoAtuarial APROVADO/SUBSTITUIDO
    │
-   ├── PlanRulesVersion APPROVED/SUPERSEDED   # engines atuariais
+   ├── VersaoRegrasPlanoo APROVADO/SUBSTITUIDO   # engines atuariais
    │
-   └── latest COMPLETED import por população
+   └── latest CONCLUIDO import por população
                     │
                     ▼
-              CalculationRun
+              ExecucaoCalculo
                     │
        ┌────────────┼──────────────────┐
        ▼            ▼                  ▼
 CalculationInput  Aggregate metrics  Participant results
 ```
 
-`SUPERSEDED` significa que o snapshot já foi aprovado e depois substituído por uma versão mais nova. Ele continua imutável e válido para reprodução histórica; portanto o cálculo aceita `APPROVED` e `SUPERSEDED`.
+`SUBSTITUIDO` significa que o snapshot já foi aprovado e depois substituído por uma versão mais nova. Ele continua imutável e válido para reprodução histórica; portanto o cálculo aceita `APROVADO` e `SUBSTITUIDO`.
 
 ## Invariantes
 
@@ -28,21 +28,21 @@ Toda execução exige:
 - avaliação existente;
 - nenhuma ocorrência bloqueante na avaliação;
 - parametrização pertencente à avaliação;
-- parametrização `APPROVED` ou `SUPERSEDED`;
-- ao menos um import `COMPLETED` vinculado à avaliação;
+- parametrização `APROVADO` ou `SUBSTITUIDO`;
+- ao menos um import `CONCLUIDO` vinculado à avaliação;
 - engine registrado no `CalculationEngine` registry.
 
-Um engine com `requiresPlanRules = true` exige adicionalmente:
+Um engine com `requiresPlanoRules = true` exige adicionalmente:
 
-- `Evaluation.planId` real, sem inferência por nome;
+- `Avaliacao.planoId` real, sem inferência por nome;
 - `planRulesVersionId` explícito;
 - regras pertencentes ao mesmo plano;
 - modalidade compatível com `supportedModalities` do engine;
-- versão de regras `APPROVED` ou `SUPERSEDED`;
+- versão de regras `APROVADO` ou `SUBSTITUIDO`;
 - `rulesFingerprint` persistido;
 - vigência da versão cobrindo a data-base da avaliação.
 
-Antes da execução, o backend recalcula o fingerprint do conteúdo atual da `PlanRulesVersion` e o compara ao fingerprint aprovado. Divergência é tratada como falha de integridade e o cálculo é recusado.
+Antes da execução, o backend recalcula o fingerprint do conteúdo atual da `VersaoRegrasPlanoo` e o compara ao fingerprint aprovado. Divergência é tratada como falha de integridade e o cálculo é recusado.
 
 A execução nunca busca "a regra atual" ou "o parâmetro atual" depois de criada.
 
@@ -56,7 +56,7 @@ CalculationEngine
   ├── version
   ├── label
   ├── resultKind
-  ├── requiresPlanRules
+  ├── requiresPlanoRules
   ├── supportedModalities[]
   └── execute(context)
           ↓
@@ -70,7 +70,7 @@ CalculationEngine
 - `PRECALCULATION`: consolidação e cálculos técnicos sem resultado atuarial de benefício/provisão;
 - `ACTUARIAL`: cálculo que consome explicitamente regras versionadas do plano e hipóteses atuariais.
 
-Um engine `ACTUARIAL` não pode ser registrado com `requiresPlanRules = false`.
+Um engine `ACTUARIAL` não pode ser registrado com `requiresPlanoRules = false`.
 
 Resultados individuais só podem referenciar linhas pertencentes aos imports efetivamente congelados na execução. O orquestrador valida `importJobId + sourceRowNumber` antes de persistir a saída do engine.
 
@@ -142,7 +142,7 @@ Nenhum deles recebe zero implicitamente. Se o valor correto for zero, zero preci
 
 ### Hipótese biométrica
 
-O v1 exige exatamente uma hipótese biométrica ativa na parametrização e usa os pontos `qx` da `BiometricTableVersion` selecionada.
+O v1 exige exatamente uma hipótese biométrica ativa na parametrização e usa os pontos `qx` da `TabuaBiometriaVersion` selecionada.
 
 Os próprios pontos `age / sex / qx` entram no `parameterFingerprint`. Assim o fingerprint reflete os dados biométricos efetivamente consumidos, e não apenas o UUID da versão.
 
@@ -152,7 +152,7 @@ Para cada sexo utilizado, a série precisa:
 - ter `0 <= qx <= 1`;
 - encerrar com `qx = 1` (tolerância numérica `0.999999`).
 
-Uma tabela `UNISEX` pode servir como fallback para `MALE` e `FEMALE`.
+Uma tabela `UNISEX` pode servir como fallback para `MASCULINO` e `FEMASCULINO`.
 
 ### Dados canônicos obrigatórios
 
@@ -238,7 +238,7 @@ CalculationParticipantResult
   ├── importJobId
   ├── population
   ├── sourceRowNumber
-  ├── participantRegistration
+  ├── matriculaParticipante
   ├── resultJson
   └── ordinal
 ```
@@ -258,13 +258,13 @@ pvfb
 
 Isso permite reconciliar a nova implementação contra o sistema legado participante a participante, sem depender apenas da igualdade do total agregado.
 
-O detalhe normal do `CalculationRun` continua leve. Resultados individuais são recuperados por endpoint paginado, com máximo de 200 registros por página.
+O detalhe normal do `ExecucaoCalculo` continua leve. Resultados individuais são recuperados por endpoint paginado, com máximo de 200 registros por página.
 
 ## Fingerprints
 
 ```text
 planRulesFingerprint
-  = fingerprint da PlanRulesVersion aprovada
+  = fingerprint da VersaoRegrasPlanoo aprovada
 
 parameterFingerprint
   = parametrização + parâmetros + hipóteses + pontos qx efetivamente usados
@@ -273,7 +273,7 @@ dataFingerprint
   = imports + arquivo original + schema + conteúdo CANONICAL
 
 inputFingerprint
-  = avaliação + planId + data-base
+  = avaliação + planoId + data-base
     + snapshot completo de regras
     + parameterFingerprint
     + dataFingerprint
@@ -283,14 +283,14 @@ resultFingerprint
   = métricas agregadas + resultados individuais ordenados produzidos pelo engine
 ```
 
-Se uma solicitação possui o mesmo `inputFingerprint`, engine e versão de engine, um `CalculationRun COMPLETED` anterior é reutilizado.
+Se uma solicitação possui o mesmo `inputFingerprint`, engine e versão de engine, um `ExecucaoCalculo CONCLUIDO` anterior é reutilizado.
 
 ## Persistência
 
 ```text
-CalculationRun
-  ├── evaluationId
-  ├── parameterizationId
+ExecucaoCalculo
+  ├── avaliacaoId
+  ├── parametrizacaoId
   ├── planRulesVersionId?       # obrigatório para engine atuarial
   ├── planRulesFingerprint?
   ├── engineCode / engineVersion
@@ -317,18 +317,18 @@ As colunas de regras do plano e `participantResultCount` são aditivas/nullable 
 ## API
 
 ```text
-GET  /api/calculation-engines
-GET  /api/evaluations/:evaluationId/calculations
-POST /api/evaluations/:evaluationId/calculations
-GET  /api/calculations/:id
-GET  /api/calculations/:id/participants?page=1&pageSize=50
+GET  /api/motores-calculo
+GET  /api/avaliacoes/:avaliacaoId/calculos
+POST /api/avaliacoes/:avaliacaoId/calculos
+GET  /api/calculos/:id
+GET  /api/calculos/:id/participants?page=1&pageSize=50
 ```
 
 Exemplo de solicitação atuarial:
 
 ```json
 {
-  "parameterizationId": "<uuid>",
+  "parametrizacaoId": "<uuid>",
   "planRulesVersionId": "<uuid>",
   "engineCode": "BD_PVFB"
 }
@@ -337,8 +337,8 @@ Exemplo de solicitação atuarial:
 ## URLs
 
 ```text
-/avaliacoes/:evaluationId/calculos
-/avaliacoes/:evaluationId/calculos/:calculationId
+/avaliacoes/:avaliacaoId/calculos
+/avaliacoes/:avaliacaoId/calculos/:calculationId
 ```
 
 A URL individual recupera a execução persistida. Ela nunca dispara recálculo. A própria tela carrega a reconciliação individual paginadamente quando a execução possui esses resultados.
@@ -361,4 +361,4 @@ A infraestrutura para reconciliar o cálculo com o legado já existe em nível a
 
 O próximo passo atuarial não é renomear PVFB como reserva. É implementar a apropriação do passivo conforme método de financiamento e regras efetivamente suportadas, por exemplo um engine BD específico para `PROJECTED_UNIT_CREDIT` ou outro método validado.
 
-Somente depois disso o **Fechamento Atuarial** deve selecionar explicitamente um `CalculationRun COMPLETED`, reconciliar valores e congelar a rodada final.
+Somente depois disso o **Fechamento Atuarial** deve selecionar explicitamente um `ExecucaoCalculo CONCLUIDO`, reconciliar valores e congelar a rodada final.

@@ -25,7 +25,7 @@ O estudo guarda a base histórica granular por ano. O motor consolida os anos do
 ## Entidades
 
 ```text
-AdherenceStudy
+EstudoAderencia
   ├─ AdherenceObservation 1:N
   └─ AdherenceCandidateResult 1:N
        └─ AdherenceCandidatePoint 1:N

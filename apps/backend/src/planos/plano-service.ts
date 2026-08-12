@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { entityRef, eq, getTableDefFromEntity, selectFromEntity } from "metal-orm";
-import { createSession, executarSql } from "../db.js";
-import { Plan } from "../domain/plan-entities.js";
+import { entityRef, eq, selectFromEntity } from "metal-orm";
+import { createSession, executarSql, consultarSql } from "../db.js";
+import { Plano } from "../domain/plano-entities.js";
 import { EntidadePrevidencia } from "../domain/previdencia-entities.js";
 
-const planRef = entityRef(Plan);
+const planRef = entityRef(Plano);
 const modalities = new Set(["BD", "CD", "CV"]);
-const statuses = new Set(["ACTIVE", "INACTIVE", "CLOSED"]);
+const situacaoes = new Set(["ATIVO", "INATIVO", "ENCERRADO"]);
 
 type Session = ReturnType<typeof createSession>;
 
@@ -17,12 +17,6 @@ async function withSession<T>(handler: (session: Session) => Promise<T>) {
   } finally {
     await session.dispose();
   }
-}
-
-function table() {
-  const result = getTableDefFromEntity(Plan);
-  if (!result) throw new Error("Metal ORM metadata not bootstrapped for Plan");
-  return result;
 }
 
 function normalizeCode(value: string) {
@@ -42,94 +36,108 @@ function validateModality(value: string) {
 
 function validateStatus(value: string) {
   const normalized = value.trim().toUpperCase();
-  if (!statuses.has(normalized)) throw new Error("Status deve ser ACTIVE, INACTIVE ou CLOSED.");
+  if (!situacaoes.has(normalized)) throw new Error("Status deve ser ATIVO, INATIVO ou ENCERRADO.");
   return normalized;
 }
 
-export async function listPlans() {
+export async function listarPlanos() {
   return withSession((session) =>
-    selectFromEntity(Plan).orderBy(planRef.$.name, "ASC").execute(session)
+    selectFromEntity(Plano).orderBy(planRef.$.nome, "ASC").execute(session)
   );
 }
 
-export async function getPlan(id: string) {
-  return withSession((session) => session.find(Plan, id));
+export async function obterPlano(id: string) {
+  return withSession(async (session) => {
+    const rows = await selectFromEntity(Plano).where(eq(planRef.id, id)).limit(1).execute(session);
+    return rows[0] ?? null;
+  });
 }
 
-export async function createPlan(input: {
+export async function criarPlano(input: {
   entidadePrevidenciaId: string;
-  code: string;
-  name: string;
-  modality: string;
-  sponsorName?: string;
+  codigo: string;
+  nome: string;
+  modalidade: string;
+  nomePatrocinador?: string;
   cnpj?: string;
 }) {
-  const code = normalizeCode(input.code);
-  const name = input.name.trim();
-  if (!code) throw new Error("Código do plano é obrigatório.");
-  if (!name) throw new Error("Nome do plano é obrigatório.");
+  const codigo = normalizeCode(input.codigo);
+  const nome = input.nome.trim();
+  if (!codigo) throw new Error("Código do plano é obrigatório.");
+  if (!nome) throw new Error("Nome do plano é obrigatório.");
 
   return withSession(async (session) => {
     const entidade = await session.find(EntidadePrevidencia, input.entidadePrevidenciaId);
     if (!entidade || entidade.situacao !== "ATIVA") throw new Error("Entidade de previdência inválida ou inativa.");
-    const existing = await selectFromEntity(Plan).where(eq(planRef.code, code)).execute(session);
+    const existing = await selectFromEntity(Plano).where(eq(planRef.codigo, codigo)).execute(session);
     if (existing.length > 0) throw new Error("Já existe um plano com este código.");
 
     const now = new Date().toISOString();
-    const plan = new Plan();
+    const plan = new Plano();
     plan.id = randomUUID();
     plan.entidadePrevidenciaId = input.entidadePrevidenciaId;
-    plan.code = code;
-    plan.name = name;
-    plan.modality = validateModality(input.modality);
-    plan.sponsorName = normalizeOptional(input.sponsorName);
+    plan.codigo = codigo;
+    plan.nome = nome;
+    plan.modalidade = validateModality(input.modalidade);
+    plan.nomePatrocinador = normalizeOptional(input.nomePatrocinador);
     plan.cnpj = normalizeOptional(input.cnpj);
-    plan.status = "ACTIVE";
-    plan.createdAt = now;
-    plan.updatedAt = now;
+    plan.situacao = "ATIVO";
+    plan.criadoEm = now;
+    plan.atualizadoEm = now;
 
-    await executarSql("INSERT INTO planos (id, entidade_previdencia_id, codigo, nome, modalidade, nome_patrocinador, cnpj, situacao, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [plan.id, plan.entidadePrevidenciaId, plan.code, plan.name, plan.modality, plan.sponsorName ?? null, plan.cnpj ?? null, plan.status, plan.createdAt, plan.updatedAt]);
+    await executarSql("INSERT INTO planos (id, entidade_previdencia_id, codigo, nome, modalidade, nome_patrocinador, cnpj, situacao, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [plan.id, plan.entidadePrevidenciaId, plan.codigo, plan.nome, plan.modalidade, plan.nomePatrocinador ?? null, plan.cnpj ?? null, plan.situacao, plan.criadoEm, plan.atualizadoEm]);
     return plan;
   });
 }
 
-export async function updatePlan(id: string, input: {
-  code?: string;
-  name?: string;
-  modality?: string;
-  sponsorName?: string | null;
+export async function atualizarPlano(id: string, input: {
+  codigo?: string;
+  nome?: string;
+  modalidade?: string;
+  nomePatrocinador?: string | null;
   cnpj?: string | null;
-  status?: string;
+  situacao?: string;
 }) {
   return withSession(async (session) => {
-    const plan = await session.find(Plan, id);
+    const plan = await session.find(Plano, id);
     if (!plan) return null;
 
-    if (input.code !== undefined) {
-      const code = normalizeCode(input.code);
-      if (!code) throw new Error("Código do plano é obrigatório.");
-      const duplicate = await selectFromEntity(Plan).where(eq(planRef.code, code)).execute(session);
+    if (input.codigo !== undefined) {
+      const codigo = normalizeCode(input.codigo);
+      if (!codigo) throw new Error("Código do plano é obrigatório.");
+      const duplicate = await selectFromEntity(Plano).where(eq(planRef.codigo, codigo)).execute(session);
       if (duplicate.some((candidate) => candidate.id !== id)) {
         throw new Error("Já existe um plano com este código.");
       }
-      plan.code = code;
+      plan.codigo = codigo;
     }
-    if (input.name !== undefined) {
-      const name = input.name.trim();
-      if (!name) throw new Error("Nome do plano é obrigatório.");
-      plan.name = name;
+    if (input.nome !== undefined) {
+      const nome = input.nome.trim();
+      if (!nome) throw new Error("Nome do plano é obrigatório.");
+      plan.nome = nome;
     }
-    if (input.modality !== undefined) {
-      const modality = validateModality(input.modality);
-      plan.modality = modality;
+    if (input.modalidade !== undefined) {
+      const modalidade = validateModality(input.modalidade);
+      if (modalidade !== plan.modalidade) {
+        const versoesAprovadas = await consultarSql<{ id: string }>(
+          "SELECT id FROM versoes_regras_plano WHERE plano_id = ? AND situacao IN (?, ?) LIMIT 1",
+          [plan.id, "APROVADO", "SUBSTITUIDO"]
+        );
+        if (versoesAprovadas.length) {
+          throw new Error("A modalidade não pode ser alterada após a aprovação das regras do plano.");
+        }
+      }
+      plan.modalidade = modalidade;
     }
-    if (input.sponsorName !== undefined) plan.sponsorName = normalizeOptional(input.sponsorName);
+    if (input.nomePatrocinador !== undefined) plan.nomePatrocinador = normalizeOptional(input.nomePatrocinador);
     if (input.cnpj !== undefined) plan.cnpj = normalizeOptional(input.cnpj);
-    if (input.status !== undefined) plan.status = validateStatus(input.status);
-    plan.updatedAt = new Date().toISOString();
+    if (input.situacao !== undefined) plan.situacao = validateStatus(input.situacao);
+    plan.atualizadoEm = new Date().toISOString();
 
-    session.markDirty(plan);
-    await session.commit();
+    await executarSql(
+      "UPDATE planos SET codigo = ?, nome = ?, modalidade = ?, nome_patrocinador = ?, cnpj = ?, situacao = ?, atualizado_em = ? WHERE id = ?",
+      [plan.codigo, plan.nome, plan.modalidade, plan.nomePatrocinador, plan.cnpj, plan.situacao, plan.atualizadoEm, plan.id]
+    );
     return plan;
   });
 }

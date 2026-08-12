@@ -11,14 +11,14 @@ import {
   Typography
 } from "@mui/material";
 import LockOutlined from "@mui/icons-material/LockOutlined";
-import { api, setAuthToken, type ApplicationConfig, type AuthUser } from "../../api/client";
+import { api, setAuthToken, type ConfiguracaoAplicacao, type UsuarioAutenticado } from "../../api/client";
 
 type Props = {
-  config: ApplicationConfig;
-  onAuthenticated: (user: AuthUser) => void;
+  config: ConfiguracaoAplicacao;
+  onAuthenticated: (user: UsuarioAutenticado) => void;
 };
 
-function brandInitial(config: ApplicationConfig) {
+function brandInitial(config: ConfiguracaoAplicacao) {
   return config.shortName.trim().charAt(0).toUpperCase() || "A";
 }
 
@@ -50,7 +50,7 @@ export function LoginPage({ config, onAuthenticated }: Props) {
           <Stack spacing={1.5} alignItems="center" textAlign="center">
             <Avatar variant="rounded" sx={{ width: 48, height: 48, bgcolor: "primary.main", fontWeight: 800 }}>{brandInitial(config)}</Avatar>
             <Box>
-              <Typography variant="h5" fontWeight={800}>Entrar em {config.name}</Typography>
+              <Typography variant="h5" fontWeight={800}>Entrar em {config.nome}</Typography>
               <Typography color="text.secondary" variant="body2" sx={{ mt: .75 }}>
                 {config.organizationName ?? "Previdência Complementar"}
               </Typography>

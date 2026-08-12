@@ -2,26 +2,26 @@ import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import * as XLSX from "xlsx";
-import { evaluateCandidate, type AdherenceCell } from "./statistics.js";
+import XLSX from "xlsx";
+import { evaluateCandidato, type AderenciaCell } from "./estatisticas.js";
 
 export type CellPointer = {
   sheet: string;
   cell: string;
 };
 
-export type GoldenMasterCandidate = {
-  label: string;
-  expectedColumn?: string;
+export type GoldenMasterCandidato = {
+  rotulo: string;
+  esperadoColumn?: string;
   qxColumn?: string;
   summary?: Partial<Record<MetricName, CellPointer>>;
 };
 
 export type GoldenMasterManifest = {
-  name: string;
+  nome: string;
   workbook: string;
   alpha: number;
-  fisherSplitAge: number;
+  idadeDivisaoFisher: number;
   tolerance?: {
     absolute?: number;
     relative?: number;
@@ -32,52 +32,52 @@ export type GoldenMasterManifest = {
     endRow: number;
     ageColumn: string;
     sexColumn?: string;
-    fixedSex?: "MALE" | "FEMALE" | "UNISEX";
-    exposureColumn: string;
-    observedColumn: string;
+    fixedSex?: "MASCULINO" | "FEMININO" | "UNISSEX";
+    exposicaoColumn: string;
+    observadoColumn: string;
   };
-  candidates: GoldenMasterCandidate[];
+  candidatos: GoldenMasterCandidato[];
 };
 
 export type MetricName =
-  | "expectedEvents"
-  | "chiSquare"
-  | "chiSquareCritical"
-  | "chiSquareP"
+  | "eventosEsperados"
+  | "quiQuadrado"
+  | "quiQuadradoCritical"
+  | "quiQuadradoP"
   | "ksD"
-  | "ksCritical"
-  | "ksP"
-  | "zStatistic"
-  | "zCritical"
-  | "zP"
-  | "fisherP"
+  | "ksCritico"
+  | "pKs"
+  | "estatisticaZ"
+  | "zCritico"
+  | "pZ"
+  | "pFisher"
   | "dqm";
 
 const REPO_ROOT = resolve(fileURLToPath(new URL("../../../../", import.meta.url)));
 const DEFAULT_ABSOLUTE_TOLERANCE = 1e-8;
 const DEFAULT_RELATIVE_TOLERANCE = 1e-6;
 
-function normalizeSex(value: unknown, fallback: "MALE" | "FEMALE" | "UNISEX") {
+function normalizeSex(value: unknown, fallback: "MASCULINO" | "FEMININO" | "UNISSEX") {
   const text = String(value ?? "").trim().toUpperCase();
   if (!text) return fallback;
-  if (["M", "MALE", "MASC", "MASCULINO", "1"].includes(text)) return "MALE";
-  if (["F", "FEMALE", "FEM", "FEMININO", "2"].includes(text)) return "FEMALE";
-  if (["U", "UNISEX", "AMBOS", "BOTH"].includes(text)) return "UNISEX";
+  if (["M", "MASCULINO", "MASC", "MASCULINO", "1"].includes(text)) return "MASCULINO";
+  if (["F", "FEMININO", "FEM", "FEMININO", "2"].includes(text)) return "FEMININO";
+  if (["U", "UNISSEX", "AMBOS", "AMBOS"].includes(text)) return "UNISSEX";
   throw new Error(`Sexo não reconhecido no golden master: ${text}.`);
 }
 
-function numeric(value: unknown, label: string) {
+function numeric(value: unknown, rotulo: string) {
   if (typeof value === "number") {
-    if (!Number.isFinite(value)) throw new Error(`${label} não é finito.`);
+    if (!Number.isFinite(value)) throw new Error(`${rotulo} não é finito.`);
     return value;
   }
   let text = String(value ?? "").trim();
-  if (!text) throw new Error(`${label} está vazio.`);
+  if (!text) throw new Error(`${rotulo} está vazio.`);
   const percentage = text.endsWith("%");
   if (percentage) text = text.slice(0, -1).trim();
   if (text.includes(",")) text = text.replace(/\./g, "").replace(",", ".");
   const parsed = Number(text);
-  if (!Number.isFinite(parsed)) throw new Error(`${label} não é numérico: ${String(value)}.`);
+  if (!Number.isFinite(parsed)) throw new Error(`${rotulo} não é numérico: ${String(value)}.`);
   return percentage ? parsed / 100 : parsed;
 }
 
@@ -108,49 +108,49 @@ function resolvePrivatePath(input: string, manifestPath?: string) {
   return resolved;
 }
 
-function closeEnough(actual: number, expected: number, absolute: number, relativeTolerance: number) {
-  const delta = Math.abs(actual - expected);
-  const limit = absolute + relativeTolerance * Math.max(1, Math.abs(expected));
+function closeEnough(actual: number, esperado: number, absolute: number, relativeTolerance: number) {
+  const delta = Math.abs(actual - esperado);
+  const limit = absolute + relativeTolerance * Math.max(1, Math.abs(esperado));
   return { pass: delta <= limit, delta, limit };
 }
 
-function metricValue(metrics: ReturnType<typeof evaluateCandidate>, name: MetricName) {
-  return metrics[name];
+function metricValue(metrics: ReturnType<typeof evaluateCandidato>, nome: MetricName) {
+  return metrics[nome];
 }
 
-function buildCells(workbook: XLSX.WorkBook, manifest: GoldenMasterManifest, candidate: GoldenMasterCandidate) {
+function buildCells(workbook: XLSX.WorkBook, manifest: GoldenMasterManifest, candidato: GoldenMasterCandidato) {
   const sheet = workbook.Sheets[manifest.matrix.sheet];
   if (!sheet) throw new Error(`A aba ${manifest.matrix.sheet} não existe no workbook.`);
-  if (!candidate.expectedColumn && !candidate.qxColumn) {
-    throw new Error(`Candidato ${candidate.label} precisa de expectedColumn ou qxColumn.`);
+  if (!candidato.esperadoColumn && !candidato.qxColumn) {
+    throw new Error(`Candidato ${candidato.rotulo} precisa de esperadoColumn ou qxColumn.`);
   }
-  const fixedSex = manifest.matrix.fixedSex ?? "UNISEX";
-  const cells: AdherenceCell[] = [];
+  const fixedSex = manifest.matrix.fixedSex ?? "UNISSEX";
+  const cells: AderenciaCell[] = [];
   const workbookExpected: number[] = [];
   for (let row = manifest.matrix.startRow; row <= manifest.matrix.endRow; row += 1) {
     const ageRaw = matrixValue(sheet, manifest.matrix.ageColumn, row);
-    const exposureRaw = matrixValue(sheet, manifest.matrix.exposureColumn, row);
-    const observedRaw = matrixValue(sheet, manifest.matrix.observedColumn, row);
-    if (ageRaw === undefined && exposureRaw === undefined && observedRaw === undefined) continue;
-    const age = numeric(ageRaw, `${manifest.matrix.sheet}!${manifest.matrix.ageColumn}${row}`);
-    const exposure = numeric(exposureRaw, `${manifest.matrix.sheet}!${manifest.matrix.exposureColumn}${row}`);
-    const observed = numeric(observedRaw, `${manifest.matrix.sheet}!${manifest.matrix.observedColumn}${row}`);
-    if (!Number.isInteger(age) || age < 0 || age > 130) throw new Error(`Idade inválida na linha ${row}: ${age}.`);
-    if (exposure <= 0) throw new Error(`Exposição inválida na linha ${row}: ${exposure}.`);
-    const sex = manifest.matrix.sexColumn
+    const exposicaoRaw = matrixValue(sheet, manifest.matrix.exposicaoColumn, row);
+    const observadoRaw = matrixValue(sheet, manifest.matrix.observadoColumn, row);
+    if (ageRaw === undefined && exposicaoRaw === undefined && observadoRaw === undefined) continue;
+    const idade = numeric(ageRaw, `${manifest.matrix.sheet}!${manifest.matrix.ageColumn}${row}`);
+    const exposicao = numeric(exposicaoRaw, `${manifest.matrix.sheet}!${manifest.matrix.exposicaoColumn}${row}`);
+    const observado = numeric(observadoRaw, `${manifest.matrix.sheet}!${manifest.matrix.observadoColumn}${row}`);
+    if (!Number.isInteger(idade) || idade < 0 || idade > 130) throw new Error(`Idade inválida na linha ${row}: ${idade}.`);
+    if (exposicao <= 0) throw new Error(`Exposição inválida na linha ${row}: ${exposicao}.`);
+    const sexo = manifest.matrix.sexColumn
       ? normalizeSex(matrixValue(sheet, manifest.matrix.sexColumn, row), fixedSex)
       : fixedSex;
-    const expected = candidate.expectedColumn
-      ? numeric(matrixValue(sheet, candidate.expectedColumn, row), `${manifest.matrix.sheet}!${candidate.expectedColumn}${row}`)
+    const esperado = candidato.esperadoColumn
+      ? numeric(matrixValue(sheet, candidato.esperadoColumn, row), `${manifest.matrix.sheet}!${candidato.esperadoColumn}${row}`)
       : undefined;
-    const qx = candidate.qxColumn
-      ? numeric(matrixValue(sheet, candidate.qxColumn, row), `${manifest.matrix.sheet}!${candidate.qxColumn}${row}`)
-      : (expected as number) / exposure;
-    const computedExpected = exposure * qx;
-    cells.push({ age, sex, exposure, observed, qx, expected: computedExpected });
-    workbookExpected.push(expected ?? computedExpected);
+    const qx = candidato.qxColumn
+      ? numeric(matrixValue(sheet, candidato.qxColumn, row), `${manifest.matrix.sheet}!${candidato.qxColumn}${row}`)
+      : (esperado as number) / exposicao;
+    const computedExpected = exposicao * qx;
+    cells.push({ idade, sexo, exposicao, observado, qx, esperado: computedExpected });
+    workbookExpected.push(esperado ?? computedExpected);
   }
-  if (!cells.length) throw new Error(`Nenhuma célula de aderência foi lida para ${candidate.label}.`);
+  if (!cells.length) throw new Error(`Nenhuma célula de aderência foi lida para ${candidato.rotulo}.`);
   return { cells, workbookExpected };
 }
 
@@ -162,28 +162,28 @@ export async function compareGoldenMaster(manifestPathInput: string) {
   const absolute = manifest.tolerance?.absolute ?? DEFAULT_ABSOLUTE_TOLERANCE;
   const relativeTolerance = manifest.tolerance?.relative ?? DEFAULT_RELATIVE_TOLERANCE;
 
-  const candidates = manifest.candidates.map((candidate) => {
-    const { cells, workbookExpected } = buildCells(workbook, manifest, candidate);
-    const metrics = evaluateCandidate(cells, manifest.alpha, manifest.fisherSplitAge);
+  const candidatos = manifest.candidatos.map((candidato) => {
+    const { cells, workbookExpected } = buildCells(workbook, manifest, candidato);
+    const metrics = evaluateCandidato(cells, manifest.alpha, manifest.idadeDivisaoFisher);
     const pointChecks = cells.map((cell, index) => {
-      const expected = workbookExpected[index];
-      const comparison = closeEnough(cell.expected, expected, absolute, relativeTolerance);
+      const esperado = workbookExpected[index];
+      const comparison = closeEnough(cell.esperado, esperado, absolute, relativeTolerance);
       return {
-        age: cell.age,
-        sex: cell.sex,
-        actualExpected: cell.expected,
-        excelExpected: expected,
+        idade: cell.idade,
+        sexo: cell.sexo,
+        actualExpected: cell.esperado,
+        excelExpected: esperado,
         ...comparison
       };
     });
-    const metricChecks = Object.entries(candidate.summary ?? {}).map(([name, pointer]) => {
-      const metricName = name as MetricName;
+    const metricChecks = Object.entries(candidato.summary ?? {}).map(([nome, pointer]) => {
+      const metricName = nome as MetricName;
       const excel = numeric(cellValue(workbook, pointer as CellPointer), `${(pointer as CellPointer).sheet}!${(pointer as CellPointer).cell}`);
       const actual = Number(metricValue(metrics, metricName));
       return { metric: metricName, actual, excel, ...closeEnough(actual, excel, absolute, relativeTolerance) };
     });
     return {
-      label: candidate.label,
+      rotulo: candidato.rotulo,
       passed: pointChecks.every((check) => check.pass) && metricChecks.every((check) => check.pass),
       metrics,
       pointChecks,
@@ -192,16 +192,16 @@ export async function compareGoldenMaster(manifestPathInput: string) {
   });
 
   const report = {
-    manifest: manifest.name,
+    manifest: manifest.nome,
     engine: "atuas-adherence-v1",
     generatedAt: new Date().toISOString(),
-    passed: candidates.every((candidate) => candidate.passed),
-    candidates
+    passed: candidatos.every((candidato) => candidato.passed),
+    candidatos
   };
 
   const reportRoot = resolvePrivatePath(process.env.ATUAS_GOLDEN_MASTER_REPORT_DIR ?? "data/golden-master/reports");
   await mkdir(reportRoot, { recursive: true });
-  const safeName = manifest.name.replace(/[^a-zA-Z0-9_.-]+/g, "-").replace(/^-|-$/g, "") || "golden-master";
+  const safeName = manifest.nome.replace(/[^a-zA-Z0-9_.-]+/g, "-").replace(/^-|-$/g, "") || "golden-master";
   const reportPath = resolve(reportRoot, `${safeName}.report.json`);
   await writeFile(reportPath, JSON.stringify(report, null, 2), "utf8");
   return { report, reportPath };
@@ -210,11 +210,11 @@ export async function compareGoldenMaster(manifestPathInput: string) {
 export function inspectWorkbook(workbookPathInput: string) {
   const workbookPath = resolvePrivatePath(workbookPathInput);
   const workbook = XLSX.readFile(workbookPath, { cellFormula: true, cellText: true, cellDates: false });
-  return workbook.SheetNames.map((name) => {
-    const sheet = workbook.Sheets[name];
+  return workbook.SheetNames.map((nome) => {
+    const sheet = workbook.Sheets[nome];
     const ref = sheet?.["!ref"] ?? null;
     const range = ref ? XLSX.utils.decode_range(ref) : null;
-    const headerCandidates: Array<{ row: number; values: string[] }> = [];
+    const headerCandidatos: Array<{ row: number; values: string[] }> = [];
     if (sheet && range) {
       const lastProbeRow = Math.min(range.e.r, range.s.r + 19);
       for (let row = range.s.r; row <= lastProbeRow; row += 1) {
@@ -223,15 +223,15 @@ export function inspectWorkbook(workbookPathInput: string) {
           const value = sheet[XLSX.utils.encode_cell({ r: row, c: col })]?.v;
           if (typeof value === "string" && value.trim()) values.push(value.trim());
         }
-        if (values.length >= 2) headerCandidates.push({ row: row + 1, values: values.slice(0, 12) });
+        if (values.length >= 2) headerCandidatos.push({ row: row + 1, values: values.slice(0, 12) });
       }
     }
     return {
-      name,
+      nome,
       ref,
       rows: range ? range.e.r - range.s.r + 1 : 0,
       columns: range ? range.e.c - range.s.c + 1 : 0,
-      headerCandidates: headerCandidates.slice(0, 5)
+      headerCandidatos: headerCandidatos.slice(0, 5)
     };
   });
 }
@@ -249,45 +249,45 @@ async function selfTest() {
   ]);
   const summary = XLSX.utils.aoa_to_sheet([
     ["METRIC", "VALUE"],
-    ["expectedEvents", 6],
-    ["chiSquare", 0],
-    ["chiSquareP", 1],
+    ["eventosEsperados", 6],
+    ["quiQuadrado", 0],
+    ["quiQuadradoP", 1],
     ["ksD", 0],
-    ["ksP", 1],
-    ["zStatistic", 0],
-    ["zP", 1],
-    ["fisherP", 1],
+    ["pKs", 1],
+    ["estatisticaZ", 0],
+    ["pZ", 1],
+    ["pFisher", 1],
     ["dqm", 0]
   ]);
   XLSX.utils.book_append_sheet(workbook, matrix, "BASE");
   XLSX.utils.book_append_sheet(workbook, summary, "SUMMARY");
   XLSX.writeFile(workbook, workbookPath);
   const manifest: GoldenMasterManifest = {
-    name: "synthetic-ci",
+    nome: "synthetic-ci",
     workbook: workbookPath,
     alpha: 0.05,
-    fisherSplitAge: 21,
+    idadeDivisaoFisher: 21,
     matrix: {
       sheet: "BASE",
       startRow: 2,
       endRow: 4,
       ageColumn: "A",
-      exposureColumn: "B",
-      observedColumn: "C",
-      fixedSex: "UNISEX"
+      exposicaoColumn: "B",
+      observadoColumn: "C",
+      fixedSex: "UNISSEX"
     },
-    candidates: [{
-      label: "synthetic",
-      expectedColumn: "D",
+    candidatos: [{
+      rotulo: "synthetic",
+      esperadoColumn: "D",
       summary: {
-        expectedEvents: { sheet: "SUMMARY", cell: "B2" },
-        chiSquare: { sheet: "SUMMARY", cell: "B3" },
-        chiSquareP: { sheet: "SUMMARY", cell: "B4" },
+        eventosEsperados: { sheet: "SUMMARY", cell: "B2" },
+        quiQuadrado: { sheet: "SUMMARY", cell: "B3" },
+        quiQuadradoP: { sheet: "SUMMARY", cell: "B4" },
         ksD: { sheet: "SUMMARY", cell: "B5" },
-        ksP: { sheet: "SUMMARY", cell: "B6" },
-        zStatistic: { sheet: "SUMMARY", cell: "B7" },
-        zP: { sheet: "SUMMARY", cell: "B8" },
-        fisherP: { sheet: "SUMMARY", cell: "B9" },
+        pKs: { sheet: "SUMMARY", cell: "B6" },
+        estatisticaZ: { sheet: "SUMMARY", cell: "B7" },
+        pZ: { sheet: "SUMMARY", cell: "B8" },
+        pFisher: { sheet: "SUMMARY", cell: "B9" },
         dqm: { sheet: "SUMMARY", cell: "B10" }
       }
     }]

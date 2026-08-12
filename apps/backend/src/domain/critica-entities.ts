@@ -2,121 +2,121 @@ import { Entity, col } from "metal-orm";
 import { Column, PrimaryKey } from "./colunas-portuguesas.js";
 
 @Entity({ tableName: "critique_rules" })
-export class CritiqueRule {
+export class RegraCritica {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.notNull(col.text()))
-  code!: string;
+  codigo!: string;
 
   @Column(col.notNull(col.text()))
-  name!: string;
+  nome!: string;
 
   @Column(col.notNull(col.text()))
-  severity!: string;
+  severidade!: string;
 
   @Column(col.notNull(col.text()))
-  category!: string;
+  categoria!: string;
 
   @Column(col.notNull(col.text()))
-  description!: string;
+  descricao!: string;
 
   @Column(col.notNull(col.text()))
-  configJson!: string;
+  jsonConfiguracao!: string;
 
   @Column(col.notNull(col.int()))
-  enabled!: number;
+  habilitado!: number;
 }
 
 @Entity({ tableName: "critique_runs" })
-export class CritiqueRun {
+export class ExecucaoCritica {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.notNull(col.text()))
-  importJobId!: string;
+  importacaoId!: string;
 
   @Column(col.text())
-  previousImportJobId?: string | null;
+  importacaoAnteriorId?: string | null;
 
   @Column(col.notNull(col.text()))
-  status!: string;
+  situacao!: string;
 
   @Column(col.notNull(col.int()))
-  blockingCount!: number;
+  quantidadeBloqueios!: number;
 
   @Column(col.notNull(col.int()))
-  inconsistencyCount!: number;
+  quantidadeInconsistencias!: number;
 
   @Column(col.notNull(col.int()))
-  warningCount!: number;
+  quantidadeAvisos!: number;
 
   @Column(col.notNull(col.int()))
-  infoCount!: number;
+  quantidadeInformacoes!: number;
 
   @Column(col.notNull(col.text()))
-  createdAt!: string;
+  criadoEm!: string;
 
   @Column(col.text())
-  completedAt?: string | null;
+  concluidoEm?: string | null;
 }
 
 @Entity({ tableName: "critique_issues" })
-export class CritiqueIssue {
+export class InconsistenciaCritica {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.notNull(col.text()))
-  critiqueRunId!: string;
+  execucaoCriticaId!: string;
 
   @Column(col.notNull(col.text()))
-  ruleId!: string;
+  regraId!: string;
 
   @Column(col.notNull(col.text()))
-  ruleCode!: string;
+  codigoRegra!: string;
 
   @Column(col.text())
-  importRowId?: string | null;
+  linhaImportacaoId?: string | null;
 
   @Column(col.text())
-  previousImportRowId?: string | null;
+  linhaImportacaoAnteriorId?: string | null;
 
   @Column(col.text())
-  participantRegistration?: string | null;
+  matriculaParticipante?: string | null;
 
   @Column(col.text())
   campoUnicoLgpd?: string | null;
 
   @Column(col.notNull(col.text()))
-  severity!: string;
+  severidade!: string;
 
   @Column(col.notNull(col.text()))
-  category!: string;
+  categoria!: string;
 
   @Column(col.notNull(col.text()))
-  status!: string;
+  situacao!: string;
 
   @Column(col.text())
-  fieldPath?: string | null;
+  caminhoCampo?: string | null;
 
   @Column(col.text())
-  currentValueJson?: string | null;
+  jsonValorAtual?: string | null;
 
   @Column(col.text())
-  previousValueJson?: string | null;
+  jsonValorAnterior?: string | null;
 
   @Column(col.notNull(col.text()))
-  message!: string;
+  mensagem!: string;
 
   @Column(col.notNull(col.text()))
-  detailsJson!: string;
+  jsonDetalhes!: string;
 
   @Column(col.notNull(col.text()))
-  createdAt!: string;
+  criadoEm!: string;
 
   @Column(col.text())
-  resolutionNote?: string | null;
+  notaResolucao?: string | null;
 
   @Column(col.text())
-  resolvedAt?: string | null;
+  resolvidoEm?: string | null;
 }

@@ -1,10 +1,10 @@
-export type AdherenceCell = {
-  age: number;
-  sex: string;
-  exposure: number;
-  observed: number;
+export type AderenciaCell = {
+  idade: number;
+  sexo: string;
+  exposicao: number;
+  observado: number;
   qx: number;
-  expected: number;
+  esperado: number;
 };
 
 const EPS = 1e-14;
@@ -66,7 +66,7 @@ function regularizedGammaQ(a: number, x: number): number {
   return Math.min(1, Math.max(0, Math.exp(-x + a * Math.log(x) - logGamma(a)) * h));
 }
 
-function chiSquareCritical(df: number, alpha: number) {
+function quiQuadradoCritical(df: number, alpha: number) {
   let low = 0;
   let high = Math.max(1, df);
   while (regularizedGammaQ(df / 2, high / 2) > alpha && high < LARGE_CHI_SQUARE) high *= 2;
@@ -78,16 +78,16 @@ function chiSquareCritical(df: number, alpha: number) {
   return (low + high) / 2;
 }
 
-export function chiSquareTest(cells: AdherenceCell[], alpha: number) {
-  const usable = cells.filter((cell) => cell.expected > EPS);
-  const impossible = cells.some((cell) => cell.expected <= EPS && cell.observed > 0);
+export function quiQuadradoTest(cells: AderenciaCell[], alpha: number) {
+  const usable = cells.filter((cell) => cell.esperado > EPS);
+  const impossible = cells.some((cell) => cell.esperado <= EPS && cell.observado > 0);
   const statistic = impossible ? LARGE_CHI_SQUARE : usable.reduce((total, cell) => {
-    const difference = cell.observed - cell.expected;
-    return total + difference * difference / cell.expected;
+    const difference = cell.observado - cell.esperado;
+    return total + difference * difference / cell.esperado;
   }, 0);
   const df = Math.max(1, usable.length - 1);
   const pValue = impossible ? 0 : regularizedGammaQ(df / 2, statistic / 2);
-  return { statistic, df, pValue, critical: chiSquareCritical(df, alpha) };
+  return { statistic, df, pValue, critical: quiQuadradoCritical(df, alpha) };
 }
 
 function normalCdf(x: number): number {
@@ -120,18 +120,18 @@ function inverseNormal(p: number): number {
   return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
 }
 
-export function zTest(cells: AdherenceCell[], alpha: number) {
-  const observed = cells.reduce((total, cell) => total + cell.observed, 0);
-  const expected = cells.reduce((total, cell) => total + cell.expected, 0);
-  const variance = cells.reduce((total, cell) => total + cell.exposure * cell.qx * (1 - cell.qx), 0);
+export function zTest(cells: AderenciaCell[], alpha: number) {
+  const observado = cells.reduce((total, cell) => total + cell.observado, 0);
+  const esperado = cells.reduce((total, cell) => total + cell.esperado, 0);
+  const variance = cells.reduce((total, cell) => total + cell.exposicao * cell.qx * (1 - cell.qx), 0);
   const statistic = variance > EPS
-    ? (observed - expected) / Math.sqrt(variance)
-    : observed === expected ? 0 : Math.sign(observed - expected) * LARGE_Z;
+    ? (observado - esperado) / Math.sqrt(variance)
+    : observado === esperado ? 0 : Math.sign(observado - esperado) * LARGE_Z;
   const pValue = Math.abs(statistic) >= LARGE_Z ? 0 : Math.max(0, Math.min(1, 2 * (1 - normalCdf(Math.abs(statistic)))));
-  return { statistic, pValue, critical: inverseNormal(1 - alpha / 2), observed, expected, variance };
+  return { statistic, pValue, critical: inverseNormal(1 - alpha / 2), observado, esperado, variance };
 }
 
-function ksPValue(d: number, effectiveN: number) {
+function pKsValue(d: number, effectiveN: number) {
   if (d <= 0) return 1;
   if (effectiveN <= EPS) return 0;
   const root = Math.sqrt(effectiveN);
@@ -145,34 +145,34 @@ function ksPValue(d: number, effectiveN: number) {
   return Math.max(0, Math.min(1, series));
 }
 
-function ksCritical(effectiveN: number, alpha: number) {
+function ksCritico(effectiveN: number, alpha: number) {
   if (effectiveN <= EPS) return 1;
   let low = 0;
   let high = 1;
   for (let i = 0; i < 70; i += 1) {
     const middle = (low + high) / 2;
-    if (ksPValue(middle, effectiveN) > alpha) low = middle;
+    if (pKsValue(middle, effectiveN) > alpha) low = middle;
     else high = middle;
   }
   return (low + high) / 2;
 }
 
-export function kolmogorovSmirnovTest(cells: AdherenceCell[], alpha: number) {
-  const ordered = [...cells].sort((a, b) => a.age - b.age || a.sex.localeCompare(b.sex));
-  const totalObserved = ordered.reduce((total, cell) => total + cell.observed, 0);
-  const totalExpected = ordered.reduce((total, cell) => total + cell.expected, 0);
+export function kolmogorovSmirnovTest(cells: AderenciaCell[], alpha: number) {
+  const ordered = [...cells].sort((a, b) => a.idade - b.idade || a.sexo.localeCompare(b.sexo));
+  const totalObserved = ordered.reduce((total, cell) => total + cell.observado, 0);
+  const totalExpected = ordered.reduce((total, cell) => total + cell.esperado, 0);
   if (totalObserved <= 0 && totalExpected <= 0) return { d: 0, pValue: 1, critical: 1 };
   if (totalObserved <= 0 || totalExpected <= 0) return { d: 1, pValue: 0, critical: 1 };
   let cumulativeObserved = 0;
   let cumulativeExpected = 0;
   let d = 0;
   for (const cell of ordered) {
-    cumulativeObserved += cell.observed / totalObserved;
-    cumulativeExpected += cell.expected / totalExpected;
+    cumulativeObserved += cell.observado / totalObserved;
+    cumulativeExpected += cell.esperado / totalExpected;
     d = Math.max(d, Math.abs(cumulativeObserved - cumulativeExpected));
   }
   const effectiveN = totalObserved * totalExpected / (totalObserved + totalExpected);
-  return { d, pValue: ksPValue(d, effectiveN), critical: ksCritical(effectiveN, alpha) };
+  return { d, pValue: pKsValue(d, effectiveN), critical: ksCritico(effectiveN, alpha) };
 }
 
 function logCombination(n: number, k: number): number {
@@ -192,69 +192,69 @@ export function fisherExactTwoSided(a: number, b: number, c: number, d: number):
   const col1 = a + c;
   const total = row1 + row2;
   if (total === 0) return 1;
-  const observedProbability = hypergeometricProbability(a, row1, col1, total);
+  const observadoProbability = hypergeometricProbability(a, row1, col1, total);
   const minA = Math.max(0, col1 - row2);
   const maxA = Math.min(row1, col1);
   let p = 0;
-  for (let candidate = minA; candidate <= maxA; candidate += 1) {
-    const probability = hypergeometricProbability(candidate, row1, col1, total);
-    if (probability <= observedProbability + 1e-12) p += probability;
+  for (let candidato = minA; candidato <= maxA; candidato += 1) {
+    const probability = hypergeometricProbability(candidato, row1, col1, total);
+    if (probability <= observadoProbability + 1e-12) p += probability;
   }
   return Math.max(0, Math.min(1, p));
 }
 
-export function fisherByAgeSplit(cells: AdherenceCell[], splitAge: number) {
-  const low = cells.filter((cell) => cell.age <= splitAge);
-  const high = cells.filter((cell) => cell.age > splitAge);
-  const observedLow = low.reduce((total, cell) => total + cell.observed, 0);
-  const observedHigh = high.reduce((total, cell) => total + cell.observed, 0);
-  const expectedLow = low.reduce((total, cell) => total + cell.expected, 0);
-  const expectedHigh = high.reduce((total, cell) => total + cell.expected, 0);
+export function fisherByAgeSplit(cells: AderenciaCell[], splitAge: number) {
+  const low = cells.filter((cell) => cell.idade <= splitAge);
+  const high = cells.filter((cell) => cell.idade > splitAge);
+  const observadoLow = low.reduce((total, cell) => total + cell.observado, 0);
+  const observadoHigh = high.reduce((total, cell) => total + cell.observado, 0);
+  const esperadoLow = low.reduce((total, cell) => total + cell.esperado, 0);
+  const esperadoHigh = high.reduce((total, cell) => total + cell.esperado, 0);
   return {
-    pValue: fisherExactTwoSided(observedLow, observedHigh, expectedLow, expectedHigh),
-    observedLow,
-    observedHigh,
-    expectedLow,
-    expectedHigh
+    pValue: fisherExactTwoSided(observadoLow, observadoHigh, esperadoLow, esperadoHigh),
+    observadoLow,
+    observadoHigh,
+    esperadoLow,
+    esperadoHigh
   };
 }
 
-export function meanSquaredDeviation(cells: AdherenceCell[]) {
-  const exposure = cells.reduce((total, cell) => total + cell.exposure, 0);
-  if (exposure <= 0) return 0;
+export function meanSquaredDeviation(cells: AderenciaCell[]) {
+  const exposicao = cells.reduce((total, cell) => total + cell.exposicao, 0);
+  if (exposicao <= 0) return 0;
   return cells.reduce((total, cell) => {
-    const observedRate = cell.exposure > 0 ? cell.observed / cell.exposure : 0;
-    const difference = observedRate - cell.qx;
-    return total + cell.exposure * difference * difference;
-  }, 0) / exposure;
+    const observadoRate = cell.exposicao > 0 ? cell.observado / cell.exposicao : 0;
+    const difference = observadoRate - cell.qx;
+    return total + cell.exposicao * difference * difference;
+  }, 0) / exposicao;
 }
 
-export function evaluateCandidate(cells: AdherenceCell[], alpha: number, fisherSplitAge: number) {
-  const chiSquare = chiSquareTest(cells, alpha);
+export function evaluateCandidato(cells: AderenciaCell[], alpha: number, idadeDivisaoFisher: number) {
+  const quiQuadrado = quiQuadradoTest(cells, alpha);
   const ks = kolmogorovSmirnovTest(cells, alpha);
   const z = zTest(cells, alpha);
-  const fisher = fisherByAgeSplit(cells, fisherSplitAge);
+  const fisher = fisherByAgeSplit(cells, idadeDivisaoFisher);
   const dqm = meanSquaredDeviation(cells);
-  const tests = [chiSquare.pValue, ks.pValue, z.pValue, fisher.pValue];
+  const tests = [quiQuadrado.pValue, ks.pValue, z.pValue, fisher.pValue];
   return {
-    observedEvents: z.observed,
-    expectedEvents: z.expected,
-    chiSquare: chiSquare.statistic,
-    chiSquareDf: chiSquare.df,
-    chiSquareCritical: chiSquare.critical,
-    chiSquareP: chiSquare.pValue,
-    chiSquarePass: chiSquare.pValue >= alpha,
+    eventosObservados: z.observado,
+    eventosEsperados: z.esperado,
+    quiQuadrado: quiQuadrado.statistic,
+    quiQuadradoDf: quiQuadrado.df,
+    quiQuadradoCritical: quiQuadrado.critical,
+    quiQuadradoP: quiQuadrado.pValue,
+    quiQuadradoPass: quiQuadrado.pValue >= alpha,
     ksD: ks.d,
-    ksCritical: ks.critical,
-    ksP: ks.pValue,
-    ksPass: ks.pValue >= alpha,
-    zStatistic: z.statistic,
-    zCritical: z.critical,
-    zP: z.pValue,
-    zPass: z.pValue >= alpha,
-    fisherP: fisher.pValue,
-    fisherPass: fisher.pValue >= alpha,
+    ksCritico: ks.critical,
+    pKs: ks.pValue,
+    pKsass: ks.pValue >= alpha,
+    estatisticaZ: z.statistic,
+    zCritico: z.critical,
+    pZ: z.pValue,
+    pZass: z.pValue >= alpha,
+    pFisher: fisher.pValue,
+    pFisherass: fisher.pValue >= alpha,
     dqm,
-    rejectedTests: tests.filter((p) => p < alpha).length
+    testesRejeitados: tests.filter((p) => p < alpha).length
   };
 }

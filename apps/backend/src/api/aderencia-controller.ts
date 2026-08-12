@@ -11,50 +11,50 @@ import {
   type RequestContext
 } from "adorn-api";
 import {
-  createAdherenceStudy,
-  getAdherenceCandidatePoints,
-  getAdherenceStudy,
-  listAdherenceStudies
-} from "../adherence/adherence-service.js";
+  createEstudoAderencia,
+  getPontosCandidatoAderencia,
+  getEstudoAderencia,
+  listAderenciaStudies
+} from "../aderencia/aderencia-service.js";
 import {
-  AdherenceCandidateParamsDto,
-  AdherenceCandidatePointsDto,
-  AdherenceStudyDetailDto,
-  AdherenceStudyParamsDto,
-  AdherenceStudySummaryDto,
-  CreateAdherenceStudyDto
-} from "./adherence-dtos.js";
+  AderenciaCandidatoParamsDto,
+  PontosCandidatoAderenciaDto,
+  EstudoAderenciaDetailDto,
+  EstudoAderenciaParamsDto,
+  EstudoAderenciaSummaryDto,
+  CriarEstudoAderenciaDto
+} from "./aderencia-dtos.js";
 
 @Auth()
-@Controller({ path: "/api/adherence-studies", tags: ["Adherence"] })
-export class AdherenceStudyController {
+@Controller({ path: "/api/estudos-aderencia", tags: ["Aderencia"] })
+export class EstudoAderenciaController {
   @Get("/")
-  @Returns(t.array(t.ref(AdherenceStudySummaryDto)))
-  async list(): Promise<AdherenceStudySummaryDto[]> {
-    return listAdherenceStudies();
+  @Returns(t.array(t.ref(EstudoAderenciaSummaryDto)))
+  async list(): Promise<EstudoAderenciaSummaryDto[]> {
+    return listAderenciaStudies();
   }
 
   @Post("/")
-  @Body(CreateAdherenceStudyDto)
-  @Returns({ status: 201, schema: AdherenceStudyDetailDto })
-  async create(ctx: RequestContext<CreateAdherenceStudyDto>): Promise<AdherenceStudyDetailDto> {
+  @Body(CriarEstudoAderenciaDto)
+  @Returns({ status: 201, schema: EstudoAderenciaDetailDto })
+  async create(ctx: RequestContext<CriarEstudoAderenciaDto>): Promise<EstudoAderenciaDetailDto> {
     try {
-      const result = await createAdherenceStudy({
-        evaluationId: ctx.body.evaluationId,
-        name: ctx.body.name,
-        hypothesisType: ctx.body.hypothesisType,
-        periodStart: ctx.body.periodStart,
-        periodEnd: ctx.body.periodEnd,
-        sexScope: ctx.body.sexScope as "BOTH" | "MALE" | "FEMALE" | "UNISEX",
+      const result = await createEstudoAderencia({
+        avaliacaoId: ctx.body.avaliacaoId,
+        nome: ctx.body.nome,
+        tipoHipotese: ctx.body.tipoHipotese,
+        periodoInicial: ctx.body.periodoInicial,
+        periodoFinal: ctx.body.periodoFinal,
+        escopoSexo: ctx.body.escopoSexo as "AMBOS" | "MASCULINO" | "FEMININO" | "UNISSEX",
         alpha: ctx.body.alpha,
-        fisherSplitAge: ctx.body.fisherSplitAge,
-        candidateVersionIds: ctx.body.candidateVersionIds,
-        observations: ctx.body.observations.map((observation) => ({
-          year: observation.year,
-          age: observation.age,
-          sex: observation.sex as "MALE" | "FEMALE" | "UNISEX",
-          exposure: observation.exposure,
-          observedEvents: observation.observedEvents
+        idadeDivisaoFisher: ctx.body.idadeDivisaoFisher,
+        idsVersoesCandidatas: ctx.body.idsVersoesCandidatas,
+        observacoes: ctx.body.observacoes.map((observation) => ({
+          ano: observation.ano,
+          idade: observation.idade,
+          sexo: observation.sexo as "MASCULINO" | "FEMININO" | "UNISSEX",
+          exposicao: observation.exposicao,
+          eventosObservados: observation.eventosObservados
         }))
       });
       if (!result) throw new HttpError(500, "O estudo criado não pôde ser recuperado.");
@@ -66,23 +66,23 @@ export class AdherenceStudyController {
   }
 
   @Get("/:id")
-  @Params(AdherenceStudyParamsDto)
-  @Returns(AdherenceStudyDetailDto)
-  async getOne(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<AdherenceStudyDetailDto> {
-    const result = await getAdherenceStudy(ctx.params.id);
+  @Params(EstudoAderenciaParamsDto)
+  @Returns(EstudoAderenciaDetailDto)
+  async getOne(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<EstudoAderenciaDetailDto> {
+    const result = await getEstudoAderencia(ctx.params.id);
     if (!result) throw new HttpError(404, "Estudo de aderência não encontrado.");
     return result;
   }
 }
 
 @Auth()
-@Controller({ path: "/api/adherence-candidates", tags: ["Adherence"] })
-export class AdherenceCandidateController {
-  @Get("/:id/points")
-  @Params(AdherenceCandidateParamsDto)
-  @Returns(AdherenceCandidatePointsDto)
-  async points(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<AdherenceCandidatePointsDto> {
-    const result = await getAdherenceCandidatePoints(ctx.params.id);
+@Controller({ path: "/api/candidatos-aderencia", tags: ["Aderencia"] })
+export class AderenciaCandidatoController {
+  @Get("/:id/pontos")
+  @Params(AderenciaCandidatoParamsDto)
+  @Returns(PontosCandidatoAderenciaDto)
+  async pontos(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<PontosCandidatoAderenciaDto> {
+    const result = await getPontosCandidatoAderencia(ctx.params.id);
     if (!result) throw new HttpError(404, "Resultado candidato não encontrado.");
     return result;
   }

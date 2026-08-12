@@ -1,79 +1,79 @@
 import { Auth, Body, Controller, Get, HttpError, Params, Post, Query, Returns, t, type RequestContext } from "adorn-api";
 import {
-  availableCalculationEngines,
+  availableCalculoEngines,
   executeCalculation,
-  getCalculationRun,
-  listCalculationParticipantResults,
-  listCalculationRuns
-} from "../calculation/calculation-service.js";
+  getExecucaoCalculo,
+  listResultadoParticipanteCalculos,
+  listExecucaoCalculos
+} from "../calculo/calculo-service.js";
 import {
-  CalculationEngineDto,
-  CalculationEvaluationParamsDto,
-  CalculationParticipantQueryDto,
-  CalculationParticipantResultPageDto,
-  CalculationRunDto,
-  CalculationRunParamsDto,
-  CalculationRunSummaryDto,
-  CreateCalculationRunDto
-} from "./calculation-dtos.js";
+  CalculoEngineDto,
+  ParametrosAvaliacaoCalculoDto,
+  ConsultaParticipantesCalculoDto,
+  ResultadoParticipanteCalculoPageDto,
+  ExecucaoCalculoDto,
+  ParametrosExecucaoCalculoDto,
+  ResumoExecucaoCalculoDto,
+  CriarExecucaoCalculoDto
+} from "./calculo-dtos.js";
 
 function badRequest(error: unknown): never {
   throw new HttpError(400, error instanceof Error ? error.message : "Operação inválida.");
 }
 
 @Auth()
-@Controller({ path: "/api", tags: ["Calculation"] })
-export class CalculationController {
-  @Get("/calculation-engines")
-  @Returns(t.array(t.ref(CalculationEngineDto)))
-  engines(): CalculationEngineDto[] {
-    return availableCalculationEngines();
+@Controller({ path: "/api", tags: ["Calculo"] })
+export class CalculoController {
+  @Get("/motores-calculo")
+  @Returns(t.array(t.ref(CalculoEngineDto)))
+  engines(): CalculoEngineDto[] {
+    return availableCalculoEngines();
   }
 
-  @Get("/evaluations/:evaluationId/calculations")
-  @Params(CalculationEvaluationParamsDto)
-  @Returns(t.array(t.ref(CalculationRunSummaryDto)))
+  @Get("/avaliacoes/:avaliacaoId/calculos")
+  @Params(ParametrosAvaliacaoCalculoDto)
+  @Returns(t.array(t.ref(ResumoExecucaoCalculoDto)))
   async list(
-    ctx: RequestContext<unknown, undefined, { evaluationId: number }>
-  ): Promise<CalculationRunSummaryDto[]> {
-    return listCalculationRuns(ctx.params.evaluationId);
+    ctx: RequestContext<unknown, undefined, { avaliacaoId: number }>
+  ): Promise<ResumoExecucaoCalculoDto[]> {
+    return listExecucaoCalculos(ctx.params.avaliacaoId);
   }
 
-  @Post("/evaluations/:evaluationId/calculations")
-  @Params(CalculationEvaluationParamsDto)
-  @Body(CreateCalculationRunDto)
-  @Returns({ status: 201, schema: CalculationRunDto })
+  @Post("/avaliacoes/:avaliacaoId/calculos")
+  @Params(ParametrosAvaliacaoCalculoDto)
+  @Body(CriarExecucaoCalculoDto)
+  @Returns({ status: 201, schema: ExecucaoCalculoDto })
   async create(
-    ctx: RequestContext<CreateCalculationRunDto, undefined, { evaluationId: number }>
-  ): Promise<CalculationRunDto> {
+    ctx: RequestContext<CriarExecucaoCalculoDto, undefined, { avaliacaoId: number }>
+  ): Promise<ExecucaoCalculoDto> {
     try {
-      return await executeCalculation(ctx.params.evaluationId, ctx.body);
+      return await executeCalculation(ctx.params.avaliacaoId, ctx.body);
     } catch (error) {
       return badRequest(error);
     }
   }
 
-  @Get("/calculations/:id")
-  @Params(CalculationRunParamsDto)
-  @Returns(CalculationRunDto)
+  @Get("/calculos/:id")
+  @Params(ParametrosExecucaoCalculoDto)
+  @Returns(ExecucaoCalculoDto)
   async getOne(
     ctx: RequestContext<unknown, undefined, { id: string }>
-  ): Promise<CalculationRunDto> {
-    const run = await getCalculationRun(ctx.params.id);
+  ): Promise<ExecucaoCalculoDto> {
+    const run = await getExecucaoCalculo(ctx.params.id);
     if (!run) throw new HttpError(404, "Execução de cálculo não encontrada.");
     return run;
   }
 
-  @Get("/calculations/:id/participants")
-  @Params(CalculationRunParamsDto)
-  @Query(CalculationParticipantQueryDto)
-  @Returns(CalculationParticipantResultPageDto)
+  @Get("/calculos/:id/participantes")
+  @Params(ParametrosExecucaoCalculoDto)
+  @Query(ConsultaParticipantesCalculoDto)
+  @Returns(ResultadoParticipanteCalculoPageDto)
   async participants(
-    ctx: RequestContext<unknown, CalculationParticipantQueryDto, { id: string }>
-  ): Promise<CalculationParticipantResultPageDto> {
+    ctx: RequestContext<unknown, ConsultaParticipantesCalculoDto, { id: string }>
+  ): Promise<ResultadoParticipanteCalculoPageDto> {
     const page = ctx.query.page ?? 1;
     const pageSize = ctx.query.pageSize ?? 50;
-    const result = await listCalculationParticipantResults(ctx.params.id, page, pageSize);
+    const result = await listResultadoParticipanteCalculos(ctx.params.id, page, pageSize);
     if (!result) throw new HttpError(404, "Execução de cálculo não encontrada.");
     return result;
   }

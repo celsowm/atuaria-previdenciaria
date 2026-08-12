@@ -1,214 +1,729 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Atuária Previdenciária Parameterization API fragment",
+    "title": "Fragmento da API de parametrizações da Atuária Previdenciária",
     "version": "0.0.1"
   },
-  "tags": [{ "name": "Parameterization" }],
+  "tags": [
+    {
+      "name": "Parametrizacao"
+    }
+  ],
   "paths": {
-    "/api/evaluations/{evaluationId}/parameterizations": {
+    "/api/avaliacoes/{avaliacaoId}/parametrizacoes": {
       "get": {
-        "tags": ["Parameterization"],
-        "operationId": "listActuarialParameterizations",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "evaluationId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }],
+        "tags": [
+          "Parametrizacao"
+        ],
+        "operationId": "listarParametrizacoesAtuariais",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "avaliacaoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Versioned parameterizations for one evaluation",
-            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/ActuarialParameterizationSummary" } } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResumoParametrizacaoAtuarial"
+                  }
+                }
+              }
+            }
           }
         }
       },
       "post": {
-        "tags": ["Parameterization"],
-        "operationId": "createActuarialParameterization",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "evaluationId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateActuarialParameterization" } } } },
+        "tags": [
+          "Parametrizacao"
+        ],
+        "operationId": "criarParametrizacaoAtuarial",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "avaliacaoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriarParametrizacaoAtuarial"
+              }
+            }
+          }
+        },
         "responses": {
-          "201": { "description": "Created draft parameterization", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActuarialParameterization" } } } }
+          "201": {
+            "description": "Created draft parameterization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParametrizacaoAtuarial"
+                }
+              }
+            }
+          }
         }
       }
     },
-    "/api/parameterizations/{id}": {
+    "/api/parametrizacoes/{id}": {
       "get": {
-        "tags": ["Parameterization"],
-        "operationId": "getActuarialParameterization",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "tags": [
+          "Parametrizacao"
+        ],
+        "operationId": "obterParametrizacaoAtuarial",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Complete parameterization", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActuarialParameterization" } } } },
-          "404": { "description": "Parameterization not found" }
+          "200": {
+            "description": "Complete parameterization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParametrizacaoAtuarial"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Parametrização não encontrada"
+          }
         }
       },
       "patch": {
-        "tags": ["Parameterization"],
-        "operationId": "updateActuarialParameterization",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateActuarialParameterization" } } } },
+        "tags": [
+          "Parametrizacao"
+        ],
+        "operationId": "atualizarParametrizacaoAtuarial",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtualizarParametrizacaoAtuarial"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": { "description": "Updated draft metadata", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActuarialParameterization" } } } }
+          "200": {
+            "description": "Updated draft metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParametrizacaoAtuarial"
+                }
+              }
+            }
+          }
         }
       }
     },
-    "/api/parameterizations/{id}/parameters": {
+    "/api/parametrizacoes/{id}/parametros": {
       "patch": {
-        "tags": ["Parameterization"],
-        "operationId": "setActuarialParameters",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SetActuarialParameters" } } } },
+        "tags": [
+          "Parametrizacao"
+        ],
+        "operationId": "definirParametrosAtuariais",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinirParametrosAtuariais"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": { "description": "Updated parameter values", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActuarialParameterization" } } } }
+          "200": {
+            "description": "Updated parameter values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParametrizacaoAtuarial"
+                }
+              }
+            }
+          }
         }
       }
     },
-    "/api/parameterizations/{id}/adherence-candidate": {
+    "/api/parametrizacoes/{id}/candidato-aderencia": {
       "post": {
-        "tags": ["Parameterization"],
-        "operationId": "promoteAdherenceCandidate",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PromoteAdherenceCandidate" } } } },
+        "tags": [
+          "Parametrizacao"
+        ],
+        "operationId": "promoverCandidatoAderencia",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromoverCandidatoAderencia"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": { "description": "Candidate promoted into snapshot", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActuarialParameterization" } } } }
+          "200": {
+            "description": "Candidate promoted into snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParametrizacaoAtuarial"
+                }
+              }
+            }
+          }
         }
       }
     },
-    "/api/parameterizations/{id}/hypothesis/remove": {
+    "/api/parametrizacoes/{id}/hipotese/remover": {
       "post": {
-        "tags": ["Parameterization"],
-        "operationId": "removeActuarialHypothesisSelection",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RemoveActuarialHypothesisSelection" } } } },
+        "tags": [
+          "Parametrizacao"
+        ],
+        "operationId": "removerHipoteseAtuarial",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoverSelecaoHipoteseAtuarial"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": { "description": "Hypothesis removed from draft snapshot", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActuarialParameterization" } } } }
+          "200": {
+            "description": "Hypothesis removed from draft snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParametrizacaoAtuarial"
+                }
+              }
+            }
+          }
         }
       }
     },
-    "/api/parameterizations/{id}/approve": {
+    "/api/parametrizacoes/{id}/aprovar": {
       "post": {
-        "tags": ["Parameterization"],
-        "operationId": "approveActuarialParameterization",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "tags": [
+          "Parametrizacao"
+        ],
+        "operationId": "aprovarParametrizacaoAtuarial",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Approved immutable snapshot", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActuarialParameterization" } } } }
+          "200": {
+            "description": "Approved immutable snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParametrizacaoAtuarial"
+                }
+              }
+            }
+          }
         }
       }
     }
   },
   "components": {
     "schemas": {
-      "ActuarialParameterValue": {
+      "DefinirValorParametroAtuarial": {
         "type": "object",
-        "required": ["id", "code", "category", "label", "valueType", "valueJson", "unit", "source", "updatedAt"],
+        "required": [
+          "codigo",
+          "categoria",
+          "rotulo",
+          "tipoValor",
+          "jsonValor"
+        ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "code": { "type": "string" },
-          "category": { "type": "string" },
-          "label": { "type": "string" },
-          "valueType": { "type": "string", "enum": ["NUMBER", "INTEGER", "TEXT", "BOOLEAN"] },
-          "valueJson": { "type": "string" },
-          "unit": { "type": ["string", "null"] },
-          "source": { "type": "string" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "tipoValor": {
+            "type": "string",
+            "enum": [
+              "NUMBER",
+              "INTEGER",
+              "TEXT",
+              "BOOLEAN"
+            ]
+          },
+          "unidade": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 60
+          },
+          "codigo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "jsonValor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "origem": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 120
+          },
+          "categoria": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "rotulo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
         }
       },
-      "ActuarialHypothesisSelection": {
+      "SelecaoHipoteseAtuarial": {
         "type": "object",
-        "required": ["id", "hypothesisType", "adherenceStudyId", "candidateResultId", "biometricVersionId", "tableCode", "tableName", "versionLabel", "candidateRank", "selectedAt"],
+        "required": [
+          "id",
+          "tipoHipotese",
+          "estudoAderenciaId",
+          "resultadoCandidatoId",
+          "versaoBiometriaId",
+          "codigoTabua",
+          "nomeTabua",
+          "rotuloVersao",
+          "posicaoCandidata",
+          "selecionadoEm"
+        ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "hypothesisType": { "type": "string" },
-          "adherenceStudyId": { "type": "string", "format": "uuid" },
-          "candidateResultId": { "type": "string", "format": "uuid" },
-          "biometricVersionId": { "type": "string", "format": "uuid" },
-          "tableCode": { "type": "string" },
-          "tableName": { "type": "string" },
-          "versionLabel": { "type": "string" },
-          "candidateRank": { "type": "integer", "minimum": 1 },
-          "selectedAt": { "type": "string", "format": "date-time" }
+          "versaoBiometriaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resultadoCandidatoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "selecionadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nomeTabua": {
+            "type": "string"
+          },
+          "codigoTabua": {
+            "type": "string"
+          },
+          "rotuloVersao": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tipoHipotese": {
+            "type": "string"
+          },
+          "estudoAderenciaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "posicaoCandidata": {
+            "type": "integer",
+            "minimum": 1
+          }
         }
       },
-      "ActuarialParameterizationSummary": {
-        "type": "object",
-        "required": ["id", "evaluationId", "version", "name", "status", "notes", "createdAt", "updatedAt", "approvedAt"],
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "evaluationId": { "type": "integer", "minimum": 1 },
-          "version": { "type": "integer", "minimum": 1 },
-          "name": { "type": "string" },
-          "status": { "type": "string", "enum": ["DRAFT", "APPROVED", "SUPERSEDED"] },
-          "notes": { "type": ["string", "null"] },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" },
-          "approvedAt": { "type": ["string", "null"], "format": "date-time" }
-        }
-      },
-      "ActuarialParameterization": {
-        "type": "object",
-        "required": ["id", "evaluationId", "version", "name", "status", "notes", "createdAt", "updatedAt", "approvedAt", "parameters", "hypotheses"],
-        "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "evaluationId": { "type": "integer", "minimum": 1 },
-          "version": { "type": "integer", "minimum": 1 },
-          "name": { "type": "string" },
-          "status": { "type": "string", "enum": ["DRAFT", "APPROVED", "SUPERSEDED"] },
-          "notes": { "type": ["string", "null"] },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" },
-          "approvedAt": { "type": ["string", "null"], "format": "date-time" },
-          "parameters": { "type": "array", "items": { "$ref": "#/components/schemas/ActuarialParameterValue" } },
-          "hypotheses": { "type": "array", "items": { "$ref": "#/components/schemas/ActuarialHypothesisSelection" } }
-        }
-      },
-      "CreateActuarialParameterization": {
+      "AtualizarParametrizacaoAtuarial": {
         "type": "object",
         "properties": {
-          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
-          "notes": { "type": ["string", "null"], "maxLength": 4000 },
-          "copyFromId": { "type": "string", "format": "uuid" }
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "observacoes": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 4000
+          }
         }
       },
-      "UpdateActuarialParameterization": {
+      "RemoverSelecaoHipoteseAtuarial": {
+        "type": "object",
+        "required": [
+          "selecaoId"
+        ],
+        "properties": {
+          "selecaoId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ValorParametroAtuarial": {
+        "type": "object",
+        "required": [
+          "id",
+          "codigo",
+          "categoria",
+          "rotulo",
+          "tipoValor",
+          "jsonValor",
+          "unidade",
+          "origem",
+          "atualizadoEm"
+        ],
+        "properties": {
+          "tipoValor": {
+            "type": "string",
+            "enum": [
+              "NUMBER",
+              "INTEGER",
+              "TEXT",
+              "BOOLEAN"
+            ]
+          },
+          "unidade": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "atualizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "jsonValor": {
+            "type": "string"
+          },
+          "origem": {
+            "type": "string"
+          },
+          "categoria": {
+            "type": "string"
+          },
+          "rotulo": {
+            "type": "string"
+          }
+        }
+      },
+      "ParametrizacaoAtuarial": {
+        "type": "object",
+        "required": [
+          "id",
+          "avaliacaoId",
+          "versao",
+          "nome",
+          "situacao",
+          "observacoes",
+          "criadoEm",
+          "atualizadoEm",
+          "aprovadoEm",
+          "parametros",
+          "hipoteses"
+        ],
+        "properties": {
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "avaliacaoId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "atualizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "versao": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "nome": {
+            "type": "string"
+          },
+          "aprovadoEm": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "observacoes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hipoteses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SelecaoHipoteseAtuarial"
+            }
+          },
+          "situacao": {
+            "type": "string",
+            "enum": [
+              "RASCUNHO",
+              "APROVADO",
+              "SUBSTITUIDO"
+            ]
+          },
+          "parametros": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValorParametroAtuarial"
+            }
+          }
+        }
+      },
+      "CriarParametrizacaoAtuarial": {
         "type": "object",
         "properties": {
-          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
-          "notes": { "type": ["string", "null"], "maxLength": 4000 }
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "copiarDeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "observacoes": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 4000
+          }
         }
       },
-      "SetActuarialParameterValue": {
+      "PromoverCandidatoAderencia": {
         "type": "object",
-        "required": ["code", "category", "label", "valueType", "valueJson"],
+        "required": [
+          "resultadoCandidatoId"
+        ],
         "properties": {
-          "code": { "type": "string", "minLength": 1, "maxLength": 120 },
-          "category": { "type": "string", "minLength": 1, "maxLength": 120 },
-          "label": { "type": "string", "minLength": 1, "maxLength": 200 },
-          "valueType": { "type": "string", "enum": ["NUMBER", "INTEGER", "TEXT", "BOOLEAN"] },
-          "valueJson": { "type": "string", "minLength": 1 },
-          "unit": { "type": ["string", "null"], "maxLength": 60 },
-          "source": { "type": ["string", "null"], "maxLength": 120 }
+          "resultadoCandidatoId": {
+            "type": "string",
+            "format": "uuid"
+          }
         }
       },
-      "SetActuarialParameters": {
+      "DefinirParametrosAtuariais": {
         "type": "object",
-        "required": ["parameters"],
+        "required": [
+          "parametros"
+        ],
         "properties": {
-          "parameters": { "type": "array", "minItems": 1, "items": { "$ref": "#/components/schemas/SetActuarialParameterValue" } }
+          "parametros": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/DefinirValorParametroAtuarial"
+            }
+          }
         }
       },
-      "PromoteAdherenceCandidate": {
+      "ResumoParametrizacaoAtuarial": {
         "type": "object",
-        "required": ["candidateResultId"],
-        "properties": { "candidateResultId": { "type": "string", "format": "uuid" } }
-      },
-      "RemoveActuarialHypothesisSelection": {
-        "type": "object",
-        "required": ["selectionId"],
-        "properties": { "selectionId": { "type": "string", "format": "uuid" } }
+        "required": [
+          "id",
+          "avaliacaoId",
+          "versao",
+          "nome",
+          "situacao",
+          "observacoes",
+          "criadoEm",
+          "atualizadoEm",
+          "aprovadoEm"
+        ],
+        "properties": {
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "avaliacaoId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "atualizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "versao": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "nome": {
+            "type": "string"
+          },
+          "aprovadoEm": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "observacoes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "situacao": {
+            "type": "string",
+            "enum": [
+              "RASCUNHO",
+              "APROVADO",
+              "SUBSTITUIDO"
+            ]
+          }
+        }
       }
     }
   }

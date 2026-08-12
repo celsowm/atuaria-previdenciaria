@@ -33,22 +33,22 @@ import AnalyticsOutlined from "@mui/icons-material/AnalyticsOutlined";
 import FileUploadOutlined from "@mui/icons-material/FileUploadOutlined";
 import {
   api,
-  type AdherenceCandidatePoints,
-  type AdherenceCandidateResult,
-  type AdherenceObservation,
-  type AdherenceStudyDetail,
-  type AdherenceStudySummary,
-  type BiometricTableDetail
+  type PontosCandidatoAderencia,
+  type ResultadoCandidatoAderencia,
+  type ObservacaoAderencia,
+  type DetalheEstudoAderencia,
+  type ResumoEstudoAderencia,
+  type DetalheTabuaBiometria
 } from "../../api/client";
 
 const studySteps = ["Estudo", "Base histórica", "Tábuas", "Executar"];
 const hypothesisTypes = ["Mortalidade geral", "Mortalidade de inválidos", "Entrada em invalidez", "Rotatividade", "Outro"];
-const sexScopes = ["BOTH", "MALE", "FEMALE", "UNISEX"] as const;
+const sexScopes = ["AMBOS", "MASCULINO", "FEMININO", "UNISSEX"] as const;
 
-type VersionOption = { id: string; label: string; table: string };
+type VersionOption = { id: string; rotulo: string; table: string };
 
 type MappedHistorical = {
-  observations: AdherenceObservation[];
+  observacoes: ObservacaoAderencia[];
   errors: string[];
 };
 
@@ -61,12 +61,12 @@ function parseNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function normalizeSex(value: unknown, fallback: AdherenceObservation["sex"]): AdherenceObservation["sex"] | null {
+function normalizeSex(value: unknown, fallback: ObservacaoAderencia["sexo"]): ObservacaoAderencia["sexo"] | null {
   const text = String(value ?? "").trim().toUpperCase();
   if (!text) return fallback;
-  if (["M", "MALE", "MASC", "MASCULINO", "1"].includes(text)) return "MALE";
-  if (["F", "FEMALE", "FEM", "FEMININO", "2"].includes(text)) return "FEMALE";
-  if (["U", "UNISEX", "AMBOS", "BOTH"].includes(text)) return "UNISEX";
+  if (["M", "MASCULINO", "MASC", "MASCULINO", "1"].includes(text)) return "MASCULINO";
+  if (["F", "FEMININO", "FEM", "FEMININO", "2"].includes(text)) return "FEMININO";
+  if (["U", "UNISSEX", "AMBOS", "AMBOS"].includes(text)) return "UNISSEX";
   return null;
 }
 
@@ -80,11 +80,11 @@ function testChip(pass: boolean, p: number) {
   return <Chip size="small" color={pass ? "success" : "error"} variant={pass ? "outlined" : "filled"} label={`p ${fmt(p, 5)}`} />;
 }
 
-export function AdherenceStudiesPage() {
-  const [studies, setStudies] = useState<AdherenceStudySummary[]>([]);
+export function EstudosAderenciaPage() {
+  const [studies, setStudies] = useState<ResumoEstudoAderencia[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<AdherenceStudyDetail | null>(null);
-  const [candidatePoints, setCandidatePoints] = useState<AdherenceCandidatePoints | null>(null);
+  const [detail, setDetail] = useState<DetalheEstudoAderencia | null>(null);
+  const [candidatePoints, setCandidatePoints] = useState<PontosCandidatoAderencia | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -92,7 +92,7 @@ export function AdherenceStudiesPage() {
   const refresh = async (preferredId?: string) => {
     setLoading(true);
     try {
-      const result = await api.adherenceStudies();
+      const result = await api.estudosAderencia();
       setStudies(result);
       setSelectedId(preferredId ?? selectedId ?? result[0]?.id ?? null);
     } catch (reason) {
@@ -112,19 +112,19 @@ export function AdherenceStudiesPage() {
     }
     void (async () => {
       try {
-        const next = await api.adherenceStudy(selectedId);
+        const next = await api.estudoAderencia(selectedId);
         setDetail(next);
-        const winner = next.candidates[0];
-        setCandidatePoints(winner ? await api.adherenceCandidatePoints(winner.id) : null);
+        const winner = next.candidatos[0];
+        setCandidatePoints(winner ? await api.pontosCandidatoAderencia(winner.id) : null);
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : "Não foi possível abrir o estudo.");
       }
     })();
   }, [selectedId]);
 
-  const openCandidate = async (candidate: AdherenceCandidateResult) => {
+  const openCandidate = async (candidate: ResultadoCandidatoAderencia) => {
     try {
-      setCandidatePoints(await api.adherenceCandidatePoints(candidate.id));
+      setCandidatePoints(await api.pontosCandidatoAderencia(candidate.id));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível abrir o detalhamento da tábua.");
     }
@@ -151,9 +151,9 @@ export function AdherenceStudiesPage() {
         <Stack divider={<Divider />}>
           {studies.map((study) => <Button key={study.id} color="inherit" onClick={() => setSelectedId(study.id)} sx={{ p: 2, borderRadius: 0, justifyContent: "flex-start", textAlign: "left", bgcolor: selectedId === study.id ? "action.selected" : undefined }}>
             <Box sx={{ width: "100%" }}>
-              <Typography fontWeight={750}>{study.name}</Typography>
-              <Typography variant="caption" color="text.secondary">{study.hypothesisType} · {study.periodStart}–{study.periodEnd}</Typography>
-              <Stack direction="row" spacing={1} sx={{ mt: 1 }}><Chip size="small" label={`${study.candidateCount} tábuas`} /><Chip size="small" variant="outlined" label={study.engineVersion} /></Stack>
+              <Typography fontWeight={750}>{study.nome}</Typography>
+              <Typography variant="caption" color="text.secondary">{study.tipoHipotese} · {study.periodoInicial}–{study.periodoFinal}</Typography>
+              <Stack direction="row" spacing={1} sx={{ mt: 1 }}><Chip size="small" label={`${study.quantidadeCandidatos} tábuas`} /><Chip size="small" variant="outlined" label={study.versaoMotor} /></Stack>
             </Box>
           </Button>)}
         </Stack>
@@ -164,14 +164,14 @@ export function AdherenceStudiesPage() {
         {detail && <Stack spacing={2.5}>
           <Paper variant="outlined" sx={{ p: 3 }}>
             <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" gap={2}>
-              <Box><Typography variant="h5">{detail.name}</Typography><Typography color="text.secondary" sx={{ mt: .5 }}>{detail.hypothesisType} · {detail.periodStart}–{detail.periodEnd} · α {detail.alpha}</Typography></Box>
-              <Stack direction="row" spacing={1}><Chip label={detail.sexScope} /><Chip variant="outlined" label={detail.engineVersion} /></Stack>
+              <Box><Typography variant="h5">{detail.nome}</Typography><Typography color="text.secondary" sx={{ mt: .5 }}>{detail.tipoHipotese} · {detail.periodoInicial}–{detail.periodoFinal} · α {detail.alpha}</Typography></Box>
+              <Stack direction="row" spacing={1}><Chip label={detail.escopoSexo} /><Chip variant="outlined" label={detail.versaoMotor} /></Stack>
             </Stack>
           </Paper>
 
           <Paper variant="outlined" sx={{ overflow: "hidden" }}>
             <Box sx={{ p: 2.5 }}><Typography variant="h6">Ranking das tábuas</Typography><Typography variant="body2" color="text.secondary">Ordenação: menor número de testes rejeitados, menor DQM e maior p-value do χ².</Typography></Box>
-            <Box sx={{ overflowX: "auto" }}><Table size="small"><TableHead><TableRow><TableCell>Rank</TableCell><TableCell>Tábua</TableCell><TableCell align="right">Obs.</TableCell><TableCell align="right">Esp.</TableCell><TableCell>χ²</TableCell><TableCell>KS</TableCell><TableCell>Z</TableCell><TableCell>Fisher</TableCell><TableCell align="right">DQM</TableCell></TableRow></TableHead><TableBody>{detail.candidates.map((candidate) => <TableRow key={candidate.id} hover selected={candidatePoints?.candidate.id === candidate.id} onClick={() => void openCandidate(candidate)} sx={{ cursor: "pointer" }}><TableCell><Chip size="small" color={candidate.rank === 1 ? "primary" : "default"} label={`#${candidate.rank}`} /></TableCell><TableCell><Typography variant="body2" fontWeight={700}>{candidate.tableName}</Typography><Typography variant="caption" color="text.secondary">{candidate.tableCode} · {candidate.versionLabel}</Typography></TableCell><TableCell align="right">{fmt(candidate.observedEvents, 2)}</TableCell><TableCell align="right">{fmt(candidate.expectedEvents, 2)}</TableCell><TableCell>{testChip(candidate.chiSquarePass, candidate.chiSquareP)}</TableCell><TableCell>{testChip(candidate.ksPass, candidate.ksP)}</TableCell><TableCell>{testChip(candidate.zPass, candidate.zP)}</TableCell><TableCell>{testChip(candidate.fisherPass, candidate.fisherP)}</TableCell><TableCell align="right" sx={{ fontFamily: "monospace" }}>{fmt(candidate.dqm, 8)}</TableCell></TableRow>)}</TableBody></Table></Box>
+            <Box sx={{ overflowX: "auto" }}><Table size="small"><TableHead><TableRow><TableCell>Rank</TableCell><TableCell>Tábua</TableCell><TableCell align="right">Obs.</TableCell><TableCell align="right">Esp.</TableCell><TableCell>χ²</TableCell><TableCell>KS</TableCell><TableCell>Z</TableCell><TableCell>Fisher</TableCell><TableCell align="right">DQM</TableCell></TableRow></TableHead><TableBody>{detail.candidatos.map((candidate) => <TableRow key={candidate.id} hover selected={candidatePoints?.candidate.id === candidate.id} onClick={() => void openCandidate(candidate)} sx={{ cursor: "pointer" }}><TableCell><Chip size="small" color={candidate.posicao === 1 ? "primary" : "default"} label={`#${candidate.posicao}`} /></TableCell><TableCell><Typography variant="body2" fontWeight={700}>{candidate.nomeTabua}</Typography><Typography variant="caption" color="text.secondary">{candidate.codigoTabua} · {candidate.rotuloVersao}</Typography></TableCell><TableCell align="right">{fmt(candidate.eventosObservados, 2)}</TableCell><TableCell align="right">{fmt(candidate.eventosEsperados, 2)}</TableCell><TableCell>{testChip(candidate.quiQuadradoPass, candidate.quiQuadradoP)}</TableCell><TableCell>{testChip(candidate.pKsPass, candidate.pKs)}</TableCell><TableCell>{testChip(candidate.pZPass, candidate.pZ)}</TableCell><TableCell>{testChip(candidate.pFisherPass, candidate.pFisher)}</TableCell><TableCell align="right" sx={{ fontFamily: "monospace" }}>{fmt(candidate.dqm, 8)}</TableCell></TableRow>)}</TableBody></Table></Box>
           </Paper>
 
           {candidatePoints && <CandidateDetail bundle={candidatePoints} />}
@@ -183,56 +183,56 @@ export function AdherenceStudiesPage() {
   </Stack>;
 }
 
-function CandidateDetail({ bundle }: { bundle: AdherenceCandidatePoints }) {
+function CandidateDetail({ bundle }: { bundle: PontosCandidatoAderencia }) {
   const candidate = bundle.candidate;
   return <Paper variant="outlined" sx={{ p: 3 }}>
     <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2} sx={{ mb: 2.5 }}>
-      <Box><Typography variant="h6">Observado × esperado — {candidate.tableName} {candidate.versionLabel}</Typography><Typography variant="body2" color="text.secondary">Clique em outra linha do ranking para trocar a curva.</Typography></Box>
-      <Chip color={candidate.rejectedTests === 0 ? "success" : "warning"} label={candidate.rejectedTests === 0 ? "Nenhum teste rejeitado" : `${candidate.rejectedTests} teste(s) rejeitado(s)`} />
+      <Box><Typography variant="h6">Observado × esperado — {candidate.nomeTabua} {candidate.rotuloVersao}</Typography><Typography variant="body2" color="text.secondary">Clique em outra linha do ranking para trocar a curva.</Typography></Box>
+      <Chip color={candidate.testesRejeitados === 0 ? "success" : "warning"} label={candidate.testesRejeitados === 0 ? "Nenhum teste rejeitado" : `${candidate.testesRejeitados} teste(s) rejeitado(s)`} />
     </Stack>
-    <ObservedExpectedChart points={bundle.points} />
-    <Box sx={{ maxHeight: 320, overflow: "auto", mt: 2 }}><Table size="small" stickyHeader><TableHead><TableRow><TableCell>Idade</TableCell><TableCell>Sexo</TableCell><TableCell align="right">Exposição</TableCell><TableCell align="right">Observado</TableCell><TableCell align="right">qx</TableCell><TableCell align="right">Esperado</TableCell><TableCell align="right">Resíduo</TableCell></TableRow></TableHead><TableBody>{bundle.points.map((point) => <TableRow key={`${point.sex}-${point.age}`}><TableCell>{point.age}</TableCell><TableCell>{point.sex}</TableCell><TableCell align="right">{fmt(point.exposure, 2)}</TableCell><TableCell align="right">{point.observedEvents}</TableCell><TableCell align="right" sx={{ fontFamily: "monospace" }}>{fmt(point.qx, 8)}</TableCell><TableCell align="right">{fmt(point.expectedEvents, 4)}</TableCell><TableCell align="right">{fmt(point.residual, 4)}</TableCell></TableRow>)}</TableBody></Table></Box>
+    <ObservedExpectedChart pontos={bundle.pontos} />
+    <Box sx={{ maxHeight: 320, overflow: "auto", mt: 2 }}><Table size="small" stickyHeader><TableHead><TableRow><TableCell>Idade</TableCell><TableCell>Sexo</TableCell><TableCell align="right">Exposição</TableCell><TableCell align="right">Observado</TableCell><TableCell align="right">qx</TableCell><TableCell align="right">Esperado</TableCell><TableCell align="right">Resíduo</TableCell></TableRow></TableHead><TableBody>{bundle.pontos.map((point) => <TableRow key={`${point.sexo}-${point.idade}`}><TableCell>{point.idade}</TableCell><TableCell>{point.sexo}</TableCell><TableCell align="right">{fmt(point.exposicao, 2)}</TableCell><TableCell align="right">{point.eventosObservados}</TableCell><TableCell align="right" sx={{ fontFamily: "monospace" }}>{fmt(point.qx, 8)}</TableCell><TableCell align="right">{fmt(point.eventosEsperados, 4)}</TableCell><TableCell align="right">{fmt(point.residuo, 4)}</TableCell></TableRow>)}</TableBody></Table></Box>
   </Paper>;
 }
 
-function ObservedExpectedChart({ points }: { points: AdherenceCandidatePoints["points"] }) {
-  if (!points.length) return <Alert severity="info">Sem pontos para exibir.</Alert>;
+function ObservedExpectedChart({ pontos }: { pontos: PontosCandidatoAderencia["pontos"] }) {
+  if (!pontos.length) return <Alert severity="info">Sem pontos para exibir.</Alert>;
   const aggregated = new Map<number, { observed: number; expected: number }>();
-  for (const point of points) {
-    const current = aggregated.get(point.age) ?? { observed: 0, expected: 0 };
-    current.observed += point.observedEvents;
-    current.expected += point.expectedEvents;
-    aggregated.set(point.age, current);
+  for (const point of pontos) {
+    const current = aggregated.get(point.idade) ?? { observed: 0, expected: 0 };
+    current.observed += point.eventosObservados;
+    current.expected += point.eventosEsperados;
+    aggregated.set(point.idade, current);
   }
   const data = [...aggregated.entries()].sort((a, b) => a[0] - b[0]);
   const width = 900, height = 290, left = 48, right = 16, top = 16, bottom = 36;
-  const minAge = data[0][0], maxAge = data[data.length - 1][0];
+  const idadeMinima = data[0][0], idadeMaxima = data[data.length - 1][0];
   const maxY = Math.max(1, ...data.flatMap(([, value]) => [value.observed, value.expected]));
-  const x = (age: number) => left + ((age - minAge) / Math.max(1, maxAge - minAge)) * (width - left - right);
+  const x = (age: number) => left + ((age - idadeMinima) / Math.max(1, idadeMaxima - idadeMinima)) * (width - left - right);
   const y = (value: number) => top + (1 - value / maxY) * (height - top - bottom);
   const path = (key: "observed" | "expected") => data.map(([age, value], index) => `${index ? "L" : "M"}${x(age).toFixed(1)},${y(value[key]).toFixed(1)}`).join(" ");
-  return <Box sx={{ overflowX: "auto", color: "primary.main" }}><svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", minWidth: 620, display: "block" }} role="img" aria-label="Eventos observados e esperados por idade"><line x1={left} y1={height-bottom} x2={width-right} y2={height-bottom} stroke="currentColor" opacity=".2"/><line x1={left} y1={top} x2={left} y2={height-bottom} stroke="currentColor" opacity=".2"/><path d={path("observed")} fill="none" stroke="currentColor" strokeWidth="2.4"/><path d={path("expected")} fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="7 5" opacity=".55"/><text x={left} y={height-10} fontSize="11" fill="currentColor" opacity=".65">{minAge}</text><text x={width-right} y={height-10} textAnchor="end" fontSize="11" fill="currentColor" opacity=".65">{maxAge}</text></svg><Stack direction="row" spacing={2}><Typography variant="caption"><strong>Observado</strong> — contínua</Typography><Typography variant="caption" color="text.secondary"><strong>Esperado</strong> — tracejada</Typography></Stack></Box>;
+  return <Box sx={{ overflowX: "auto", color: "primary.main" }}><svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", minWidth: 620, display: "block" }} role="img" aria-label="Eventos observados e esperados por idade"><line x1={left} y1={height-bottom} x2={width-right} y2={height-bottom} stroke="currentColor" opacity=".2"/><line x1={left} y1={top} x2={left} y2={height-bottom} stroke="currentColor" opacity=".2"/><path d={path("observed")} fill="none" stroke="currentColor" strokeWidth="2.4"/><path d={path("expected")} fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="7 5" opacity=".55"/><text x={left} y={height-10} fontSize="11" fill="currentColor" opacity=".65">{idadeMinima}</text><text x={width-right} y={height-10} textAnchor="end" fontSize="11" fill="currentColor" opacity=".65">{idadeMaxima}</text></svg><Stack direction="row" spacing={2}><Typography variant="caption"><strong>Observado</strong> — contínua</Typography><Typography variant="caption" color="text.secondary"><strong>Esperado</strong> — tracejada</Typography></Stack></Box>;
 }
 
 function CreateStudyDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (id: string) => Promise<void> }) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
-  const [hypothesisType, setHypothesisType] = useState(hypothesisTypes[0]);
-  const [periodStart, setPeriodStart] = useState(new Date().getFullYear() - 5);
-  const [periodEnd, setPeriodEnd] = useState(new Date().getFullYear() - 1);
-  const [sexScope, setSexScope] = useState<(typeof sexScopes)[number]>("BOTH");
+  const [tipoHipotese, setHypothesisType] = useState(hypothesisTypes[0]);
+  const [periodoInicial, setPeriodStart] = useState(new Date().getFullYear() - 5);
+  const [periodoFinal, setPeriodEnd] = useState(new Date().getFullYear() - 1);
+  const [escopoSexo, setSexScope] = useState<(typeof sexScopes)[number]>("AMBOS");
   const [alpha, setAlpha] = useState("0.05");
   const [fisherSplitAge, setFisherSplitAge] = useState("70");
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<unknown[][]>([]);
-  const [fileName, setFileName] = useState("");
+  const [nomeArquivo, setFileName] = useState("");
   const [yearColumn, setYearColumn] = useState("");
   const [ageColumn, setAgeColumn] = useState("");
   const [sexColumn, setSexColumn] = useState("");
   const [exposureColumn, setExposureColumn] = useState("");
   const [observedColumn, setObservedColumn] = useState("");
-  const [fixedSex, setFixedSex] = useState<AdherenceObservation["sex"]>("UNISEX");
-  const [versions, setVersions] = useState<VersionOption[]>([]);
+  const [fixedSex, setFixedSex] = useState<ObservacaoAderencia["sexo"]>("UNISSEX");
+  const [versoes, setVersions] = useState<VersionOption[]>([]);
   const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -241,9 +241,9 @@ function CreateStudyDialog({ open, onClose, onCreated }: { open: boolean; onClos
     if (!open) return;
     void (async () => {
       try {
-        const summaries = await api.biometricTables();
-        const details = await Promise.all(summaries.map((table) => api.biometricTable(table.id)));
-        setVersions(details.flatMap((table: BiometricTableDetail) => table.versions.map((version) => ({ id: version.id, label: `${table.name} · ${version.version}`, table: table.code }))));
+        const summaries = await api.tabuasBiometricas();
+        const details = await Promise.all(summaries.map((table) => api.tabuaBiometrica(table.id)));
+        setVersions(details.flatMap((table: DetalheTabuaBiometria) => table.versoes.map((version) => ({ id: version.id, rotulo: `${table.nome} · ${version.versao}`, table: table.codigo }))));
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : "Não foi possível carregar as tábuas candidatas.");
       }
@@ -251,7 +251,7 @@ function CreateStudyDialog({ open, onClose, onCreated }: { open: boolean; onClos
   }, [open]);
 
   const reset = () => {
-    setStep(0); setName(""); setHypothesisType(hypothesisTypes[0]); setPeriodStart(new Date().getFullYear() - 5); setPeriodEnd(new Date().getFullYear() - 1); setSexScope("BOTH"); setAlpha("0.05"); setFisherSplitAge("70"); setHeaders([]); setRows([]); setFileName(""); setYearColumn(""); setAgeColumn(""); setSexColumn(""); setExposureColumn(""); setObservedColumn(""); setFixedSex("UNISEX"); setSelectedVersions([]); setError(null);
+    setStep(0); setName(""); setHypothesisType(hypothesisTypes[0]); setPeriodStart(new Date().getFullYear() - 5); setPeriodEnd(new Date().getFullYear() - 1); setSexScope("AMBOS"); setAlpha("0.05"); setFisherSplitAge("70"); setHeaders([]); setRows([]); setFileName(""); setYearColumn(""); setAgeColumn(""); setSexColumn(""); setExposureColumn(""); setObservedColumn(""); setFixedSex("UNISSEX"); setSelectedVersions([]); setError(null);
   };
   const close = () => { reset(); onClose(); };
 
@@ -275,39 +275,39 @@ function CreateStudyDialog({ open, onClose, onCreated }: { open: boolean; onClos
   };
 
   const mapped = useMemo<MappedHistorical>(() => {
-    if (!headers.length || !yearColumn || !ageColumn || !exposureColumn || !observedColumn) return { observations: [], errors: ["Mapeie ano, idade, exposição e eventos observados."] };
-    const indexes = { year: headers.indexOf(yearColumn), age: headers.indexOf(ageColumn), exposure: headers.indexOf(exposureColumn), observed: headers.indexOf(observedColumn), sex: sexColumn ? headers.indexOf(sexColumn) : -1 };
-    const observations: AdherenceObservation[] = [];
+    if (!headers.length || !yearColumn || !ageColumn || !exposureColumn || !observedColumn) return { observacoes: [], errors: ["Mapeie ano, idade, exposição e eventos observados."] };
+    const indexes = { year: headers.indexOf(yearColumn), age: headers.indexOf(ageColumn), exposicao: headers.indexOf(exposureColumn), observed: headers.indexOf(observedColumn), sex: sexColumn ? headers.indexOf(sexColumn) : -1 };
+    const observacoes: ObservacaoAderencia[] = [];
     const errors: string[] = [];
     rows.forEach((row, index) => {
       const year = parseNumber(row[indexes.year]);
       const age = parseNumber(row[indexes.age]);
-      const exposure = parseNumber(row[indexes.exposure]);
+      const exposicao = parseNumber(row[indexes.exposicao]);
       const observed = parseNumber(row[indexes.observed]);
       const sex = normalizeSex(indexes.sex >= 0 ? row[indexes.sex] : "", fixedSex);
-      if (year === null || !Number.isInteger(year) || age === null || !Number.isInteger(age) || exposure === null || exposure <= 0 || observed === null || !Number.isInteger(observed) || observed < 0 || !sex) {
+      if (year === null || !Number.isInteger(year) || age === null || !Number.isInteger(age) || exposicao === null || exposicao <= 0 || observed === null || !Number.isInteger(observed) || observed < 0 || !sex) {
         errors.push(`Linha ${index + 2}: ano, idade, sexo, exposição ou eventos inválidos.`);
         return;
       }
-      if (year < periodStart || year > periodEnd) {
-        errors.push(`Linha ${index + 2}: ano ${year} fora do período ${periodStart}–${periodEnd}.`);
+      if (year < periodoInicial || year > periodoFinal) {
+        errors.push(`Linha ${index + 2}: ano ${year} fora do período ${periodoInicial}–${periodoFinal}.`);
         return;
       }
-      if (sexScope !== "BOTH" && sex !== sexScope) {
-        errors.push(`Linha ${index + 2}: sexo ${sex} fora do escopo ${sexScope}.`);
+      if (escopoSexo !== "AMBOS" && sex !== escopoSexo) {
+        errors.push(`Linha ${index + 2}: sexo ${sex} fora do escopo ${escopoSexo}.`);
         return;
       }
-      observations.push({ year, age, sex, exposure, observedEvents: observed });
+      observacoes.push({ ano: year, idade: age, sexo: sex, exposicao, eventosObservados: observed });
     });
-    return { observations, errors };
-  }, [headers, rows, yearColumn, ageColumn, sexColumn, exposureColumn, observedColumn, fixedSex, periodStart, periodEnd, sexScope]);
+    return { observacoes, errors };
+  }, [headers, rows, yearColumn, ageColumn, sexColumn, exposureColumn, observedColumn, fixedSex, periodoInicial, periodoFinal, escopoSexo]);
 
   const execute = async () => {
     setSaving(true); setError(null);
     try {
-      const result = await api.createAdherenceStudy({
-        name: name.trim(), hypothesisType, periodStart, periodEnd, sexScope,
-        alpha: Number(alpha), fisherSplitAge: Number(fisherSplitAge), candidateVersionIds: selectedVersions, observations: mapped.observations
+      const result = await api.criarEstudoAderencia({
+        nome: name.trim(), tipoHipotese, periodoInicial, periodoFinal, escopoSexo,
+        alpha: Number(alpha), idadeDivisaoFisher: Number(fisherSplitAge), idsVersoesCandidatas: selectedVersions, observacoes: mapped.observacoes
       });
       await onCreated(result.id); reset();
     } catch (reason) {
@@ -318,29 +318,29 @@ function CreateStudyDialog({ open, onClose, onCreated }: { open: boolean; onClos
   return <Dialog open={open} onClose={close} fullWidth maxWidth="lg">
     <DialogTitle>Novo estudo de aderência</DialogTitle>
     <DialogContent>
-      <Stepper activeStep={step} alternativeLabel sx={{ my: 2 }}>{studySteps.map((label) => <Step key={label}><StepLabel>{label}</StepLabel></Step>)}</Stepper>
+      <Stepper activeStep={step} alternativeLabel sx={{ my: 2 }}>{studySteps.map((rotulo) => <Step key={rotulo}><StepLabel>{rotulo}</StepLabel></Step>)}</Stepper>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {step === 0 && <Stack spacing={2.25} sx={{ pt: 1 }}>
         <TextField label="Nome do estudo" value={name} onChange={(event) => setName(event.target.value)} placeholder="Mortalidade geral 2021–2025" />
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr 1fr" }, gap: 2 }}><FormControl><InputLabel>Hipótese</InputLabel><Select label="Hipótese" value={hypothesisType} onChange={(event) => setHypothesisType(event.target.value)}>{hypothesisTypes.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</Select></FormControl><TextField label="Ano inicial" type="number" value={periodStart} onChange={(event) => setPeriodStart(Number(event.target.value))} /><TextField label="Ano final" type="number" value={periodEnd} onChange={(event) => setPeriodEnd(Number(event.target.value))} /><FormControl><InputLabel>Sexo</InputLabel><Select label="Sexo" value={sexScope} onChange={(event) => setSexScope(event.target.value as typeof sexScope)}>{sexScopes.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</Select></FormControl></Box>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr 1fr" }, gap: 2 }}><FormControl><InputLabel>Hipótese</InputLabel><Select label="Hipótese" value={tipoHipotese} onChange={(event) => setHypothesisType(event.target.value)}>{hypothesisTypes.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</Select></FormControl><TextField label="Ano inicial" type="number" value={periodoInicial} onChange={(event) => setPeriodStart(Number(event.target.value))} /><TextField label="Ano final" type="number" value={periodoFinal} onChange={(event) => setPeriodEnd(Number(event.target.value))} /><FormControl><InputLabel>Sexo</InputLabel><Select label="Sexo" value={escopoSexo} onChange={(event) => setSexScope(event.target.value as typeof escopoSexo)}>{sexScopes.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</Select></FormControl></Box>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}><TextField label="Significância α" type="number" value={alpha} onChange={(event) => setAlpha(event.target.value)} helperText="Ex.: 0,05 para 5%." /><TextField label="Idade de corte Fisher" type="number" value={fisherSplitAge} onChange={(event) => setFisherSplitAge(event.target.value)} helperText="Compara alocação de eventos abaixo/acima do corte." /></Box>
       </Stack>}
       {step === 1 && <Stack spacing={2.25} sx={{ pt: 1 }}>
-        <Paper variant="outlined" sx={{ p: 3, textAlign: "center", borderStyle: "dashed" }}><FileUploadOutlined sx={{ fontSize: 38, color: "text.secondary" }} /><Typography fontWeight={700} sx={{ mt: 1 }}>Base histórica XLSX / CSV</Typography><Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Uma linha por ano, idade e sexo, com exposição e eventos observados.</Typography><Button component="label" variant="outlined">Escolher arquivo<input hidden type="file" accept=".xlsx,.xls,.csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void readFile(file); }} /></Button>{fileName && <Typography variant="caption" display="block" sx={{ mt: 1 }}>{fileName}</Typography>}</Paper>
-        {headers.length > 0 && <><Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(5, 1fr)" }, gap: 1.5 }}><ColumnSelect label="Ano" value={yearColumn} headers={headers} onChange={setYearColumn} /><ColumnSelect label="Idade" value={ageColumn} headers={headers} onChange={setAgeColumn} /><ColumnSelect label="Sexo" value={sexColumn} headers={headers} onChange={setSexColumn} allowEmpty /><ColumnSelect label="Exposição" value={exposureColumn} headers={headers} onChange={setExposureColumn} /><ColumnSelect label="Eventos" value={observedColumn} headers={headers} onChange={setObservedColumn} /></Box>{!sexColumn && <FormControl sx={{ maxWidth: 240 }}><InputLabel>Sexo fixo</InputLabel><Select label="Sexo fixo" value={fixedSex} onChange={(event) => setFixedSex(event.target.value as AdherenceObservation["sex"])}><MenuItem value="UNISEX">UNISEX</MenuItem><MenuItem value="MALE">MALE</MenuItem><MenuItem value="FEMALE">FEMALE</MenuItem></Select></FormControl>}<Alert severity={mapped.errors.length ? "warning" : "success"}>{mapped.observations.length} observações válidas{mapped.errors.length ? `; ${mapped.errors.length} linha(s) precisam de revisão.` : "."}</Alert></>}
+        <Paper variant="outlined" sx={{ p: 3, textAlign: "center", borderStyle: "dashed" }}><FileUploadOutlined sx={{ fontSize: 38, color: "text.secondary" }} /><Typography fontWeight={700} sx={{ mt: 1 }}>Base histórica XLSX / CSV</Typography><Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Uma linha por ano, idade e sexo, com exposição e eventos observados.</Typography><Button component="label" variant="outlined">Escolher arquivo<input hidden type="file" accept=".xlsx,.xls,.csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void readFile(file); }} /></Button>{nomeArquivo && <Typography variant="caption" display="block" sx={{ mt: 1 }}>{nomeArquivo}</Typography>}</Paper>
+        {headers.length > 0 && <><Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(5, 1fr)" }, gap: 1.5 }}><ColumnSelect label="Ano" value={yearColumn} headers={headers} onChange={setYearColumn} /><ColumnSelect label="Idade" value={ageColumn} headers={headers} onChange={setAgeColumn} /><ColumnSelect label="Sexo" value={sexColumn} headers={headers} onChange={setSexColumn} allowEmpty /><ColumnSelect label="Exposição" value={exposureColumn} headers={headers} onChange={setExposureColumn} /><ColumnSelect label="Eventos" value={observedColumn} headers={headers} onChange={setObservedColumn} /></Box>{!sexColumn && <FormControl sx={{ maxWidth: 240 }}><InputLabel>Sexo fixo</InputLabel><Select label="Sexo fixo" value={fixedSex} onChange={(event) => setFixedSex(event.target.value as ObservacaoAderencia["sexo"])}><MenuItem value="UNISSEX">UNISSEX</MenuItem><MenuItem value="MASCULINO">MASCULINO</MenuItem><MenuItem value="FEMININO">FEMININO</MenuItem></Select></FormControl>}<Alert severity={mapped.errors.length ? "warning" : "success"}>{mapped.observacoes.length} observações válidas{mapped.errors.length ? `; ${mapped.errors.length} linha(s) precisam de revisão.` : "."}</Alert></>}
       </Stack>}
       {step === 2 && <Stack spacing={2.25} sx={{ pt: 1 }}>
         <Typography variant="body2" color="text.secondary">Escolha uma ou mais versões imutáveis da Biblioteca Biométrica. O estudo grava exatamente os IDs usados.</Typography>
-        <FormControl fullWidth><InputLabel>Tábuas candidatas</InputLabel><Select multiple label="Tábuas candidatas" value={selectedVersions} onChange={(event) => setSelectedVersions(typeof event.target.value === "string" ? event.target.value.split(",") : event.target.value)} renderValue={(selected) => selected.map((id) => versions.find((item) => item.id === id)?.label ?? id).join(", ")}>{versions.map((option) => <MenuItem key={option.id} value={option.id}>{option.label} <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>{option.table}</Typography></MenuItem>)}</Select></FormControl>
-        {versions.length === 0 && <Alert severity="warning">Nenhuma versão biométrica disponível. Importe tábuas em Hipóteses & Tábuas primeiro.</Alert>}
+        <FormControl fullWidth><InputLabel>Tábuas candidatas</InputLabel><Select multiple label="Tábuas candidatas" value={selectedVersions} onChange={(event) => setSelectedVersions(typeof event.target.value === "string" ? event.target.value.split(",") : event.target.value)} renderValue={(selected) => selected.map((id) => versoes.find((item) => item.id === id)?.rotulo ?? id).join(", ")}>{versoes.map((option) => <MenuItem key={option.id} value={option.id}>{option.rotulo} <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>{option.table}</Typography></MenuItem>)}</Select></FormControl>
+        {versoes.length === 0 && <Alert severity="warning">Nenhuma versão biométrica disponível. Importe tábuas em Hipóteses & Tábuas primeiro.</Alert>}
       </Stack>}
       {step === 3 && <Stack spacing={2} sx={{ pt: 1 }}>
         <Alert severity={mapped.errors.length ? "error" : "info"}>{mapped.errors.length ? `Existem ${mapped.errors.length} erros na base histórica.` : "O cálculo será executado no backend e todos os resultados serão persistidos."}</Alert>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2 }}><MiniStat label="Observações" value={mapped.observations.length} /><MiniStat label="Candidatas" value={selectedVersions.length} /><MiniStat label="Alpha" value={alpha} /><MiniStat label="Fisher split" value={fisherSplitAge} /></Box>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2 }}><MiniStat label="Observações" value={mapped.observacoes.length} /><MiniStat label="Candidatas" value={selectedVersions.length} /><MiniStat label="Alpha" value={alpha} /><MiniStat label="Fisher split" value={fisherSplitAge} /></Box>
         <Typography variant="body2" color="text.secondary">Serão calculados χ², Kolmogorov-Smirnov, Z, Fisher e DQM. O ranking não substitui a análise técnica; ele apenas ordena os resultados persistidos.</Typography>
       </Stack>}
     </DialogContent>
-    <DialogActions><Button onClick={close}>Cancelar</Button>{step > 0 && <Button disabled={saving} onClick={() => setStep((value) => value - 1)}>Anterior</Button>}{step < 3 ? <Button variant="contained" disabled={(step === 0 && (!name.trim() || periodStart > periodEnd)) || (step === 1 && (!headers.length || !mapped.observations.length)) || (step === 2 && !selectedVersions.length)} onClick={() => setStep((value) => value + 1)}>Continuar</Button> : <Button variant="contained" disabled={saving || mapped.errors.length > 0 || !mapped.observations.length || !selectedVersions.length} onClick={() => void execute()}>{saving ? "Calculando…" : "Executar estudo"}</Button>}</DialogActions>
+    <DialogActions><Button onClick={close}>Cancelar</Button>{step > 0 && <Button disabled={saving} onClick={() => setStep((value) => value - 1)}>Anterior</Button>}{step < 3 ? <Button variant="contained" disabled={(step === 0 && (!name.trim() || periodoInicial > periodoFinal)) || (step === 1 && (!headers.length || !mapped.observacoes.length)) || (step === 2 && !selectedVersions.length)} onClick={() => setStep((value) => value + 1)}>Continuar</Button> : <Button variant="contained" disabled={saving || mapped.errors.length > 0 || !mapped.observacoes.length || !selectedVersions.length} onClick={() => void execute()}>{saving ? "Calculando…" : "Executar estudo"}</Button>}</DialogActions>
   </Dialog>;
 }
 

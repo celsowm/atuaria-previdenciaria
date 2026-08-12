@@ -1,103 +1,103 @@
 import { Auth, Body, Controller, Get, HttpError, Params, Patch, Post, Returns, t, type RequestContext } from "adorn-api";
 import {
-  approvePlanRulesVersion,
-  createPlanRulesVersion,
-  getPlanRulesVersion,
-  listPlanRulesVersions,
-  setPlanRuleValues,
-  updatePlanRulesMetadata
-} from "../plans/plan-rules-service.js";
+  approveVersaoRegrasPlano,
+  createVersaoRegrasPlano,
+  getVersaoRegrasPlano,
+  listVersaoRegrasPlanos,
+  setValorRegraPlanos,
+  updateRegrasPlanoMetadata
+} from "../planos/regras-plano-service.js";
 import {
-  CreatePlanRulesVersionDto,
-  PlanRulesPlanParamsDto,
-  PlanRulesVersionDto,
-  PlanRulesVersionParamsDto,
-  PlanRulesVersionSummaryDto,
-  SetPlanRuleValuesDto,
-  UpdatePlanRulesVersionDto
-} from "./plan-rules-dtos.js";
+  CriarVersaoRegrasPlanoDto,
+  RegrasPlanoPlanoParamsDto,
+  VersaoRegrasPlanoDto,
+  VersaoRegrasPlanoParamsDto,
+  VersaoRegrasPlanoSummaryDto,
+  DefinirValoresRegrasPlanoDto,
+  AtualizarVersaoRegrasPlanoDto
+} from "./regras-plano-dtos.js";
 
 function badRequest(error: unknown): never {
   throw new HttpError(400, error instanceof Error ? error.message : "Operação inválida.");
 }
 
 @Auth()
-@Controller({ path: "/api", tags: ["Plan Rules"] })
-export class PlanRulesController {
-  @Get("/plans/:planId/rules")
-  @Params(PlanRulesPlanParamsDto)
-  @Returns(t.array(t.ref(PlanRulesVersionSummaryDto)))
+@Controller({ path: "/api", tags: ["RegrasPlano"] })
+export class RegrasPlanoController {
+  @Get("/planos/:planoId/regras")
+  @Params(RegrasPlanoPlanoParamsDto)
+  @Returns(t.array(t.ref(VersaoRegrasPlanoSummaryDto)))
   async list(
-    ctx: RequestContext<unknown, undefined, { planId: string }>
-  ): Promise<PlanRulesVersionSummaryDto[]> {
+    ctx: RequestContext<unknown, undefined, { planoId: string }>
+  ): Promise<VersaoRegrasPlanoSummaryDto[]> {
     try {
-      return await listPlanRulesVersions(ctx.params.planId);
+      return await listVersaoRegrasPlanos(ctx.params.planoId);
     } catch (error) {
       return badRequest(error);
     }
   }
 
-  @Post("/plans/:planId/rules")
-  @Params(PlanRulesPlanParamsDto)
-  @Body(CreatePlanRulesVersionDto)
-  @Returns({ status: 201, schema: PlanRulesVersionDto })
+  @Post("/planos/:planoId/regras")
+  @Params(RegrasPlanoPlanoParamsDto)
+  @Body(CriarVersaoRegrasPlanoDto)
+  @Returns({ status: 201, schema: VersaoRegrasPlanoDto })
   async create(
-    ctx: RequestContext<CreatePlanRulesVersionDto, undefined, { planId: string }>
-  ): Promise<PlanRulesVersionDto> {
+    ctx: RequestContext<CriarVersaoRegrasPlanoDto, undefined, { planoId: string }>
+  ): Promise<VersaoRegrasPlanoDto> {
     try {
-      return await createPlanRulesVersion(ctx.params.planId, ctx.body);
+      return await createVersaoRegrasPlano(ctx.params.planoId, ctx.body);
     } catch (error) {
       return badRequest(error);
     }
   }
 
-  @Get("/plan-rules/:id")
-  @Params(PlanRulesVersionParamsDto)
-  @Returns(PlanRulesVersionDto)
+  @Get("/regras-plano/:id")
+  @Params(VersaoRegrasPlanoParamsDto)
+  @Returns(VersaoRegrasPlanoDto)
   async getOne(
     ctx: RequestContext<unknown, undefined, { id: string }>
-  ): Promise<PlanRulesVersionDto> {
-    const row = await getPlanRulesVersion(ctx.params.id);
+  ): Promise<VersaoRegrasPlanoDto> {
+    const row = await getVersaoRegrasPlano(ctx.params.id);
     if (!row) throw new HttpError(404, "Versão de regras do plano não encontrada.");
     return row;
   }
 
-  @Patch("/plan-rules/:id")
-  @Params(PlanRulesVersionParamsDto)
-  @Body(UpdatePlanRulesVersionDto)
-  @Returns(PlanRulesVersionDto)
+  @Patch("/regras-plano/:id")
+  @Params(VersaoRegrasPlanoParamsDto)
+  @Body(AtualizarVersaoRegrasPlanoDto)
+  @Returns(VersaoRegrasPlanoDto)
   async update(
-    ctx: RequestContext<UpdatePlanRulesVersionDto, undefined, { id: string }>
-  ): Promise<PlanRulesVersionDto> {
+    ctx: RequestContext<AtualizarVersaoRegrasPlanoDto, undefined, { id: string }>
+  ): Promise<VersaoRegrasPlanoDto> {
     try {
-      return await updatePlanRulesMetadata(ctx.params.id, ctx.body);
+      return await updateRegrasPlanoMetadata(ctx.params.id, ctx.body);
     } catch (error) {
       return badRequest(error);
     }
   }
 
-  @Patch("/plan-rules/:id/values")
-  @Params(PlanRulesVersionParamsDto)
-  @Body(SetPlanRuleValuesDto)
-  @Returns(PlanRulesVersionDto)
+  @Patch("/regras-plano/:id/valores")
+  @Params(VersaoRegrasPlanoParamsDto)
+  @Body(DefinirValoresRegrasPlanoDto)
+  @Returns(VersaoRegrasPlanoDto)
   async setValues(
-    ctx: RequestContext<SetPlanRuleValuesDto, undefined, { id: string }>
-  ): Promise<PlanRulesVersionDto> {
+    ctx: RequestContext<DefinirValoresRegrasPlanoDto, undefined, { id: string }>
+  ): Promise<VersaoRegrasPlanoDto> {
     try {
-      return await setPlanRuleValues(ctx.params.id, ctx.body.rules);
+      return await setValorRegraPlanos(ctx.params.id, ctx.body.regras);
     } catch (error) {
       return badRequest(error);
     }
   }
 
-  @Post("/plan-rules/:id/approve")
-  @Params(PlanRulesVersionParamsDto)
-  @Returns(PlanRulesVersionDto)
+  @Post("/regras-plano/:id/aprovar")
+  @Params(VersaoRegrasPlanoParamsDto)
+  @Returns(VersaoRegrasPlanoDto)
   async approve(
     ctx: RequestContext<unknown, undefined, { id: string }>
-  ): Promise<PlanRulesVersionDto> {
+  ): Promise<VersaoRegrasPlanoDto> {
     try {
-      return await approvePlanRulesVersion(ctx.params.id);
+      return await approveVersaoRegrasPlano(ctx.params.id);
     } catch (error) {
       return badRequest(error);
     }

@@ -1,8 +1,8 @@
 import { Entity, col } from "metal-orm";
 import { Column, PrimaryKey } from "./colunas-portuguesas.js";
 
-@Entity({ tableName: "evaluations" })
-export class Evaluation {
+@Entity({ tableName: "avaliacoes" })
+export class Avaliacao {
   @PrimaryKey(col.autoIncrement(col.int()))
   id!: number;
 
@@ -11,7 +11,7 @@ export class Evaluation {
     column: "id",
     onDelete: "RESTRICT"
   }))
-  planId?: string | null;
+  planoId?: string | null;
 
   @Column(col.references(col.text(), {
     table: "submassas",
@@ -21,112 +21,112 @@ export class Evaluation {
   submassaId?: string | null;
 
   @Column(col.notNull(col.text()))
-  planName!: string;
+  nomePlano!: string;
 
   @Column(col.notNull(col.text()))
-  referenceDate!: string;
+  dataReferencia!: string;
 
   @Column(col.notNull(col.text()))
-  status!: string;
+  situacao!: string;
 
   @Column(col.notNull(col.text()))
-  stage!: string;
+  etapa!: string;
 
   @Column(col.notNull(col.int()))
-  progress!: number;
+  progresso!: number;
 
   @Column(col.notNull(col.int()))
-  blockingIssues!: number;
+  inconsistenciasBloqueantes!: number;
 
   @Column(col.notNull(col.text()))
-  updatedAt!: string;
+  atualizadoEm!: string;
 }
 
 @Entity({ tableName: "mapping_profiles" })
-export class MappingProfile {
+export class PerfilMapeamento {
   @PrimaryKey(col.autoIncrement(col.int()))
   id!: number;
 
   @Column(col.notNull(col.text()))
-  name!: string;
+  nome!: string;
 
   @Column(col.notNull(col.text()))
-  population!: string;
+  populacao!: string;
 
   @Column(col.notNull(col.text()))
-  version!: string;
+  versao!: string;
 
   @Column(col.text())
-  schemaFingerprint?: string | null;
+  impressaoDigitalEsquema?: string | null;
 
   @Column(col.text())
-  rulesFingerprint?: string | null;
+  impressaoDigitalRegras?: string | null;
 
   @Column(col.text())
-  sourceHeadersJson?: string | null;
+  jsonCabecalhosOrigem?: string | null;
 
   @Column(col.notNull(col.int()))
-  mappedFields!: number;
+  camposMapeados!: number;
 
   @Column(col.notNull(col.int()))
-  totalFields!: number;
+  quantidadeCampos!: number;
 
   @Column(col.notNull(col.text()))
-  updatedAt!: string;
+  atualizadoEm!: string;
 }
 
 @Entity({ tableName: "mapping_rules" })
-export class MappingRule {
+export class RegraMapeamento {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.notNull(col.int()))
-  profileId!: number;
+  perfilMapeamentoId!: number;
 
   @Column(col.notNull(col.int()))
   ordinal!: number;
 
   @Column(col.notNull(col.text()))
-  sourcesJson!: string;
+  jsonOrigens!: string;
 
   @Column(col.notNull(col.text()))
-  targetsJson!: string;
+  jsonDestinos!: string;
 
   @Column(col.notNull(col.text()))
   transform!: string;
 }
 
 @Entity({ tableName: "import_files" })
-export class ImportFile {
+export class ArquivoImportacao {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.notNull(col.text()))
-  originalName!: string;
+  nomeOriginal!: string;
 
   @Column(col.notNull(col.text()))
   mimeType!: string;
 
   @Column(col.notNull(col.int()))
-  sizeBytes!: number;
+  tamanhoBytes!: number;
 
   @Column(col.notNull(col.text()))
   sha256!: string;
 
   @Column(col.notNull(col.text()))
-  storagePath!: string;
+  caminhoArmazenamento!: string;
 
   @Column(col.notNull(col.text()))
-  createdAt!: string;
+  criadoEm!: string;
 }
 
 @Entity({ tableName: "import_jobs" })
-export class ImportJob {
+export class ImportacaoJob {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.int())
-  evaluationId?: number | null;
+  avaliacaoId?: number | null;
 
   @Column(col.references(col.text(), {
     table: "submassas",
@@ -136,107 +136,107 @@ export class ImportJob {
   submassaId?: string | null;
 
   @Column(col.notNull(col.text()))
-  fileId!: string;
+  arquivoId!: string;
 
   @Column(col.int())
-  mappingProfileId?: number | null;
+  perfilMapeamentoId?: number | null;
 
   @Column(col.notNull(col.text()))
-  population!: string;
+  populacao!: string;
 
   @Column(col.notNull(col.text()))
-  sheetName!: string;
+  nomeAba!: string;
 
   @Column(col.notNull(col.int()))
-  headerRow!: number;
+  linhaCabecalho!: number;
 
   @Column(col.notNull(col.text()))
-  sourceHeadersJson!: string;
+  jsonCabecalhosOrigem!: string;
 
   @Column(col.notNull(col.text()))
-  schemaFingerprint!: string;
+  impressaoDigitalEsquema!: string;
 
   @Column(col.notNull(col.text()))
-  status!: string;
+  situacao!: string;
 
   @Column(col.notNull(col.int()))
-  rowCount!: number;
+  quantidadeLinhas!: number;
 
   @Column(col.notNull(col.int()))
-  validRows!: number;
+  linhasValidas!: number;
 
   @Column(col.notNull(col.int()))
-  invalidRows!: number;
+  linhasInvalidas!: number;
 
   @Column(col.notNull(col.text()))
-  createdAt!: string;
+  criadoEm!: string;
 
   @Column(col.text())
-  completedAt?: string | null;
+  concluidoEm?: string | null;
 }
 
 @Entity({ tableName: "import_rows" })
-export class ImportRow {
+export class LinhaImportacao {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.notNull(col.text()))
-  importJobId!: string;
+  importacaoId!: string;
 
   @Column(col.notNull(col.int()))
-  rowNumber!: number;
+  numeroLinha!: number;
 
   @Column(col.notNull(col.text()))
-  rawJson!: string;
+  jsonBruto!: string;
 
   @Column(col.notNull(col.text()))
-  normalizedJson!: string;
+  jsonNormalizado!: string;
 
   @Column(col.notNull(col.text()))
-  canonicalJson!: string;
+  jsonCanonico!: string;
 
   @Column(col.notNull(col.text()))
-  validationStatus!: string;
+  situacaoValidacao!: string;
 
   @Column(col.notNull(col.text()))
-  validationErrorsJson!: string;
+  jsonErrosValidacao!: string;
 }
 
 @Entity({ tableName: "llm_providers" })
-export class LlmProvider {
+export class ProvedorLlm {
   @PrimaryKey(col.autoIncrement(col.int()))
   id!: number;
 
   @Column(col.notNull(col.text()))
-  name!: string;
+  nome!: string;
 
   @Column(col.notNull(col.text()))
-  baseUrl!: string;
+  urlBase!: string;
 
   @Column(col.notNull(col.text()))
-  model!: string;
+  modelo!: string;
 
   @Column(col.notNull(col.int()))
-  enabled!: number;
+  habilitado!: number;
 }
 
 @Entity({ tableName: "llm_provider_credentials" })
-export class LlmProviderCredential {
+export class CredencialProvedorLlm {
   @PrimaryKey(col.autoIncrement(col.int()))
   id!: number;
 
   @Column(col.notNull(col.int()))
-  providerId!: number;
+  provedorId!: number;
 
   @Column(col.notNull(col.text()))
-  label!: string;
+  rotulo!: string;
 
   @Column(col.notNull(col.text()))
-  secretRef!: string;
+  referenciaSegredo!: string;
 
   @Column(col.notNull(col.int()))
-  enabled!: number;
+  habilitado!: number;
 
   @Column(col.notNull(col.int()))
-  priority!: number;
+  prioridade!: number;
 }

@@ -1,12 +1,12 @@
-import { normalizeToken, parseCanonicalNumber } from "../data-studio/mapping.js";
+import { normalizeToken, parseCanonicalNumber } from "../estudio-dados/mapeamento.js";
 import {
-  registerCalculationEngine,
-  type CalculationEngineContext,
-  type CalculationEngineOutput,
-  type CalculationMetric,
-  type CalculationParticipantOutput,
-  type CalculationPlanRule
-} from "./calculation-engine.js";
+  registerCalculoEngine,
+  type CalculoEngineContext,
+  type CalculoEngineOutput,
+  type MetricaCalculo,
+  type CalculationParticipanteOutput,
+  type CalculationRegraPlano
+} from "./calculo-engine.js";
 
 const millisecondsPerActuarialYear = 365.2425 * 24 * 60 * 60 * 1000;
 
@@ -14,9 +14,9 @@ function parseIsoDate(value: unknown) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const date = new Date(`${value}T00:00:00.000Z`);
   if (Number.isNaN(date.getTime())) return null;
-  const [year, month, day] = value.split("-").map(Number);
+  const [ano, month, day] = value.split("-").map(Number);
   if (
-    date.getUTCFullYear() !== year ||
+    date.getUTCFullYear() !== ano ||
     date.getUTCMonth() !== month - 1 ||
     date.getUTCDate() !== day
   ) return null;
@@ -24,12 +24,12 @@ function parseIsoDate(value: unknown) {
 }
 
 function ageAt(date: Date, birth: Date) {
-  let age = date.getUTCFullYear() - birth.getUTCFullYear();
+  let idade = date.getUTCFullYear() - birth.getUTCFullYear();
   if (
     date.getUTCMonth() < birth.getUTCMonth() ||
     (date.getUTCMonth() === birth.getUTCMonth() && date.getUTCDate() < birth.getUTCDate())
-  ) age -= 1;
-  return age;
+  ) idade -= 1;
+  return idade;
 }
 
 function addYears(date: Date, years: number) {
@@ -51,123 +51,123 @@ function isoDate(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
-function parseJson(rule: { code: string; valueJson: string }) {
+function parseJson(rule: { codigo: string; jsonValor: string }) {
   try {
-    return JSON.parse(rule.valueJson) as unknown;
+    return JSON.parse(rule.jsonValor) as unknown;
   } catch {
-    throw new Error(`${rule.code} possui JSON inválido.`);
+    throw new Error(`${rule.codigo} possui JSON inválido.`);
   }
 }
 
-function rule(context: CalculationEngineContext, code: string): CalculationPlanRule {
-  const value = context.planRules?.rules.find((item) => item.code === code);
-  if (!value) throw new Error(`A regra obrigatória ${code} não foi informada na versão aprovada do plano.`);
+function rule(context: CalculoEngineContext, codigo: string): CalculationRegraPlano {
+  const value = context.planRules?.rules.find((item) => item.codigo === codigo);
+  if (!value) throw new Error(`A regra obrigatória ${codigo} não foi informada na versão aprovada do plano.`);
   return value;
 }
 
-function ruleNumber(context: CalculationEngineContext, code: string) {
-  const item = rule(context, code);
+function ruleNumber(context: CalculoEngineContext, codigo: string) {
+  const item = rule(context, codigo);
   const value = parseJson(item);
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new Error(`${code} precisa ser numérico.`);
+    throw new Error(`${codigo} precisa ser numérico.`);
   }
   return value;
 }
 
-function ruleInteger(context: CalculationEngineContext, code: string) {
-  const value = ruleNumber(context, code);
-  if (!Number.isInteger(value)) throw new Error(`${code} precisa ser inteiro.`);
+function ruleInteger(context: CalculoEngineContext, codigo: string) {
+  const value = ruleNumber(context, codigo);
+  if (!Number.isInteger(value)) throw new Error(`${codigo} precisa ser inteiro.`);
   return value;
 }
 
-function optionalRuleInteger(context: CalculationEngineContext, code: string) {
-  const item = context.planRules?.rules.find((candidate) => candidate.code === code);
+function optionalRuleInteger(context: CalculoEngineContext, codigo: string) {
+  const item = context.planRules?.rules.find((candidate) => candidate.codigo === codigo);
   if (!item) return null;
   const value = parseJson(item);
-  if (typeof value !== "number" || !Number.isInteger(value)) throw new Error(`${code} precisa ser inteiro.`);
+  if (typeof value !== "number" || !Number.isInteger(value)) throw new Error(`${codigo} precisa ser inteiro.`);
   return value;
 }
 
-function ruleText(context: CalculationEngineContext, code: string) {
-  const item = rule(context, code);
+function ruleText(context: CalculoEngineContext, codigo: string) {
+  const item = rule(context, codigo);
   const value = parseJson(item);
-  if (typeof value !== "string" || !value.trim()) throw new Error(`${code} precisa ser textual.`);
+  if (typeof value !== "string" || !value.trim()) throw new Error(`${codigo} precisa ser textual.`);
   return value.trim();
 }
 
-function optionalRuleText(context: CalculationEngineContext, code: string) {
-  const item = context.planRules?.rules.find((candidate) => candidate.code === code);
+function optionalRuleText(context: CalculoEngineContext, codigo: string) {
+  const item = context.planRules?.rules.find((candidate) => candidate.codigo === codigo);
   if (!item) return null;
   const value = parseJson(item);
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function parameterNumber(context: CalculationEngineContext, code: string) {
-  const parameter = context.parameterization.parameters.find((item) => item.code === code);
-  if (!parameter) throw new Error(`O parâmetro obrigatório ${code} não foi informado na parametrização aprovada.`);
+function parameterNumber(context: CalculoEngineContext, codigo: string) {
+  const parameter = context.parametrizacao.parameters.find((item) => item.codigo === codigo);
+  if (!parameter) throw new Error(`O parâmetro obrigatório ${codigo} não foi informado na parametrização aprovada.`);
   let value: unknown;
   try {
-    value = JSON.parse(parameter.valueJson) as unknown;
+    value = JSON.parse(parameter.jsonValor) as unknown;
   } catch {
-    throw new Error(`${code} possui JSON inválido.`);
+    throw new Error(`${codigo} possui JSON inválido.`);
   }
-  if (typeof value !== "number" || !Number.isFinite(value)) throw new Error(`${code} precisa ser numérico.`);
+  if (typeof value !== "number" || !Number.isFinite(value)) throw new Error(`${codigo} precisa ser numérico.`);
   return value;
 }
 
-function canonicalNumber(rowNumber: number, data: Record<string, unknown>, field: string) {
+function canonicalNumber(numeroLinha: number, data: Record<string, unknown>, field: string) {
   const parsed = parseCanonicalNumber(data[field]);
-  if (parsed === null) throw new Error(`Linha ${rowNumber}: ${field} é obrigatório e precisa ser numérico.`);
+  if (parsed === null) throw new Error(`Linha ${numeroLinha}: ${field} é obrigatório e precisa ser numérico.`);
   return parsed;
 }
 
-function canonicalDate(rowNumber: number, data: Record<string, unknown>, field: string) {
+function canonicalDate(numeroLinha: number, data: Record<string, unknown>, field: string) {
   const parsed = parseIsoDate(data[field]);
-  if (!parsed) throw new Error(`Linha ${rowNumber}: ${field} é obrigatório e precisa estar em YYYY-MM-DD.`);
+  if (!parsed) throw new Error(`Linha ${numeroLinha}: ${field} é obrigatório e precisa estar em YYYY-MM-DD.`);
   return parsed;
 }
 
 function qxAt(
-  points: CalculationEngineContext["parameterization"]["hypotheses"][number]["points"],
-  age: number,
-  sex: string
+  points: CalculoEngineContext["parametrizacao"]["hypotheses"][number]["points"],
+  idade: number,
+  sexo: string
 ) {
-  const exact = points.find((point) => point.age === age && point.sex === sex);
-  const unisex = points.find((point) => point.age === age && point.sex === "UNISEX");
+  const exact = points.find((point) => point.idade === idade && point.sexo === sexo);
+  const unisex = points.find((point) => point.idade === idade && point.sexo === "UNISSEX");
   const point = exact ?? unisex;
-  if (!point) throw new Error(`A hipótese biométrica não possui qx para idade ${age} e sexo ${sex}.`);
+  if (!point) throw new Error(`A hipótese biométrica não possui qx para idade ${idade} e sexo ${sexo}.`);
   if (!Number.isFinite(point.qx) || point.qx < 0 || point.qx > 1) {
-    throw new Error(`qx inválido na idade ${age} e sexo ${point.sex}.`);
+    throw new Error(`qx inválido na idade ${idade} e sexo ${point.sexo}.`);
   }
   return point.qx;
 }
 
 function maximumAgeFor(
-  points: CalculationEngineContext["parameterization"]["hypotheses"][number]["points"],
-  sex: string
+  points: CalculoEngineContext["parametrizacao"]["hypotheses"][number]["points"],
+  sexo: string
 ) {
   const ages = points
-    .filter((point) => point.sex === sex || point.sex === "UNISEX")
-    .map((point) => point.age);
-  if (!ages.length) throw new Error(`A hipótese biométrica não possui pontos aplicáveis ao sexo ${sex}.`);
+    .filter((point) => point.sexo === sexo || point.sexo === "UNISSEX")
+    .map((point) => point.idade);
+  if (!ages.length) throw new Error(`A hipótese biométrica não possui pontos aplicáveis ao sexo ${sexo}.`);
   return Math.max(...ages);
 }
 
-function numberMetric(code: string, label: string, value: number, unit?: string | null): CalculationMetric {
-  return { code, category: "BD · PVFB", label, valueType: "NUMBER", value, unit: unit ?? null };
+function numberMetric(codigo: string, rotulo: string, value: number, unidade?: string | null): MetricaCalculo {
+  return { codigo, categoria: "BD · PVFB", rotulo, tipoValor: "NUMBER", value, unidade: unidade ?? null };
 }
 
-function integerMetric(code: string, label: string, value: number): CalculationMetric {
-  return { code, category: "BD · PVFB", label, valueType: "INTEGER", value };
+function integerMetric(codigo: string, rotulo: string, value: number): MetricaCalculo {
+  return { codigo, categoria: "BD · PVFB", rotulo, tipoValor: "INTEGER", value };
 }
 
-function textMetric(code: string, label: string, value: string): CalculationMetric {
-  return { code, category: "BD · PVFB", label, valueType: "TEXT", value };
+function textMetric(codigo: string, rotulo: string, value: string): MetricaCalculo {
+  return { codigo, categoria: "BD · PVFB", rotulo, tipoValor: "TEXT", value };
 }
 
-export async function executeBdPvfb(context: CalculationEngineContext): Promise<CalculationEngineOutput> {
+export async function executeBdPvfb(context: CalculoEngineContext): Promise<CalculoEngineOutput> {
   if (!context.planRules) throw new Error("BD_PVFB exige uma versão aprovada das regras do plano.");
-  if (context.planRules.modality !== "BD") throw new Error("BD_PVFB só aceita regras de plano da modalidade BD.");
+  if (context.planRules.modalidade !== "BD") throw new Error("BD_PVFB só aceita regras de plano da modalidade BD.");
 
   const basis = ruleText(context, "BENEFIT.CALCULATION_BASIS");
   if (basis !== "FINAL_SALARY") {
@@ -193,24 +193,24 @@ export async function executeBdPvfb(context: CalculationEngineContext): Promise<
   const realInterestPercent = parameterNumber(context, "ECONOMIC.REAL_INTEREST_RATE");
   const salaryGrowthPercent = parameterNumber(context, "ECONOMIC.SALARY_GROWTH_RATE");
   const benefitGrowthPercent = parameterNumber(context, "ECONOMIC.BENEFIT_GROWTH_RATE");
-  for (const [code, value] of [
+  for (const [codigo, value] of [
     ["ECONOMIC.REAL_INTEREST_RATE", realInterestPercent],
     ["ECONOMIC.SALARY_GROWTH_RATE", salaryGrowthPercent],
     ["ECONOMIC.BENEFIT_GROWTH_RATE", benefitGrowthPercent]
   ] as const) {
-    if (value <= -100) throw new Error(`${code} deve ser superior a -100% a.a.`);
+    if (value <= -100) throw new Error(`${codigo} deve ser superior a -100% a.a.`);
   }
 
-  if (context.parameterization.hypotheses.length !== 1) {
+  if (context.parametrizacao.hypotheses.length !== 1) {
     throw new Error("BD_PVFB v1 exige exatamente uma hipótese biométrica selecionada na parametrização.");
   }
-  const mortality = context.parameterization.hypotheses[0];
+  const mortality = context.parametrizacao.hypotheses[0];
   if (!mortality.points.length) throw new Error("A hipótese biométrica selecionada não possui pontos qx.");
 
-  const referenceDate = parseIsoDate(context.evaluation.referenceDate);
-  if (!referenceDate) throw new Error("A data-base da avaliação é inválida.");
+  const dataReferencia = parseIsoDate(context.evaluation.dataReferencia);
+  if (!dataReferencia) throw new Error("A data-base da avaliação é inválida.");
 
-  const activeRows = context.rows.filter((row) => normalizeToken(row.population) === "ATIVOS");
+  const activeRows = context.rows.filter((row) => normalizeToken(row.populacao) === "ATIVOS");
   if (!activeRows.length) throw new Error("BD_PVFB exige ao menos uma linha válida da população Ativos.");
 
   const interestRate = realInterestPercent / 100;
@@ -224,45 +224,45 @@ export async function executeBdPvfb(context: CalculationEngineContext): Promise<
   let totalPvfb = 0;
   let totalYearsToRetirement = 0;
   let totalSurvivalToRetirement = 0;
-  const participantResults: CalculationParticipantOutput[] = [];
+  const participantResults: CalculationParticipanteOutput[] = [];
 
   for (const row of activeRows) {
-    const birth = canonicalDate(row.rowNumber, row.data, "participant.birthDate");
-    if (birth > referenceDate) throw new Error(`Linha ${row.rowNumber}: data de nascimento posterior à data-base.`);
-    const currentAge = ageAt(referenceDate, birth);
-    if (currentAge < 0 || currentAge > 130) throw new Error(`Linha ${row.rowNumber}: idade atuarial inválida.`);
+    const birth = canonicalDate(row.numeroLinha, row.data, "participant.birthDate");
+    if (birth > dataReferencia) throw new Error(`Linha ${row.numeroLinha}: data de nascimento posterior à data-base.`);
+    const currentAge = ageAt(dataReferencia, birth);
+    if (currentAge < 0 || currentAge > 130) throw new Error(`Linha ${row.numeroLinha}: idade atuarial inválida.`);
 
-    const sex = String(row.data["participant.sex"] ?? "").toUpperCase();
-    if (sex !== "MALE" && sex !== "FEMALE" && sex !== "UNISEX") {
-      throw new Error(`Linha ${row.rowNumber}: participant.sex deve ser MALE, FEMALE ou UNISEX.`);
+    const sexo = String(row.data["participant.sexo"] ?? "").toUpperCase();
+    if (sexo !== "MASCULINO" && sexo !== "FEMININO" && sexo !== "UNISSEX") {
+      throw new Error(`Linha ${row.numeroLinha}: participant.sexo deve ser MASCULINO, FEMININO ou UNISSEX.`);
     }
 
-    const salary = canonicalNumber(row.rowNumber, row.data, "participant.contributionSalary");
-    if (salary <= 0) throw new Error(`Linha ${row.rowNumber}: salário de contribuição deve ser maior que zero.`);
+    const salary = canonicalNumber(row.numeroLinha, row.data, "participant.contributionSalary");
+    if (salary <= 0) throw new Error(`Linha ${row.numeroLinha}: salário de contribuição deve ser maior que zero.`);
 
-    const eligibleDates = [addYears(birth, normalRetirementAge), referenceDate];
+    const eligibleDates = [addYears(birth, normalRetirementAge), dataReferencia];
     if (minimumPlanYears !== null) {
-      eligibleDates.push(addYears(canonicalDate(row.rowNumber, row.data, "participant.planJoinDate"), minimumPlanYears));
+      eligibleDates.push(addYears(canonicalDate(row.numeroLinha, row.data, "participant.planJoinDate"), minimumPlanYears));
     }
     if (minimumSponsorYears !== null) {
-      eligibleDates.push(addYears(canonicalDate(row.rowNumber, row.data, "participant.admissionDate"), minimumSponsorYears));
+      eligibleDates.push(addYears(canonicalDate(row.numeroLinha, row.data, "participant.admissionDate"), minimumSponsorYears));
     }
     const eligibilityDate = laterDate(...eligibleDates);
-    const yearsToRetirement = annualStepsUntil(referenceDate, eligibilityDate);
+    const yearsToRetirement = annualStepsUntil(dataReferencia, eligibilityDate);
     const retirementAge = currentAge + yearsToRetirement;
 
-    const maxAge = maximumAgeFor(mortality.points, sex);
-    const terminalQx = qxAt(mortality.points, maxAge, sex);
+    const idadeMaxima = maximumAgeFor(mortality.points, sexo);
+    const terminalQx = qxAt(mortality.points, idadeMaxima, sexo);
     if (terminalQx < 0.999999) {
-      throw new Error(`A hipótese biométrica precisa encerrar com qx = 1; último qx aplicável ao sexo ${sex} é ${terminalQx} na idade ${maxAge}.`);
+      throw new Error(`A hipótese biométrica precisa encerrar com qx = 1; último qx aplicável ao sexo ${sexo} é ${terminalQx} na idade ${idadeMaxima}.`);
     }
 
     let survivalToRetirement = 1;
-    if (retirementAge > maxAge) {
+    if (retirementAge > idadeMaxima) {
       survivalToRetirement = 0;
     } else {
-      for (let age = currentAge; age < retirementAge; age += 1) {
-        survivalToRetirement *= 1 - qxAt(mortality.points, age, sex);
+      for (let idade = currentAge; idade < retirementAge; idade += 1) {
+        survivalToRetirement *= 1 - qxAt(mortality.points, idade, sexo);
       }
     }
 
@@ -272,12 +272,12 @@ export async function executeBdPvfb(context: CalculationEngineContext): Promise<
 
     let pvfb = 0;
     let survivalAtPayment = survivalToRetirement;
-    if (retirementAge <= maxAge) {
-      for (let age = retirementAge, elapsed = 0; age <= maxAge; age += 1, elapsed += 1) {
+    if (retirementAge <= idadeMaxima) {
+      for (let idade = retirementAge, elapsed = 0; idade <= idadeMaxima; idade += 1, elapsed += 1) {
         const annualBenefit = annualBenefitAtRetirement * Math.pow(1 + benefitGrowthRate, elapsed);
         const discount = Math.pow(1 + interestRate, yearsToRetirement + elapsed);
         pvfb += annualBenefit * survivalAtPayment / discount;
-        survivalAtPayment *= 1 - qxAt(mortality.points, age, sex);
+        survivalAtPayment *= 1 - qxAt(mortality.points, idade, sexo);
       }
     }
 
@@ -288,10 +288,10 @@ export async function executeBdPvfb(context: CalculationEngineContext): Promise<
     totalSurvivalToRetirement += survivalToRetirement;
 
     participantResults.push({
-      importJobId: row.importJobId,
-      population: row.population,
-      sourceRowNumber: row.rowNumber,
-      participantRegistration: String(row.data["participant.registration"] ?? "").trim() || null,
+      importacaoId: row.importacaoId,
+      populacao: row.populacao,
+      numeroLinhaOrigem: row.numeroLinha,
+      matriculaParticipante: String(row.data["participant.registration"] ?? "").trim() || null,
       campoUnicoLgpd: String(row.data["participant.campo_unico_lgpd"] ?? row.data["campo_unico_lgpd"] ?? "").trim() || null,
       result: {
         currentAge,
@@ -308,9 +308,9 @@ export async function executeBdPvfb(context: CalculationEngineContext): Promise<
   }
 
   const count = activeRows.length;
-  const metrics: CalculationMetric[] = [
+  const metrics: MetricaCalculo[] = [
     textMetric("BD.PVFB.SCOPE", "Escopo", "PVFB da renda de aposentadoria dos Ativos; não representa reserva matemática ou provisão técnica."),
-    integerMetric("BD.PVFB.ACTIVE_PARTICIPANTS", "Participantes ativos calculados", count),
+    integerMetric("BD.PVFB.ACTIVE_PARTICIPANTS", "Participantees ativos calculados", count),
     numberMetric("BD.PVFB.CURRENT_MONTHLY_SALARY_TOTAL", "Salário de contribuição mensal atual total", totalCurrentMonthlySalary, currency),
     numberMetric("BD.PVFB.PROJECTED_MONTHLY_BENEFIT_TOTAL", "Benefício mensal projetado na aposentadoria", totalProjectedMonthlyBenefit, currency),
     numberMetric("BD.PVFB.TOTAL", "Valor presente dos benefícios futuros", totalPvfb, currency),
@@ -327,13 +327,13 @@ export async function executeBdPvfb(context: CalculationEngineContext): Promise<
   return { metrics, participantResults };
 }
 
-registerCalculationEngine({
-  code: "BD_PVFB",
-  version: "bd-pvfb-v1",
-  label: "BD · PVFB de aposentadoria",
-  description: "Calcula deterministicamente o valor presente esperado da renda futura de aposentadoria dos Ativos usando regras BD aprovadas, hipóteses econômicas e qx selecionado. Não calcula reserva matemática ou provisão técnica.",
-  resultKind: "ACTUARIAL",
-  requiresPlanRules: true,
-  supportedModalities: ["BD"],
+registerCalculoEngine({
+  codigo: "BD_PVFB",
+  versao: "bd-pvfb-v1",
+  rotulo: "BD · PVFB de aposentadoria",
+  descricao: "Calcula deterministicamente o valor presente esperado da renda futura de aposentadoria dos Ativos usando regras BD aprovadas, hipóteses econômicas e qx selecionado. Não calcula reserva matemática ou provisão técnica.",
+  tipoResultado: "ATUARIAL",
+  requiresRegrasPlano: true,
+  modalidadesSuportadas: ["BD"],
   execute: executeBdPvfb
 });

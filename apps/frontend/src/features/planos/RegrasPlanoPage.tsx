@@ -19,88 +19,88 @@ import FingerprintRounded from "@mui/icons-material/FingerprintRounded";
 import SaveRounded from "@mui/icons-material/SaveRounded";
 import {
   api,
-  type Plan,
-  type PlanRulesVersion,
-  type PlanRulesVersionSummary,
-  type SetPlanRuleValueInput
+  type Plano,
+  type VersaoRegrasPlano,
+  type ResumoVersaoRegrasPlano,
+  type DefinirValorRegraPlanoInput
 } from "../../api/client";
 
 type RuleSpec = {
-  code: string;
-  category: string;
-  label: string;
-  valueType: "NUMBER" | "INTEGER" | "TEXT" | "BOOLEAN";
-  unit?: string;
+  codigo: string;
+  categoria: string;
+  rotulo: string;
+  tipoValor: "NUMBER" | "INTEGER" | "TEXT" | "BOOLEAN";
+  unidade?: string;
   helper?: string;
-  options?: Array<{ value: string; label: string }>;
+  options?: Array<{ value: string; rotulo: string }>;
 };
 
 const commonRules: RuleSpec[] = [
-  { code: "ELIGIBILITY.NORMAL_RETIREMENT_AGE", category: "Elegibilidade", label: "Idade normal de aposentadoria", valueType: "INTEGER", unit: "anos" },
-  { code: "ELIGIBILITY.MINIMUM_PLAN_MEMBERSHIP_YEARS", category: "Elegibilidade", label: "Carência mínima no plano", valueType: "INTEGER", unit: "anos" },
-  { code: "ELIGIBILITY.MINIMUM_SPONSOR_SERVICE_YEARS", category: "Elegibilidade", label: "Tempo mínimo de vínculo com patrocinador", valueType: "INTEGER", unit: "anos" },
-  { code: "CONTRIBUTION.PARTICIPANT_RATE", category: "Contribuições", label: "Alíquota de contribuição do participante", valueType: "NUMBER", unit: "%" },
-  { code: "CONTRIBUTION.SPONSOR_RATE", category: "Contribuições", label: "Alíquota de contribuição do patrocinador", valueType: "NUMBER", unit: "%" },
-  { code: "BENEFIT.PAYMENTS_PER_YEAR", category: "Benefícios", label: "Pagamentos de benefício por ano", valueType: "INTEGER", unit: "pagamentos" }
+  { codigo: "ELIGIBILITY.NORMAL_RETIREMENT_AGE", categoria: "Elegibilidade", rotulo: "Idade normal de aposentadoria", tipoValor: "INTEGER", unidade: "anos" },
+  { codigo: "ELIGIBILITY.MINIMUM_PLAN_MEMBERSHIP_YEARS", categoria: "Elegibilidade", rotulo: "Carência mínima no plano", tipoValor: "INTEGER", unidade: "anos" },
+  { codigo: "ELIGIBILITY.MINIMUM_SPONSOR_SERVICE_YEARS", categoria: "Elegibilidade", rotulo: "Tempo mínimo de vínculo com patrocinador", tipoValor: "INTEGER", unidade: "anos" },
+  { codigo: "CONTRIBUTION.PARTICIPANT_RATE", categoria: "Contribuições", rotulo: "Alíquota de contribuição do participante", tipoValor: "NUMBER", unidade: "%" },
+  { codigo: "CONTRIBUTION.SPONSOR_RATE", categoria: "Contribuições", rotulo: "Alíquota de contribuição do patrocinador", tipoValor: "NUMBER", unidade: "%" },
+  { codigo: "BENEFIT.PAYMENTS_PER_YEAR", categoria: "Benefícios", rotulo: "Pagamentos de benefício por ano", tipoValor: "INTEGER", unidade: "pagamentos" }
 ];
 
 const modalityRules: Record<"BD" | "CD" | "CV", RuleSpec[]> = {
   BD: [
     {
-      code: "BENEFIT.CALCULATION_BASIS",
-      category: "Benefícios",
-      label: "Base de cálculo do benefício",
-      valueType: "TEXT",
+      codigo: "BENEFIT.CALCULATION_BASIS",
+      categoria: "Benefícios",
+      rotulo: "Base de cálculo do benefício",
+      tipoValor: "TEXT",
       options: [
-        { value: "FINAL_SALARY", label: "Salário final" },
-        { value: "AVERAGE_SALARY", label: "Média salarial" },
-        { value: "FIXED_AMOUNT", label: "Valor fixo" }
+        { value: "FINAL_SALARY", rotulo: "Salário final" },
+        { value: "AVERAGE_SALARY", rotulo: "Média salarial" },
+        { value: "FIXED_AMOUNT", rotulo: "Valor fixo" }
       ]
     },
-    { code: "BENEFIT.REPLACEMENT_RATE", category: "Benefícios", label: "Taxa-alvo de reposição", valueType: "NUMBER", unit: "%" },
-    { code: "BENEFIT.SALARY_AVERAGING_MONTHS", category: "Benefícios", label: "Período de média salarial", valueType: "INTEGER", unit: "meses" }
+    { codigo: "BENEFIT.REPLACEMENT_RATE", categoria: "Benefícios", rotulo: "Taxa-alvo de reposição", tipoValor: "NUMBER", unidade: "%" },
+    { codigo: "BENEFIT.SALARY_AVERAGING_MONTHS", categoria: "Benefícios", rotulo: "Período de média salarial", tipoValor: "INTEGER", unidade: "meses" }
   ],
   CD: [
     {
-      code: "BENEFIT.CALCULATION_BASIS",
-      category: "Benefícios",
-      label: "Base de cálculo do benefício",
-      valueType: "TEXT",
-      options: [{ value: "ACCOUNT_BALANCE", label: "Saldo de conta" }]
+      codigo: "BENEFIT.CALCULATION_BASIS",
+      categoria: "Benefícios",
+      rotulo: "Base de cálculo do benefício",
+      tipoValor: "TEXT",
+      options: [{ value: "ACCOUNT_BALANCE", rotulo: "Saldo de conta" }]
     },
-    { code: "CONTRIBUTION.MATCHING_LIMIT_RATE", category: "Contribuições", label: "Limite de matching do patrocinador", valueType: "NUMBER", unit: "%" },
-    { code: "BENEFIT.ANNUITY_CONVERSION_ENABLED", category: "Benefícios", label: "Conversão atuarial do saldo em renda", valueType: "BOOLEAN" }
+    { codigo: "CONTRIBUTION.MATCHING_LIMIT_RATE", categoria: "Contribuições", rotulo: "Limite de matching do patrocinador", tipoValor: "NUMBER", unidade: "%" },
+    { codigo: "BENEFIT.ANNUITY_CONVERSION_ENABLED", categoria: "Benefícios", rotulo: "Conversão atuarial do saldo em renda", tipoValor: "BOOLEAN" }
   ],
   CV: [
     {
-      code: "BENEFIT.CALCULATION_BASIS",
-      category: "Benefícios",
-      label: "Base de cálculo do benefício",
-      valueType: "TEXT",
-      options: [{ value: "HYBRID", label: "Componente híbrido" }]
+      codigo: "BENEFIT.CALCULATION_BASIS",
+      categoria: "Benefícios",
+      rotulo: "Base de cálculo do benefício",
+      tipoValor: "TEXT",
+      options: [{ value: "HYBRID", rotulo: "Componente híbrido" }]
     },
-    { code: "CONTRIBUTION.VARIABLE_RATE", category: "Contribuições", label: "Alíquota variável de contribuição", valueType: "NUMBER", unit: "%" },
-    { code: "BENEFIT.DEFINED_COMPONENT_REPLACEMENT_RATE", category: "Benefícios", label: "Taxa de reposição do componente definido", valueType: "NUMBER", unit: "%" },
-    { code: "BENEFIT.ACCOUNT_BALANCE_COMPONENT_ENABLED", category: "Benefícios", label: "Possui componente baseado em saldo de conta", valueType: "BOOLEAN" }
+    { codigo: "CONTRIBUTION.VARIABLE_RATE", categoria: "Contribuições", rotulo: "Alíquota variável de contribuição", tipoValor: "NUMBER", unidade: "%" },
+    { codigo: "BENEFIT.DEFINED_COMPONENT_REPLACEMENT_RATE", categoria: "Benefícios", rotulo: "Taxa de reposição do componente definido", tipoValor: "NUMBER", unidade: "%" },
+    { codigo: "BENEFIT.ACCOUNT_BALANCE_COMPONENT_ENABLED", categoria: "Benefícios", rotulo: "Possui componente baseado em saldo de conta", tipoValor: "BOOLEAN" }
   ]
 };
 
 function statusLabel(status: string) {
-  if (status === "DRAFT") return "Rascunho";
-  if (status === "APPROVED") return "Aprovada";
-  if (status === "SUPERSEDED") return "Substituída";
+  if (status === "RASCUNHO") return "Rascunho";
+  if (status === "APROVADO") return "Aprovada";
+  if (status === "SUBSTITUIDO") return "Substituída";
   return status;
 }
 
 function statusColor(status: string): "default" | "warning" | "success" {
-  if (status === "DRAFT") return "warning";
-  if (status === "APPROVED") return "success";
+  if (status === "RASCUNHO") return "warning";
+  if (status === "APROVADO") return "success";
   return "default";
 }
 
-function parseStoredValue(valueJson: string) {
+function parseStoredValue(jsonValor: string) {
   try {
-    const value = JSON.parse(valueJson) as unknown;
+    const value = JSON.parse(jsonValor) as unknown;
     if (typeof value === "boolean") return value ? "true" : "false";
     if (typeof value === "string" || typeof value === "number") return String(value);
   } catch {
@@ -109,23 +109,23 @@ function parseStoredValue(valueJson: string) {
   return "";
 }
 
-export function PlanRulesPage({
-  planId,
+export function RegrasPlanoPage({
+  planoId,
   rulesVersionId,
   onOpen,
   onBack
 }: {
-  planId: string;
+  planoId: string;
   rulesVersionId?: string;
   onOpen: (id: string) => void;
   onBack: () => void;
 }) {
-  const [plan, setPlan] = useState<Plan | null>(null);
-  const [versions, setVersions] = useState<PlanRulesVersionSummary[]>([]);
-  const [detail, setDetail] = useState<PlanRulesVersion | null>(null);
+  const [plan, setPlan] = useState<Plano | null>(null);
+  const [versoes, setVersions] = useState<ResumoVersaoRegrasPlano[]>([]);
+  const [detail, setDetail] = useState<VersaoRegrasPlano | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
-  const [effectiveFrom, setEffectiveFrom] = useState("");
-  const [effectiveTo, setEffectiveTo] = useState("");
+  const [vigenciaInicial, setEffectiveFrom] = useState("");
+  const [vigenciaFinal, setEffectiveTo] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -133,18 +133,18 @@ export function PlanRulesPage({
   const [success, setSuccess] = useState<string | null>(null);
 
   const specs = useMemo(() => {
-    const modality = (detail?.modality ?? plan?.modality) as "BD" | "CD" | "CV" | undefined;
+    const modality = (detail?.modalidade ?? plan?.modalidade) as "BD" | "CD" | "CV" | undefined;
     return modality ? [...commonRules, ...modalityRules[modality]] : commonRules;
-  }, [detail?.modality, plan?.modality]);
+  }, [detail?.modalidade, plan?.modalidade]);
 
-  const knownCodes = useMemo(() => new Set(specs.map((spec) => spec.code)), [specs]);
+  const knownCodes = useMemo(() => new Set(specs.map((spec) => spec.codigo)), [specs]);
   const additionalRules = useMemo(
-    () => (detail?.rules ?? []).filter((rule) => !knownCodes.has(rule.code)),
-    [detail?.rules, knownCodes]
+    () => (detail?.regras ?? []).filter((rule) => !knownCodes.has(rule.codigo)),
+    [detail?.regras, knownCodes]
   );
 
   const loadVersions = async () => {
-    const rows = await api.planRulesVersions(planId);
+    const rows = await api.versoesRegrasPlano(planoId);
     setVersions(rows);
     return rows;
   };
@@ -153,10 +153,10 @@ export function PlanRulesPage({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    Promise.all([api.plan(planId), loadVersions()])
-      .then(async ([nextPlan, rows]) => {
+    Promise.all([api.plan(planoId), loadVersions()])
+      .then(async ([proximoPlano, rows]) => {
         if (cancelled) return;
-        setPlan(nextPlan);
+        setPlan(proximoPlano);
         if (!rulesVersionId && rows.length > 0) {
           onOpen(rows[0].id);
           return;
@@ -165,26 +165,26 @@ export function PlanRulesPage({
           setDetail(null);
           return;
         }
-        const next = await api.planRulesVersion(rulesVersionId);
+        const next = await api.versaoRegrasPlano(rulesVersionId);
         if (cancelled) return;
-        if (next.planId !== planId) throw new Error("A versão de regras não pertence a este plano.");
+        if (next.planoId !== planoId) throw new Error("A versão de regras não pertence a este plano.");
         setDetail(next);
-        setEffectiveFrom(next.effectiveFrom ?? "");
-        setEffectiveTo(next.effectiveTo ?? "");
-        setNotes(next.notes ?? "");
-        setValues(Object.fromEntries(next.rules.map((rule) => [rule.code, parseStoredValue(rule.valueJson)])));
+        setEffectiveFrom(next.vigenciaInicial ?? "");
+        setEffectiveTo(next.vigenciaFinal ?? "");
+        setNotes(next.observacoes ?? "");
+        setValues(Object.fromEntries(next.regras.map((rule) => [rule.codigo, parseStoredValue(rule.jsonValor)])));
       })
       .catch((reason) => !cancelled && setError(reason instanceof Error ? reason.message : "Não foi possível carregar as regras do plano."))
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
-  }, [planId, rulesVersionId]);
+  }, [planoId, rulesVersionId]);
 
   const createVersion = async (copyFromId?: string) => {
     setSaving(true);
     setError(null);
     setSuccess(null);
     try {
-      const created = await api.createPlanRulesVersion(planId, copyFromId ? { copyFromId } : {});
+      const created = await api.criarVersaoRegrasPlano(planoId, copyFromId ? { copiarDeId: copyFromId } : {});
       await loadVersions();
       onOpen(created.id);
     } catch (reason) {
@@ -194,44 +194,44 @@ export function PlanRulesPage({
     }
   };
 
-  const buildRules = (): SetPlanRuleValueInput[] => {
-    const catalogRules = specs.flatMap<SetPlanRuleValueInput>((spec) => {
-      const raw = values[spec.code]?.trim() ?? "";
+  const buildRules = (): DefinirValorRegraPlanoInput[] => {
+    const catalogRules = specs.flatMap<DefinirValorRegraPlanoInput>((spec) => {
+      const raw = values[spec.codigo]?.trim() ?? "";
       if (!raw) return [];
 
       let parsed: number | string | boolean;
-      if (spec.valueType === "NUMBER") {
+      if (spec.tipoValor === "NUMBER") {
         parsed = Number(raw.replace(",", "."));
-        if (!Number.isFinite(parsed)) throw new Error(`${spec.label}: informe um número válido.`);
-      } else if (spec.valueType === "INTEGER") {
+        if (!Number.isFinite(parsed)) throw new Error(`${spec.rotulo}: informe um número válido.`);
+      } else if (spec.tipoValor === "INTEGER") {
         parsed = Number(raw);
-        if (!Number.isInteger(parsed)) throw new Error(`${spec.label}: informe um número inteiro.`);
-      } else if (spec.valueType === "BOOLEAN") {
-        if (!["true", "false"].includes(raw)) throw new Error(`${spec.label}: selecione Sim ou Não.`);
+        if (!Number.isInteger(parsed)) throw new Error(`${spec.rotulo}: informe um número inteiro.`);
+      } else if (spec.tipoValor === "BOOLEAN") {
+        if (!["true", "false"].includes(raw)) throw new Error(`${spec.rotulo}: selecione Sim ou Não.`);
         parsed = raw === "true";
       } else {
         parsed = raw;
       }
 
       return [{
-        code: spec.code,
-        category: spec.category,
-        label: spec.label,
-        valueType: spec.valueType,
-        valueJson: JSON.stringify(parsed),
-        unit: spec.unit ?? null,
-        source: "PLAN_REGULATION"
+        codigo: spec.codigo,
+        categoria: spec.categoria,
+        rotulo: spec.rotulo,
+        tipoValor: spec.tipoValor,
+        jsonValor: JSON.stringify(parsed),
+        unidade: spec.unidade ?? null,
+        origem: "PLAN_REGULATION"
       }];
     });
 
-    const preservedExtensions: SetPlanRuleValueInput[] = additionalRules.map((rule) => ({
-      code: rule.code,
-      category: rule.category,
-      label: rule.label,
-      valueType: rule.valueType as SetPlanRuleValueInput["valueType"],
-      valueJson: rule.valueJson,
-      unit: rule.unit,
-      source: rule.source
+    const preservedExtensions: DefinirValorRegraPlanoInput[] = additionalRules.map((rule) => ({
+      codigo: rule.codigo,
+      categoria: rule.categoria,
+      rotulo: rule.rotulo,
+      tipoValor: rule.tipoValor as DefinirValorRegraPlanoInput["tipoValor"],
+      jsonValor: rule.jsonValor,
+      unidade: rule.unidade,
+      origem: rule.origem
     }));
 
     return [...catalogRules, ...preservedExtensions];
@@ -239,13 +239,13 @@ export function PlanRulesPage({
 
   const persistDraft = async () => {
     if (!detail) throw new Error("Versão de regras não carregada.");
-    const rules = buildRules();
-    await api.updatePlanRulesVersion(detail.id, {
-      effectiveFrom: effectiveFrom || null,
-      effectiveTo: effectiveTo || null,
-      notes: notes || null
+    const regras = buildRules();
+    await api.atualizarVersaoRegrasPlano(detail.id, {
+      vigenciaInicial: vigenciaInicial || null,
+      vigenciaFinal: vigenciaFinal || null,
+      observacoes: notes || null
     });
-    const updated = await api.setPlanRuleValues(detail.id, rules);
+    const updated = await api.definirValoresRegrasPlano(detail.id, regras);
     setDetail(updated);
     await loadVersions();
     return updated;
@@ -272,7 +272,7 @@ export function PlanRulesPage({
     setSuccess(null);
     try {
       const saved = await persistDraft();
-      const approved = await api.approvePlanRulesVersion(saved.id);
+      const approved = await api.aprovarVersaoRegrasPlano(saved.id);
       setDetail(approved);
       await loadVersions();
       setSuccess("Regras aprovadas, versionadas e congeladas.");
@@ -294,7 +294,7 @@ export function PlanRulesPage({
   return <Stack spacing={3.5}>
     <Box>
       <Button onClick={onBack} startIcon={<ArrowBackRounded />} sx={{ mb: 2 }}>Plano</Button>
-      <Typography variant="overline" color="text.secondary">{plan.code} · {plan.modality}</Typography>
+      <Typography variant="overline" color="text.secondary">{plan.codigo} · {plan.modalidade}</Typography>
       <Typography variant="h4">Regras atuariais do plano</Typography>
       <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 860 }}>
         Regulamento, elegibilidade, contribuições e fórmulas ficam em versões próprias. Uma versão aprovada é imutável e pode ser referenciada por uma execução atuarial histórica.
@@ -311,18 +311,18 @@ export function PlanRulesPage({
       <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} alignItems={{ md: "center" }}>
         <Typography fontWeight={750} sx={{ mr: 1 }}>Versões</Typography>
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ flex: 1 }}>
-          {versions.map((version) => <Chip
+          {versoes.map((version) => <Chip
             key={version.id}
             clickable
             onClick={() => onOpen(version.id)}
             variant={version.id === detail?.id ? "filled" : "outlined"}
-            color={version.status === "APPROVED" ? "success" : version.status === "DRAFT" ? "warning" : "default"}
-            label={`v${version.version} · ${statusLabel(version.status)}`}
+            color={version.situacao === "APROVADO" ? "success" : version.situacao === "RASCUNHO" ? "warning" : "default"}
+            label={`v${version.versao} · ${statusLabel(version.situacao)}`}
           />)}
-          {versions.length === 0 && <Typography variant="body2" color="text.secondary">Nenhuma versão criada.</Typography>}
+          {versoes.length === 0 && <Typography variant="body2" color="text.secondary">Nenhuma versão criada.</Typography>}
         </Stack>
         <Button
-          disabled={saving || versions.some((version) => version.status === "DRAFT")}
+          disabled={saving || versoes.some((version) => version.situacao === "RASCUNHO")}
           variant="outlined"
           onClick={() => void createVersion(detail?.id)}
           startIcon={detail ? <ContentCopyRounded /> : undefined}
@@ -340,15 +340,15 @@ export function PlanRulesPage({
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ md: "center" }}>
         <Box sx={{ flex: 1 }}>
           <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="h5">{detail.name}</Typography>
-            <Chip size="small" color={statusColor(detail.status)} label={statusLabel(detail.status)} />
-            <Chip size="small" variant="outlined" label={detail.modality} />
+            <Typography variant="h5">{detail.nome}</Typography>
+            <Chip size="small" color={statusColor(detail.situacao)} label={statusLabel(detail.situacao)} />
+            <Chip size="small" variant="outlined" label={detail.modalidade} />
           </Stack>
           <Typography variant="body2" color="text.secondary" sx={{ mt: .75 }}>
-            Versão {detail.version} · atualizada em {new Date(detail.updatedAt).toLocaleString("pt-BR")}
+            Versão {detail.versao} · atualizada em {new Date(detail.atualizadoEm).toLocaleString("pt-BR")}
           </Typography>
         </Box>
-        {detail.status === "DRAFT" && <Stack direction="row" spacing={1}>
+        {detail.situacao === "RASCUNHO" && <Stack direction="row" spacing={1}>
           <Button variant="outlined" disabled={saving} onClick={() => void saveDraft()} startIcon={<SaveRounded />}>Salvar</Button>
           <Button variant="contained" color="success" disabled={saving} onClick={() => void approve()} startIcon={<CheckCircleRounded />}>Aprovar e congelar</Button>
         </Stack>}
@@ -357,39 +357,39 @@ export function PlanRulesPage({
       <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider" }}>
         <Typography variant="h6">Vigência e referência</Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2, mt: 2 }}>
-          <TextField type="date" label="Início da vigência" value={effectiveFrom} onChange={(event) => setEffectiveFrom(event.target.value)} disabled={detail.status !== "DRAFT"} slotProps={{ inputLabel: { shrink: true } }} />
-          <TextField type="date" label="Fim da vigência" value={effectiveTo} onChange={(event) => setEffectiveTo(event.target.value)} disabled={detail.status !== "DRAFT"} slotProps={{ inputLabel: { shrink: true } }} />
+          <TextField type="date" label="Início da vigência" value={vigenciaInicial} onChange={(event) => setEffectiveFrom(event.target.value)} disabled={detail.situacao !== "RASCUNHO"} slotProps={{ inputLabel: { shrink: true } }} />
+          <TextField type="date" label="Fim da vigência" value={vigenciaFinal} onChange={(event) => setEffectiveTo(event.target.value)} disabled={detail.situacao !== "RASCUNHO"} slotProps={{ inputLabel: { shrink: true } }} />
         </Box>
-        <TextField fullWidth multiline minRows={3} label="Notas e referências do regulamento / nota técnica" value={notes} onChange={(event) => setNotes(event.target.value)} disabled={detail.status !== "DRAFT"} sx={{ mt: 2 }} />
+        <TextField fullWidth multiline minRows={3} label="Notas e referências do regulamento / nota técnica" value={notes} onChange={(event) => setNotes(event.target.value)} disabled={detail.situacao !== "RASCUNHO"} sx={{ mt: 2 }} />
       </Paper>
 
-      {[...new Set(specs.map((spec) => spec.category))].map((category) => <Paper key={category} elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider" }}>
-        <Typography variant="h6">{category}</Typography>
+      {[...new Set(specs.map((spec) => spec.categoria))].map((categoria) => <Paper key={categoria} elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider" }}>
+        <Typography variant="h6">{categoria}</Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" }, gap: 2, mt: 2 }}>
-          {specs.filter((spec) => spec.category === category).map((spec) => {
-            const value = values[spec.code] ?? "";
-            const disabled = detail.status !== "DRAFT";
-            if (spec.valueType === "BOOLEAN") {
-              return <TextField key={spec.code} select label={spec.label} value={value} disabled={disabled} onChange={(event) => setValues((current) => ({ ...current, [spec.code]: event.target.value }))} helperText={spec.helper}>
+          {specs.filter((spec) => spec.categoria === categoria).map((spec) => {
+            const value = values[spec.codigo] ?? "";
+            const disabled = detail.situacao !== "RASCUNHO";
+            if (spec.tipoValor === "BOOLEAN") {
+              return <TextField key={spec.codigo} select label={spec.rotulo} value={value} disabled={disabled} onChange={(event) => setValues((current) => ({ ...current, [spec.codigo]: event.target.value }))} helperText={spec.helper}>
                 <MenuItem value="">Não informado</MenuItem>
                 <MenuItem value="true">Sim</MenuItem>
                 <MenuItem value="false">Não</MenuItem>
               </TextField>;
             }
             if (spec.options) {
-              return <TextField key={spec.code} select label={spec.label} value={value} disabled={disabled} onChange={(event) => setValues((current) => ({ ...current, [spec.code]: event.target.value }))} helperText={spec.helper}>
+              return <TextField key={spec.codigo} select label={spec.rotulo} value={value} disabled={disabled} onChange={(event) => setValues((current) => ({ ...current, [spec.codigo]: event.target.value }))} helperText={spec.helper}>
                 <MenuItem value="">Não informado</MenuItem>
-                {spec.options.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+                {spec.options.map((option) => <MenuItem key={option.value} value={option.value}>{option.rotulo}</MenuItem>)}
               </TextField>;
             }
             return <TextField
-              key={spec.code}
-              label={spec.label}
+              key={spec.codigo}
+              label={spec.rotulo}
               value={value}
               disabled={disabled}
-              inputMode={spec.valueType === "NUMBER" || spec.valueType === "INTEGER" ? "decimal" : undefined}
-              onChange={(event) => setValues((current) => ({ ...current, [spec.code]: event.target.value }))}
-              helperText={spec.unit ?? spec.helper}
+              inputMode={spec.tipoValor === "NUMBER" || spec.tipoValor === "INTEGER" ? "decimal" : undefined}
+              onChange={(event) => setValues((current) => ({ ...current, [spec.codigo]: event.target.value }))}
+              helperText={spec.unidade ?? spec.helper}
             />;
           })}
         </Box>
@@ -403,11 +403,11 @@ export function PlanRulesPage({
         <Stack divider={<Divider />}>
           {additionalRules.map((rule) => <Box key={rule.id} sx={{ py: 1.25 }}>
             <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" gap={1}>
-              <Box><Typography fontWeight={700}>{rule.label}</Typography><Typography variant="body2" color="text.secondary">{rule.code} · {rule.category}</Typography></Box>
-              <Chip size="small" variant="outlined" label={rule.valueType} />
+              <Box><Typography fontWeight={700}>{rule.rotulo}</Typography><Typography variant="body2" color="text.secondary">{rule.codigo} · {rule.categoria}</Typography></Box>
+              <Chip size="small" variant="outlined" label={rule.tipoValor} />
             </Stack>
-            <Typography variant="body2" sx={{ mt: .75, fontFamily: "monospace", overflowWrap: "anywhere" }}>{rule.valueJson}{rule.unit ? ` · ${rule.unit}` : ""}</Typography>
-            <Typography variant="caption" color="text.secondary">Origem: {rule.source}</Typography>
+            <Typography variant="body2" sx={{ mt: .75, fontFamily: "monospace", overflowWrap: "anywhere" }}>{rule.jsonValor}{rule.unidade ? ` · ${rule.unidade}` : ""}</Typography>
+            <Typography variant="caption" color="text.secondary">Origem: {rule.origem}</Typography>
           </Box>)}
         </Stack>
       </Paper>}
@@ -417,13 +417,13 @@ export function PlanRulesPage({
         <Typography sx={{ mt: 1.5, fontFamily: "monospace", fontSize: 13, overflowWrap: "anywhere" }}>{detail.rulesFingerprint}</Typography>
       </Paper>}
 
-      {detail.status !== "DRAFT" && <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider" }}>
+      {detail.situacao !== "RASCUNHO" && <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider" }}>
         <Typography variant="h6">Snapshot congelado</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: .5, mb: 1.5 }}>Esta versão não pode mais ser editada. Para qualquer alteração, crie uma nova versão.</Typography>
         <Stack divider={<Divider />}>
-          {detail.rules.map((rule) => <Box key={rule.id} sx={{ py: 1.25 }}>
-            <Typography fontWeight={700}>{rule.label}</Typography>
-            <Typography variant="body2" color="text.secondary">{rule.code} · {rule.valueJson}{rule.unit ? ` · ${rule.unit}` : ""}</Typography>
+          {detail.regras.map((rule) => <Box key={rule.id} sx={{ py: 1.25 }}>
+            <Typography fontWeight={700}>{rule.rotulo}</Typography>
+            <Typography variant="body2" color="text.secondary">{rule.codigo} · {rule.jsonValor}{rule.unidade ? ` · ${rule.unidade}` : ""}</Typography>
           </Box>)}
         </Stack>
       </Paper>}

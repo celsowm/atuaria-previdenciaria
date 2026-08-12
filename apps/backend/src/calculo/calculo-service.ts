@@ -2,54 +2,54 @@ import { createHash, randomUUID } from "node:crypto";
 import { entityRef, eq, getTableDefFromEntity, selectFromEntity } from "metal-orm";
 import { createSession } from "../db.js";
 import {
-  Evaluation,
-  ImportFile,
-  ImportJob,
-  ImportRow
+  Avaliacao,
+  ArquivoImportacao,
+  ImportacaoJob,
+  LinhaImportacao
 } from "../domain/entities.js";
-import { Plan } from "../domain/plan-entities.js";
-import { PlanRuleValue, PlanRulesVersion } from "../domain/plan-rule-entities.js";
-import { BiometricTablePoint } from "../domain/biometric-entities.js";
+import { Plano } from "../domain/plano-entities.js";
+import { ValorRegraPlano, VersaoRegrasPlano } from "../domain/regras-plano-entities.js";
+import { PontoTabuaBiometria } from "../domain/biometria-entities.js";
 import {
-  ActuarialHypothesisSelection,
-  ActuarialParameterization,
-  ActuarialParameterValue
-} from "../domain/parameterization-entities.js";
+  SelecaoHipoteseAtuarial,
+  ParametrizacaoAtuarial,
+  ValorParametroAtuarial
+} from "../domain/parametrizacao-entities.js";
 import {
-  CalculationInput,
-  CalculationParticipantResult,
-  CalculationResultMetric,
-  CalculationRun
-} from "../domain/calculation-entities.js";
-import { calculatePlanRulesFingerprint, comparePlanRuleCode } from "../plans/plan-rules-fingerprint.js";
-import "./core-precalculation-engine.js";
+  EntradaCalculo,
+  ResultadoParticipanteCalculo,
+  MetricaResultadoCalculo,
+  ExecucaoCalculo
+} from "../domain/calculo-entities.js";
+import { calculateRegrasPlanoFingerprint, compareRegraPlanoCode } from "../planos/regras-plano-fingerprint.js";
+import "./pre-calculo-nuclear-engine.js";
 import "./bd-pvfb-engine.js";
 import {
-  getCalculationEngine,
-  listCalculationEngines,
+  getCalculoEngine,
+  listCalculoEngines,
   validateCalculationOutput,
-  type CalculationEngine,
-  type CalculationEngineContext
-} from "./calculation-engine.js";
+  type CalculoEngine,
+  type CalculoEngineContext
+} from "./calculo-engine.js";
 
-const runRef = entityRef(CalculationRun);
-const importJobRef = entityRef(ImportJob);
-const importRowRef = entityRef(ImportRow);
-const valueRef = entityRef(ActuarialParameterValue);
-const selectionRef = entityRef(ActuarialHypothesisSelection);
-const planRuleRef = entityRef(PlanRuleValue);
-const biometricPointRef = entityRef(BiometricTablePoint);
-const inputRef = entityRef(CalculationInput);
-const metricRef = entityRef(CalculationResultMetric);
-const participantRef = entityRef(CalculationParticipantResult);
+const runRef = entityRef(ExecucaoCalculo);
+const importJobRef = entityRef(ImportacaoJob);
+const importRowRef = entityRef(LinhaImportacao);
+const valueRef = entityRef(ValorParametroAtuarial);
+const selectionRef = entityRef(SelecaoHipoteseAtuarial);
+const planRuleRef = entityRef(ValorRegraPlano);
+const biometricPointRef = entityRef(PontoTabuaBiometria);
+const inputRef = entityRef(EntradaCalculo);
+const metricRef = entityRef(MetricaResultadoCalculo);
+const participantRef = entityRef(ResultadoParticipanteCalculo);
 
 type Session = ReturnType<typeof createSession>;
 
 type CalculationEntity =
-  | typeof CalculationRun
-  | typeof CalculationInput
-  | typeof CalculationResultMetric
-  | typeof CalculationParticipantResult;
+  | typeof ExecucaoCalculo
+  | typeof EntradaCalculo
+  | typeof MetricaResultadoCalculo
+  | typeof ResultadoParticipanteCalculo;
 
 async function withSession<T>(handler: (session: Session) => Promise<T>) {
   const session = createSession();
@@ -70,7 +70,7 @@ function sha256(value: string) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-function normalizedJsonFingerprint(value: unknown) {
+function jsonNormalizadoFingerprint(value: unknown) {
   return sha256(JSON.stringify(value));
 }
 
@@ -78,110 +78,110 @@ function isModality(value: string): value is "BD" | "CD" | "CV" {
   return value === "BD" || value === "CD" || value === "CV";
 }
 
-function isImmutableApprovedSnapshot(status: string) {
-  return status === "APPROVED" || status === "SUPERSEDED";
+function isImmutableApprovedSnapshot(situacao: string) {
+  return situacao === "APROVADO" || situacao === "SUBSTITUIDO";
 }
 
-function runSummary(row: CalculationRun) {
+function runSummary(row: ExecucaoCalculo) {
   return {
     id: row.id,
-    evaluationId: row.evaluationId,
-    parameterizationId: row.parameterizationId,
-    planRulesVersionId: row.planRulesVersionId ?? null,
-    planRulesFingerprint: row.planRulesFingerprint ?? null,
-    engineCode: row.engineCode,
-    engineVersion: row.engineVersion,
-    status: row.status,
-    inputFingerprint: row.inputFingerprint,
-    resultFingerprint: row.resultFingerprint ?? null,
-    inputImportCount: row.inputImportCount,
-    inputRowCount: row.inputRowCount,
-    validRowCount: row.validRowCount,
-    invalidRowCount: row.invalidRowCount,
-    participantResultCount: row.participantResultCount ?? 0,
-    createdAt: row.createdAt,
-    completedAt: row.completedAt ?? null,
-    errorMessage: row.errorMessage ?? null
+    avaliacaoId: row.avaliacaoId,
+    parametrizacaoId: row.parametrizacaoId,
+    versaoRegrasPlanoId: row.versaoRegrasPlanoId ?? null,
+    impressaoDigitalRegrasPlano: row.impressaoDigitalRegrasPlano ?? null,
+    codigoMotor: row.codigoMotor,
+    versaoMotor: row.versaoMotor,
+    situacao: row.situacao,
+    impressaoDigitalEntrada: row.impressaoDigitalEntrada,
+    impressaoDigitalResultado: row.impressaoDigitalResultado ?? null,
+    quantidadeImportacoesEntrada: row.quantidadeImportacoesEntrada,
+    quantidadeLinhasEntrada: row.quantidadeLinhasEntrada,
+    quantidadeLinhasValidas: row.quantidadeLinhasValidas,
+    quantidadeLinhasInvalidas: row.quantidadeLinhasInvalidas,
+    quantidadeResultadosParticipantes: row.quantidadeResultadosParticipantes ?? 0,
+    criadoEm: row.criadoEm,
+    concluidoEm: row.concluidoEm ?? null,
+    mensagemErro: row.mensagemErro ?? null
   };
 }
 
-async function detailInSession(session: Session, row: CalculationRun) {
+async function detailInSession(session: Session, row: ExecucaoCalculo) {
   const [inputs, metrics] = await Promise.all([
-    selectFromEntity(CalculationInput).where(eq(inputRef.calculationRunId, row.id)).execute(session),
-    selectFromEntity(CalculationResultMetric).where(eq(metricRef.calculationRunId, row.id)).execute(session)
+    selectFromEntity(EntradaCalculo).where(eq(inputRef.execucaoCalculoId, row.id)).execute(session),
+    selectFromEntity(MetricaResultadoCalculo).where(eq(metricRef.execucaoCalculoId, row.id)).execute(session)
   ]);
   return {
     ...runSummary(row),
-    parameterFingerprint: row.parameterFingerprint,
-    dataFingerprint: row.dataFingerprint,
+    impressaoDigitalParametros: row.impressaoDigitalParametros,
+    impressaoDigitalDados: row.impressaoDigitalDados,
     inputs: inputs
-      .sort((a, b) => a.population.localeCompare(b.population, "pt-BR") || a.importJobId.localeCompare(b.importJobId))
+      .sort((a, b) => a.populacao.localeCompare(b.populacao, "pt-BR") || a.importacaoId.localeCompare(b.importacaoId))
       .map((item) => ({
         id: item.id,
-        importJobId: item.importJobId,
-        population: item.population,
-        fileSha256: item.fileSha256,
-        schemaFingerprint: item.schemaFingerprint,
-        canonicalFingerprint: item.canonicalFingerprint,
-        rowCount: item.rowCount,
-        validRows: item.validRows,
-        invalidRows: item.invalidRows,
-        importedAt: item.importedAt
+        importacaoId: item.importacaoId,
+        populacao: item.populacao,
+        arquivoSha256: item.arquivoSha256,
+        impressaoDigitalEsquema: item.impressaoDigitalEsquema,
+        impressaoDigitalCanonica: item.impressaoDigitalCanonica,
+        quantidadeLinhas: item.quantidadeLinhas,
+        linhasValidas: item.linhasValidas,
+        linhasInvalidas: item.linhasInvalidas,
+        importadoEm: item.importadoEm
       })),
     metrics: metrics
       .sort((a, b) => a.ordinal - b.ordinal)
       .map((item) => ({
         id: item.id,
-        code: item.code,
-        category: item.category,
-        label: item.label,
-        valueType: item.valueType,
-        valueJson: item.valueJson,
-        unit: item.unit ?? null,
+        codigo: item.codigo,
+        categoria: item.categoria,
+        rotulo: item.rotulo,
+        tipoValor: item.tipoValor,
+        jsonValor: item.jsonValor,
+        unidade: item.unidade ?? null,
         ordinal: item.ordinal
       }))
   };
 }
 
-export function availableCalculationEngines() {
-  return listCalculationEngines();
+export function availableCalculoEngines() {
+  return listCalculoEngines();
 }
 
-export async function listCalculationRuns(evaluationId: number) {
+export async function listExecucaoCalculos(avaliacaoId: number) {
   return withSession(async (session) => {
-    const rows = await selectFromEntity(CalculationRun)
-      .where(eq(runRef.evaluationId, evaluationId))
-      .orderBy(runRef.createdAt, "DESC")
+    const rows = await selectFromEntity(ExecucaoCalculo)
+      .where(eq(runRef.avaliacaoId, avaliacaoId))
+      .orderBy(runRef.criadoEm, "DESC")
       .execute(session);
     return rows.map(runSummary);
   });
 }
 
-export async function getCalculationRun(id: string) {
+export async function getExecucaoCalculo(id: string) {
   return withSession(async (session) => {
-    const row = await session.find(CalculationRun, id);
+    const row = await session.find(ExecucaoCalculo, id);
     return row ? detailInSession(session, row) : null;
   });
 }
 
-export async function listCalculationParticipantResults(id: string, page: number, pageSize: number) {
+export async function listResultadoParticipanteCalculos(id: string, page: number, pageSize: number) {
   return withSession(async (session) => {
-    const run = await session.find(CalculationRun, id);
+    const run = await session.find(ExecucaoCalculo, id);
     if (!run) return null;
-    const result = await selectFromEntity(CalculationParticipantResult)
-      .where(eq(participantRef.calculationRunId, id))
+    const result = await selectFromEntity(ResultadoParticipanteCalculo)
+      .where(eq(participantRef.execucaoCalculoId, id))
       .orderBy(participantRef.ordinal, "ASC")
       .orderBy(participantRef.id, "ASC")
       .executePaged(session, { page, pageSize });
     return {
       items: result.items.map((item) => ({
         id: item.id,
-        importJobId: item.importJobId,
-        population: item.population,
-        sourceRowNumber: item.sourceRowNumber,
-        participantRegistration: item.participantRegistration ?? null,
+        importacaoId: item.importacaoId,
+        populacao: item.populacao,
+        numeroLinhaOrigem: item.numeroLinhaOrigem,
+        matriculaParticipante: item.matriculaParticipante ?? null,
         campoUnicoLgpd: item.campoUnicoLgpd ?? null,
-        resultJson: item.resultJson,
+        jsonResultado: item.jsonResultado,
         ordinal: item.ordinal
       })),
       totalItems: result.totalItems,
@@ -191,298 +191,298 @@ export async function listCalculationParticipantResults(id: string, page: number
   });
 }
 
-function latestCompletedImports(jobs: ImportJob[]) {
-  const byPopulation = new Map<string, ImportJob>();
+function latestCompletedImportacaos(jobs: ImportacaoJob[]) {
+  const byPopulation = new Map<string, ImportacaoJob>();
   const sorted = jobs
-    .filter((job) => job.status === "COMPLETED")
+    .filter((job) => job.situacao === "CONCLUIDO")
     .sort((a, b) => {
-      const timeOrder = (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt);
+      const timeOrder = (b.concluidoEm ?? b.criadoEm).localeCompare(a.concluidoEm ?? a.criadoEm);
       return timeOrder || b.id.localeCompare(a.id);
     });
   for (const job of sorted) {
-    if (!byPopulation.has(job.population)) byPopulation.set(job.population, job);
+    if (!byPopulation.has(job.populacao)) byPopulation.set(job.populacao, job);
   }
   return [...byPopulation.values()].sort(
-    (a, b) => a.population.localeCompare(b.population, "pt-BR") || a.id.localeCompare(b.id)
+    (a, b) => a.populacao.localeCompare(b.populacao, "pt-BR") || a.id.localeCompare(b.id)
   );
 }
 
-async function loadPlanRules(
+async function loadRegrasPlano(
   session: Session,
-  evaluation: Evaluation,
-  engine: CalculationEngine,
-  planRulesVersionId: string | undefined
-): Promise<CalculationEngineContext["planRules"]> {
-  if (!engine.requiresPlanRules) {
-    if (planRulesVersionId) {
-      throw new Error(`O motor ${engine.code} não utiliza regras versionadas do plano; remova planRulesVersionId da solicitação.`);
+  evaluation: Avaliacao,
+  engine: CalculoEngine,
+  versaoRegrasPlanoId: string | undefined
+): Promise<CalculoEngineContext["planRules"]> {
+  if (!engine.requiresRegrasPlano) {
+    if (versaoRegrasPlanoId) {
+      throw new Error(`O motor ${engine.codigo} não utiliza regras versionadas do plano; remova versaoRegrasPlanoId da solicitação.`);
     }
     return null;
   }
 
-  if (!evaluation.planId) {
-    throw new Error("O motor atuarial exige que a avaliação esteja vinculada a um plano por planId.");
+  if (!evaluation.planoId) {
+    throw new Error("O motor atuarial exige que a avaliação esteja vinculada a um plano por planoId.");
   }
-  if (!planRulesVersionId) {
-    throw new Error(`O motor ${engine.code} exige planRulesVersionId de um snapshot aprovado e imutável.`);
+  if (!versaoRegrasPlanoId) {
+    throw new Error(`O motor ${engine.codigo} exige versaoRegrasPlanoId de um snapshot aprovado e imutável.`);
   }
 
-  const plan = await session.find(Plan, evaluation.planId);
+  const plan = await session.find(Plano, evaluation.planoId);
   if (!plan) throw new Error("O plano vinculado à avaliação não foi encontrado.");
-  if (!isModality(plan.modality)) throw new Error(`Modalidade de plano inválida: ${plan.modality}.`);
-  if (!engine.supportedModalities.includes(plan.modality)) {
-    throw new Error(`O motor ${engine.code} não suporta plano ${plan.modality}.`);
+  if (!isModality(plan.modalidade)) throw new Error(`Modalidade de plano inválida: ${plan.modalidade}.`);
+  if (!engine.modalidadesSuportadas.includes(plan.modalidade)) {
+    throw new Error(`O motor ${engine.codigo} não suporta plano ${plan.modalidade}.`);
   }
 
-  const version = await session.find(PlanRulesVersion, planRulesVersionId);
-  if (!version || version.planId !== plan.id) {
+  const versao = await session.find(VersaoRegrasPlano, versaoRegrasPlanoId);
+  if (!versao || versao.planoId !== plan.id) {
     throw new Error("A versão de regras informada não pertence ao plano desta avaliação.");
   }
-  if (!isImmutableApprovedSnapshot(version.status)) {
-    throw new Error("O motor atuarial exige uma versão de regras APPROVED ou SUPERSEDED, ambas imutáveis após aprovação.");
+  if (!isImmutableApprovedSnapshot(versao.situacao)) {
+    throw new Error("O motor atuarial exige uma versão de regras APROVADO ou SUBSTITUIDO, ambas imutáveis após aprovação.");
   }
-  if (version.modality !== plan.modality) {
+  if (versao.modalidade !== plan.modalidade) {
     throw new Error("A modalidade congelada na versão de regras diverge da modalidade do plano.");
   }
-  if (!version.rulesFingerprint) {
+  if (!versao.impressaoDigitalRegras) {
     throw new Error("A versão aprovada das regras do plano não possui fingerprint.");
   }
-  if (!version.effectiveFrom) {
+  if (!versao.vigenciaInicial) {
     throw new Error("A versão aprovada das regras do plano não possui início de vigência.");
   }
-  if (evaluation.referenceDate < version.effectiveFrom || (version.effectiveTo && evaluation.referenceDate > version.effectiveTo)) {
-    throw new Error(`A versão de regras não está vigente na data-base ${evaluation.referenceDate}.`);
+  if (evaluation.dataReferencia < versao.vigenciaInicial || (versao.vigenciaFinal && evaluation.dataReferencia > versao.vigenciaFinal)) {
+    throw new Error(`A versão de regras não está vigente na data-base ${evaluation.dataReferencia}.`);
   }
 
-  const storedRules = await selectFromEntity(PlanRuleValue)
-    .where(eq(planRuleRef.planRulesVersionId, version.id))
+  const storedRules = await selectFromEntity(ValorRegraPlano)
+    .where(eq(planRuleRef.versaoRegrasPlanoId, versao.id))
     .execute(session);
   const rules = storedRules
-    .filter((item) => item.active !== 0)
-    .sort(comparePlanRuleCode)
+    .filter((item) => item.ativo !== 0)
+    .sort(compareRegraPlanoCode)
     .map((item) => ({
-      code: item.code,
-      category: item.category,
-      label: item.label,
-      valueType: item.valueType,
-      valueJson: item.valueJson,
-      unit: item.unit ?? null,
-      source: item.source
+      codigo: item.codigo,
+      categoria: item.categoria,
+      rotulo: item.rotulo,
+      tipoValor: item.tipoValor,
+      jsonValor: item.jsonValor,
+      unidade: item.unidade ?? null,
+      origem: item.origem
     }));
   if (!rules.length) throw new Error("A versão aprovada das regras do plano não possui regras ativas.");
 
-  const recalculatedFingerprint = calculatePlanRulesFingerprint({
-    planId: version.planId,
-    version: version.version,
-    modality: version.modality,
-    effectiveFrom: version.effectiveFrom,
-    effectiveTo: version.effectiveTo ?? null,
+  const recalculatedFingerprint = calculateRegrasPlanoFingerprint({
+    planoId: versao.planoId,
+    versao: versao.versao,
+    modalidade: versao.modalidade,
+    vigenciaInicial: versao.vigenciaInicial,
+    vigenciaFinal: versao.vigenciaFinal ?? null,
     rules
   });
-  if (recalculatedFingerprint !== version.rulesFingerprint) {
+  if (recalculatedFingerprint !== versao.impressaoDigitalRegras) {
     throw new Error("A integridade da versão de regras do plano falhou: o conteúdo atual não corresponde ao fingerprint aprovado.");
   }
 
   return {
-    id: version.id,
-    version: version.version,
-    modality: plan.modality,
-    effectiveFrom: version.effectiveFrom,
-    effectiveTo: version.effectiveTo ?? null,
+    id: versao.id,
+    versao: versao.versao,
+    modalidade: plan.modalidade,
+    vigenciaInicial: versao.vigenciaInicial,
+    vigenciaFinal: versao.vigenciaFinal ?? null,
     fingerprint: recalculatedFingerprint,
     rules
   };
 }
 
 export async function executeCalculation(
-  evaluationId: number,
-  input: { parameterizationId: string; planRulesVersionId?: string; engineCode?: string }
+  avaliacaoId: number,
+  input: { parametrizacaoId: string; versaoRegrasPlanoId?: string; codigoMotor?: string }
 ) {
   return withSession(async (session) => {
-    const evaluation = await session.find(Evaluation, evaluationId);
+    const evaluation = await session.find(Avaliacao, avaliacaoId);
     if (!evaluation) throw new Error("Avaliação não encontrada.");
-    if (evaluation.blockingIssues > 0) {
+    if (evaluation.inconsistenciasBloqueantes > 0) {
       throw new Error("A avaliação possui ocorrências bloqueantes e não pode ser calculada.");
     }
 
-    const parameterization = await session.find(ActuarialParameterization, input.parameterizationId);
-    if (!parameterization || parameterization.evaluationId !== evaluationId) {
+    const parametrizacao = await session.find(ParametrizacaoAtuarial, input.parametrizacaoId);
+    if (!parametrizacao || parametrizacao.avaliacaoId !== avaliacaoId) {
       throw new Error("A parametrização não pertence a esta avaliação.");
     }
-    if (!isImmutableApprovedSnapshot(parameterization.status)) {
-      throw new Error("O cálculo exige uma parametrização APPROVED ou SUPERSEDED, ambas imutáveis após aprovação.");
+    if (!isImmutableApprovedSnapshot(parametrizacao.situacao)) {
+      throw new Error("O cálculo exige uma parametrização APROVADO ou SUBSTITUIDO, ambas imutáveis após aprovação.");
     }
 
-    const engine = getCalculationEngine(input.engineCode ?? "CORE_PRECALCULATION");
-    const planRules = await loadPlanRules(session, evaluation, engine, input.planRulesVersionId);
+    const engine = getCalculoEngine(input.codigoMotor ?? "CORE_PRECALCULATION");
+    const planRules = await loadRegrasPlano(session, evaluation, engine, input.versaoRegrasPlanoId);
 
-    const [storedValues, storedSelections, jobs] = await Promise.all([
-      selectFromEntity(ActuarialParameterValue)
-        .where(eq(valueRef.parameterizationId, parameterization.id))
+    const [storedValues, storedSelecaos, jobs] = await Promise.all([
+      selectFromEntity(ValorParametroAtuarial)
+        .where(eq(valueRef.parametrizacaoId, parametrizacao.id))
         .execute(session),
-      selectFromEntity(ActuarialHypothesisSelection)
-        .where(eq(selectionRef.parameterizationId, parameterization.id))
+      selectFromEntity(SelecaoHipoteseAtuarial)
+        .where(eq(selectionRef.parametrizacaoId, parametrizacao.id))
         .execute(session),
-      selectFromEntity(ImportJob)
-        .where(eq(importJobRef.evaluationId, evaluationId))
+      selectFromEntity(ImportacaoJob)
+        .where(eq(importJobRef.avaliacaoId, avaliacaoId))
         .execute(session)
     ]);
 
     const parameters = storedValues
-      .filter((value) => value.active !== 0)
-      .sort((a, b) => a.code < b.code ? -1 : a.code > b.code ? 1 : 0)
+      .filter((value) => value.ativo !== 0)
+      .sort((a, b) => a.codigo < b.codigo ? -1 : a.codigo > b.codigo ? 1 : 0)
       .map((value) => ({
-        code: value.code,
-        category: value.category,
-        label: value.label,
-        valueType: value.valueType,
-        valueJson: value.valueJson,
-        unit: value.unit ?? null,
-        source: value.source
+        codigo: value.codigo,
+        categoria: value.categoria,
+        rotulo: value.rotulo,
+        tipoValor: value.tipoValor,
+        jsonValor: value.jsonValor,
+        unidade: value.unidade ?? null,
+        origem: value.origem
       }));
 
-    const hypotheses: CalculationEngineContext["parameterization"]["hypotheses"] = [];
-    for (const selection of storedSelections
-      .filter((item) => item.active !== 0)
-      .sort((a, b) => a.hypothesisType < b.hypothesisType ? -1 : a.hypothesisType > b.hypothesisType ? 1 : a.id.localeCompare(b.id))) {
-      const storedPoints = await selectFromEntity(BiometricTablePoint)
-        .where(eq(biometricPointRef.versionId, selection.biometricVersionId))
+    const hypotheses: CalculoEngineContext["parametrizacao"]["hypotheses"] = [];
+    for (const selection of storedSelecaos
+      .filter((item) => item.ativo !== 0)
+      .sort((a, b) => a.tipoHipotese < b.tipoHipotese ? -1 : a.tipoHipotese > b.tipoHipotese ? 1 : a.id.localeCompare(b.id))) {
+      const storedPoints = await selectFromEntity(PontoTabuaBiometria)
+        .where(eq(biometricPointRef.versaoId, selection.versaoBiometriaId))
         .execute(session);
       const points = storedPoints
-        .sort((a, b) => a.age - b.age || a.sex.localeCompare(b.sex))
-        .map((point) => ({ age: point.age, sex: point.sex, qx: Number(point.qx) }));
+        .sort((a, b) => a.idade - b.idade || a.sexo.localeCompare(b.sexo))
+        .map((point) => ({ idade: point.idade, sexo: point.sexo, qx: Number(point.qx) }));
       hypotheses.push({
-        hypothesisType: selection.hypothesisType,
-        adherenceStudyId: selection.adherenceStudyId,
-        candidateResultId: selection.candidateResultId,
-        biometricVersionId: selection.biometricVersionId,
-        tableCode: selection.tableCode,
-        tableName: selection.tableName,
-        versionLabel: selection.versionLabel,
-        candidateRank: selection.candidateRank,
+        tipoHipotese: selection.tipoHipotese,
+        estudoAderenciaId: selection.estudoAderenciaId,
+        resultadoCandidatoId: selection.resultadoCandidatoId,
+        versaoBiometriaId: selection.versaoBiometriaId,
+        codigoTabua: selection.codigoTabua,
+        nomeTabua: selection.nomeTabua,
+        rotuloVersao: selection.rotuloVersao,
+        posicaoCandidato: selection.posicaoCandidato,
         points
       });
     }
 
-    const selectedImports = latestCompletedImports(jobs);
-    if (!selectedImports.length) {
-      throw new Error("A avaliação não possui imports COMPLETED vinculados ao Data Studio.");
+    const selectedImportacaos = latestCompletedImportacaos(jobs);
+    if (!selectedImportacaos.length) {
+      throw new Error("A avaliação não possui imports CONCLUIDO vinculados ao Data Studio.");
     }
 
-    const canonicalRows: CalculationEngineContext["rows"] = [];
+    const canonicalRows: CalculoEngineContext["rows"] = [];
     const inputSnapshots: Array<{
-      job: ImportJob;
-      file: ImportFile;
-      canonicalFingerprint: string;
+      job: ImportacaoJob;
+      file: ArquivoImportacao;
+      impressaoDigitalCanonica: string;
     }> = [];
 
-    for (const job of selectedImports) {
-      const file = await session.find(ImportFile, job.fileId);
+    for (const job of selectedImportacaos) {
+      const file = await session.find(ArquivoImportacao, job.arquivoId);
       if (!file) throw new Error(`Arquivo do import ${job.id} não foi encontrado.`);
-      const rows = await selectFromEntity(ImportRow)
-        .where(eq(importRowRef.importJobId, job.id))
+      const rows = await selectFromEntity(LinhaImportacao)
+        .where(eq(importRowRef.importacaoId, job.id))
         .execute(session);
-      rows.sort((a, b) => a.rowNumber - b.rowNumber || a.id.localeCompare(b.id));
-      const canonicalFingerprint = normalizedJsonFingerprint(rows.map((row) => ({
+      rows.sort((a, b) => a.numeroLinha - b.numeroLinha || a.id.localeCompare(b.id));
+      const impressaoDigitalCanonica = jsonNormalizadoFingerprint(rows.map((row) => ({
         id: row.id,
-        rowNumber: row.rowNumber,
-        validationStatus: row.validationStatus,
-        canonicalJson: row.canonicalJson,
-        validationErrorsJson: row.validationErrorsJson
+        numeroLinha: row.numeroLinha,
+        situacaoValidacao: row.situacaoValidacao,
+        jsonCanonico: row.jsonCanonico,
+        jsonErrosValidacao: row.jsonErrosValidacao
       })));
-      inputSnapshots.push({ job, file, canonicalFingerprint });
+      inputSnapshots.push({ job, file, impressaoDigitalCanonica });
 
       for (const row of rows) {
-        if (row.validationStatus !== "VALID") continue;
+        if (row.situacaoValidacao !== "VALID") continue;
         let data: Record<string, unknown>;
         try {
-          data = JSON.parse(row.canonicalJson) as Record<string, unknown>;
+          data = JSON.parse(row.jsonCanonico) as Record<string, unknown>;
         } catch {
-          throw new Error(`Linha canônica inválida no import ${job.id}, linha ${row.rowNumber}.`);
+          throw new Error(`Linha canônica inválida no import ${job.id}, linha ${row.numeroLinha}.`);
         }
-        canonicalRows.push({ importJobId: job.id, population: job.population, rowNumber: row.rowNumber, data });
+        canonicalRows.push({ importacaoId: job.id, populacao: job.populacao, numeroLinha: row.numeroLinha, data });
       }
     }
 
-    const parameterFingerprint = normalizedJsonFingerprint({
-      parameterizationId: parameterization.id,
-      version: parameterization.version,
-      approvedAt: parameterization.approvedAt ?? null,
+    const impressaoDigitalParametros = jsonNormalizadoFingerprint({
+      parametrizacaoId: parametrizacao.id,
+      versao: parametrizacao.versao,
+      aprovadoEm: parametrizacao.aprovadoEm ?? null,
       parameters,
       hypotheses
     });
-    const dataFingerprint = normalizedJsonFingerprint(inputSnapshots.map(({ job, file, canonicalFingerprint }) => ({
-      importJobId: job.id,
-      population: job.population,
-      fileSha256: file.sha256,
-      schemaFingerprint: job.schemaFingerprint,
-      canonicalFingerprint,
-      rowCount: job.rowCount,
-      validRows: job.validRows,
-      invalidRows: job.invalidRows,
-      completedAt: job.completedAt ?? null
+    const impressaoDigitalDados = jsonNormalizadoFingerprint(inputSnapshots.map(({ job, file, impressaoDigitalCanonica }) => ({
+      importacaoId: job.id,
+      populacao: job.populacao,
+      arquivoSha256: file.sha256,
+      impressaoDigitalEsquema: job.impressaoDigitalEsquema,
+      impressaoDigitalCanonica,
+      quantidadeLinhas: job.quantidadeLinhas,
+      linhasValidas: job.linhasValidas,
+      linhasInvalidas: job.linhasInvalidas,
+      concluidoEm: job.concluidoEm ?? null
     })));
-    const inputFingerprint = normalizedJsonFingerprint({
-      evaluationId,
-      planId: evaluation.planId ?? null,
-      referenceDate: evaluation.referenceDate,
+    const impressaoDigitalEntrada = jsonNormalizadoFingerprint({
+      avaliacaoId,
+      planoId: evaluation.planoId ?? null,
+      dataReferencia: evaluation.dataReferencia,
       planRules,
-      parameterFingerprint,
-      dataFingerprint,
-      engineCode: engine.code,
-      engineVersion: engine.version
+      impressaoDigitalParametros,
+      impressaoDigitalDados,
+      codigoMotor: engine.codigo,
+      versaoMotor: engine.versao
     });
 
-    const prior = await selectFromEntity(CalculationRun)
-      .where(eq(runRef.evaluationId, evaluationId))
+    const prior = await selectFromEntity(ExecucaoCalculo)
+      .where(eq(runRef.avaliacaoId, avaliacaoId))
       .execute(session);
     const reusable = prior.find(
       (run) =>
-        run.status === "COMPLETED" &&
-        run.engineCode === engine.code &&
-        run.engineVersion === engine.version &&
-        run.inputFingerprint === inputFingerprint
+        run.situacao === "CONCLUIDO" &&
+        run.codigoMotor === engine.codigo &&
+        run.versaoMotor === engine.versao &&
+        run.impressaoDigitalEntrada === impressaoDigitalEntrada
     );
     if (reusable) return detailInSession(session, reusable);
 
-    const createdAt = new Date().toISOString();
-    const run = new CalculationRun();
+    const criadoEm = new Date().toISOString();
+    const run = new ExecucaoCalculo();
     run.id = randomUUID();
-    run.evaluationId = evaluationId;
-    run.parameterizationId = parameterization.id;
-    run.planRulesVersionId = planRules?.id ?? null;
-    run.planRulesFingerprint = planRules?.fingerprint ?? null;
-    run.engineCode = engine.code;
-    run.engineVersion = engine.version;
-    run.status = "PROCESSING";
-    run.parameterFingerprint = parameterFingerprint;
-    run.dataFingerprint = dataFingerprint;
-    run.inputFingerprint = inputFingerprint;
-    run.resultFingerprint = null;
-    run.inputImportCount = selectedImports.length;
-    run.inputRowCount = selectedImports.reduce((total, job) => total + job.rowCount, 0);
-    run.validRowCount = selectedImports.reduce((total, job) => total + job.validRows, 0);
-    run.invalidRowCount = selectedImports.reduce((total, job) => total + job.invalidRows, 0);
-    run.participantResultCount = null;
-    run.createdAt = createdAt;
-    run.completedAt = null;
-    run.errorMessage = null;
-    session.trackNew(tableOf(CalculationRun), run, run.id);
+    run.avaliacaoId = avaliacaoId;
+    run.parametrizacaoId = parametrizacao.id;
+    run.versaoRegrasPlanoId = planRules?.id ?? null;
+    run.impressaoDigitalRegrasPlano = planRules?.fingerprint ?? null;
+    run.codigoMotor = engine.codigo;
+    run.versaoMotor = engine.versao;
+    run.situacao = "PROCESSANDO";
+    run.impressaoDigitalParametros = impressaoDigitalParametros;
+    run.impressaoDigitalDados = impressaoDigitalDados;
+    run.impressaoDigitalEntrada = impressaoDigitalEntrada;
+    run.impressaoDigitalResultado = null;
+    run.quantidadeImportacoesEntrada = selectedImportacaos.length;
+    run.quantidadeLinhasEntrada = selectedImportacaos.reduce((total, job) => total + job.quantidadeLinhas, 0);
+    run.quantidadeLinhasValidas = selectedImportacaos.reduce((total, job) => total + job.linhasValidas, 0);
+    run.quantidadeLinhasInvalidas = selectedImportacaos.reduce((total, job) => total + job.linhasInvalidas, 0);
+    run.quantidadeResultadosParticipantes = null;
+    run.criadoEm = criadoEm;
+    run.concluidoEm = null;
+    run.mensagemErro = null;
+    session.trackNew(tableOf(ExecucaoCalculo), run, run.id);
 
     for (const snapshot of inputSnapshots) {
-      const stored = new CalculationInput();
+      const stored = new EntradaCalculo();
       stored.id = randomUUID();
-      stored.calculationRunId = run.id;
-      stored.importJobId = snapshot.job.id;
-      stored.population = snapshot.job.population;
-      stored.fileSha256 = snapshot.file.sha256;
-      stored.schemaFingerprint = snapshot.job.schemaFingerprint;
-      stored.canonicalFingerprint = snapshot.canonicalFingerprint;
-      stored.rowCount = snapshot.job.rowCount;
-      stored.validRows = snapshot.job.validRows;
-      stored.invalidRows = snapshot.job.invalidRows;
-      stored.importedAt = snapshot.job.completedAt ?? snapshot.job.createdAt;
-      session.trackNew(tableOf(CalculationInput), stored, stored.id);
+      stored.execucaoCalculoId = run.id;
+      stored.importacaoId = snapshot.job.id;
+      stored.populacao = snapshot.job.populacao;
+      stored.arquivoSha256 = snapshot.file.sha256;
+      stored.impressaoDigitalEsquema = snapshot.job.impressaoDigitalEsquema;
+      stored.impressaoDigitalCanonica = snapshot.impressaoDigitalCanonica;
+      stored.quantidadeLinhas = snapshot.job.quantidadeLinhas;
+      stored.linhasValidas = snapshot.job.linhasValidas;
+      stored.linhasInvalidas = snapshot.job.linhasInvalidas;
+      stored.importadoEm = snapshot.job.concluidoEm ?? snapshot.job.criadoEm;
+      session.trackNew(tableOf(EntradaCalculo), stored, stored.id);
     }
     await session.commit();
 
@@ -490,79 +490,79 @@ export async function executeCalculation(
       const output = validateCalculationOutput(await engine.execute({
         evaluation: {
           id: evaluation.id,
-          planId: evaluation.planId ?? null,
-          planName: evaluation.planName,
-          referenceDate: evaluation.referenceDate
+          planoId: evaluation.planoId ?? null,
+          nomePlano: evaluation.nomePlano,
+          dataReferencia: evaluation.dataReferencia
         },
         planRules,
-        parameterization: {
-          id: parameterization.id,
-          version: parameterization.version,
+        parametrizacao: {
+          id: parametrizacao.id,
+          versao: parametrizacao.versao,
           parameters,
           hypotheses
         },
         rows: canonicalRows,
-        invalidRowCount: run.invalidRowCount,
-        importCount: run.inputImportCount
+        quantidadeLinhasInvalidas: run.quantidadeLinhasInvalidas,
+        importCount: run.quantidadeImportacoesEntrada
       }));
 
-      const allowedRows = new Set(canonicalRows.map((row) => `${row.importJobId}:${row.rowNumber}`));
+      const allowedRows = new Set(canonicalRows.map((row) => `${row.importacaoId}:${row.numeroLinha}`));
       for (const participant of output.participantResults) {
-        const key = `${participant.importJobId}:${participant.sourceRowNumber}`;
+        const key = `${participant.importacaoId}:${participant.numeroLinhaOrigem}`;
         if (!allowedRows.has(key)) {
           throw new Error(`O engine tentou persistir resultado individual para uma linha que não pertence aos inputs congelados: ${key}.`);
         }
       }
 
       for (const [ordinal, metric] of output.metrics.entries()) {
-        const stored = new CalculationResultMetric();
+        const stored = new MetricaResultadoCalculo();
         stored.id = randomUUID();
-        stored.calculationRunId = run.id;
-        stored.code = metric.code;
-        stored.category = metric.category;
-        stored.label = metric.label;
-        stored.valueType = metric.valueType;
-        stored.valueJson = JSON.stringify(metric.value);
-        stored.unit = metric.unit ?? null;
+        stored.execucaoCalculoId = run.id;
+        stored.codigo = metric.codigo;
+        stored.categoria = metric.categoria;
+        stored.rotulo = metric.rotulo;
+        stored.tipoValor = metric.tipoValor;
+        stored.jsonValor = JSON.stringify(metric.value);
+        stored.unidade = metric.unidade ?? null;
         stored.ordinal = ordinal;
-        session.trackNew(tableOf(CalculationResultMetric), stored, stored.id);
+        session.trackNew(tableOf(MetricaResultadoCalculo), stored, stored.id);
       }
 
       for (const [ordinal, participant] of output.participantResults.entries()) {
-        const stored = new CalculationParticipantResult();
+        const stored = new ResultadoParticipanteCalculo();
         stored.id = randomUUID();
-        stored.calculationRunId = run.id;
-        stored.importJobId = participant.importJobId;
-        stored.population = participant.population;
-        stored.sourceRowNumber = participant.sourceRowNumber;
-        stored.participantRegistration = participant.participantRegistration;
+        stored.execucaoCalculoId = run.id;
+        stored.importacaoId = participant.importacaoId;
+        stored.populacao = participant.populacao;
+        stored.numeroLinhaOrigem = participant.numeroLinhaOrigem;
+        stored.matriculaParticipante = participant.matriculaParticipante;
         stored.campoUnicoLgpd = participant.campoUnicoLgpd;
-        stored.resultJson = JSON.stringify(participant.result);
+        stored.jsonResultado = JSON.stringify(participant.result);
         stored.ordinal = ordinal;
-        session.trackNew(tableOf(CalculationParticipantResult), stored, stored.id);
+        session.trackNew(tableOf(ResultadoParticipanteCalculo), stored, stored.id);
       }
 
-      run.resultFingerprint = normalizedJsonFingerprint({
+      run.impressaoDigitalResultado = jsonNormalizadoFingerprint({
         metrics: output.metrics.map((metric) => ({
-          code: metric.code,
-          category: metric.category,
-          label: metric.label,
-          valueType: metric.valueType,
+          codigo: metric.codigo,
+          categoria: metric.categoria,
+          rotulo: metric.rotulo,
+          tipoValor: metric.tipoValor,
           value: metric.value,
-          unit: metric.unit ?? null
+          unidade: metric.unidade ?? null
         })),
         participantResults: output.participantResults
       });
-      run.participantResultCount = output.participantResults.length;
-      run.status = "COMPLETED";
-      run.completedAt = new Date().toISOString();
+      run.quantidadeResultadosParticipantes = output.participantResults.length;
+      run.situacao = "CONCLUIDO";
+      run.concluidoEm = new Date().toISOString();
       session.markDirty(run);
       await session.commit();
     } catch (error) {
-      run.status = "FAILED";
-      run.participantResultCount = 0;
-      run.completedAt = new Date().toISOString();
-      run.errorMessage = error instanceof Error ? error.message : "Falha não identificada no motor de cálculo.";
+      run.situacao = "FALHO";
+      run.quantidadeResultadosParticipantes = 0;
+      run.concluidoEm = new Date().toISOString();
+      run.mensagemErro = error instanceof Error ? error.message : "Falha não identificada no motor de cálculo.";
       session.markDirty(run);
       await session.commit();
     }

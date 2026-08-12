@@ -1,145 +1,522 @@
 {
-  "tags": [{ "name": "Adherence" }],
+  "tags": [
+    {
+      "name": "Aderencia"
+    }
+  ],
   "paths": {
-    "/api/adherence-studies/": {
+    "/api/estudos-aderencia/": {
       "get": {
-        "tags": ["Adherence"],
-        "operationId": "listAdherenceStudies",
-        "responses": { "200": { "description": "Adherence studies", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/AdherenceStudySummary" } } } } } }
+        "tags": [
+          "Aderencia"
+        ],
+        "operationId": "listarEstudosAderencia",
+        "responses": {
+          "200": {
+            "description": "Estudos de aderência",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResumoEstudoAderencia"
+                  }
+                }
+              }
+            }
+          }
+        }
       },
       "post": {
-        "tags": ["Adherence"],
-        "operationId": "createAdherenceStudy",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateAdherenceStudy" } } } },
-        "responses": { "201": { "description": "Executed adherence study", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AdherenceStudyDetail" } } } } }
+        "tags": [
+          "Aderencia"
+        ],
+        "operationId": "criarEstudoAderencia",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriarEstudoAderencia"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Executed adherence study",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetalheEstudoAderencia"
+                }
+              }
+            }
+          }
+        }
       }
     },
-    "/api/adherence-studies/{id}": {
+    "/api/estudos-aderencia/{id}": {
       "get": {
-        "tags": ["Adherence"],
-        "operationId": "getAdherenceStudy",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Adherence study detail", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AdherenceStudyDetail" } } } } }
+        "tags": [
+          "Aderencia"
+        ],
+        "operationId": "obterEstudoAderencia",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detalhes do estudo de aderência",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetalheEstudoAderencia"
+                }
+              }
+            }
+          }
+        }
       }
     },
-    "/api/adherence-candidates/{id}/points": {
+    "/api/candidatos-aderencia/{id}/pontos": {
       "get": {
-        "tags": ["Adherence"],
-        "operationId": "getAdherenceCandidatePoints",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Observed versus expected points", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AdherenceCandidatePoints" } } } } }
+        "tags": [
+          "Aderencia"
+        ],
+        "operationId": "obterPontosCandidatoAderencia",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Observed versus expected points",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PontosCandidatoAderencia"
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
   "components": {
     "schemas": {
-      "AdherenceObservation": {
+      "ResultadoCandidatoAderencia": {
         "type": "object",
-        "required": ["year", "age", "sex", "exposure", "observedEvents"],
+        "required": [
+          "id",
+          "versaoBiometriaId",
+          "codigoTabua",
+          "nomeTabua",
+          "rotuloVersao",
+          "posicao",
+          "eventosObservados",
+          "eventosEsperados",
+          "quiQuadrado",
+          "quiQuadradoDf",
+          "quiQuadradoCritico",
+          "quiQuadradoP",
+          "quiQuadradoPass",
+          "ksD",
+          "ksCritico",
+          "pKs",
+          "pKsPass",
+          "estatisticaZ",
+          "zCritico",
+          "pZ",
+          "pZPass",
+          "pFisher",
+          "pFisherPass",
+          "dqm",
+          "testesRejeitados"
+        ],
         "properties": {
-          "year": { "type": "integer", "minimum": 1900, "maximum": 2200 },
-          "age": { "type": "integer", "minimum": 0, "maximum": 130 },
-          "sex": { "type": "string", "enum": ["MALE", "FEMALE", "UNISEX"] },
-          "exposure": { "type": "number", "exclusiveMinimum": 0 },
-          "observedEvents": { "type": "integer", "minimum": 0 }
+          "zCritico": {
+            "type": "number",
+            "minimum": 0
+          },
+          "rotuloVersao": {
+            "type": "string"
+          },
+          "pFisherPass": {
+            "type": "boolean"
+          },
+          "quiQuadradoP": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "quiQuadradoPass": {
+            "type": "boolean"
+          },
+          "nomeTabua": {
+            "type": "string"
+          },
+          "eventosObservados": {
+            "type": "number",
+            "minimum": 0
+          },
+          "pKsPass": {
+            "type": "boolean"
+          },
+          "estatisticaZ": {
+            "type": "number"
+          },
+          "versaoBiometriaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "codigoTabua": {
+            "type": "string"
+          },
+          "pZPass": {
+            "type": "boolean"
+          },
+          "pKs": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "dqm": {
+            "type": "number",
+            "minimum": 0
+          },
+          "pFisher": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "eventosEsperados": {
+            "type": "number",
+            "minimum": 0
+          },
+          "quiQuadradoDf": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "posicao": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "ksD": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "quiQuadradoCritico": {
+            "type": "number",
+            "minimum": 0
+          },
+          "pZ": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ksCritico": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "quiQuadrado": {
+            "type": "number",
+            "minimum": 0
+          },
+          "testesRejeitados": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          }
         }
       },
-      "CreateAdherenceStudy": {
+      "ResumoEstudoAderencia": {
         "type": "object",
-        "required": ["name", "hypothesisType", "periodStart", "periodEnd", "sexScope", "alpha", "fisherSplitAge", "candidateVersionIds", "observations"],
+        "required": [
+          "id",
+          "avaliacaoId",
+          "nome",
+          "tipoHipotese",
+          "periodoInicial",
+          "periodoFinal",
+          "escopoSexo",
+          "alpha",
+          "situacao",
+          "versaoMotor",
+          "quantidadeObservacoes",
+          "quantidadeCandidatos",
+          "criadoEm",
+          "concluidoEm"
+        ],
         "properties": {
-          "evaluationId": { "type": "integer", "minimum": 1 },
-          "name": { "type": "string", "minLength": 1 },
-          "hypothesisType": { "type": "string", "minLength": 1 },
-          "periodStart": { "type": "integer", "minimum": 1900, "maximum": 2200 },
-          "periodEnd": { "type": "integer", "minimum": 1900, "maximum": 2200 },
-          "sexScope": { "type": "string", "enum": ["BOTH", "MALE", "FEMALE", "UNISEX"] },
-          "alpha": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
-          "fisherSplitAge": { "type": "integer", "minimum": 0, "maximum": 130 },
-          "candidateVersionIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "format": "uuid" } },
-          "observations": { "type": "array", "minItems": 1, "items": { "$ref": "#/components/schemas/AdherenceObservation" } }
+          "periodoFinal": {
+            "type": "integer"
+          },
+          "avaliacaoId": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "alpha": {
+            "type": "number"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "versaoMotor": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantidadeObservacoes": {
+            "type": "integer"
+          },
+          "concluidoEm": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "periodoInicial": {
+            "type": "integer"
+          },
+          "quantidadeCandidatos": {
+            "type": "integer"
+          },
+          "escopoSexo": {
+            "type": "string"
+          },
+          "situacao": {
+            "type": "string"
+          },
+          "tipoHipotese": {
+            "type": "string"
+          }
         }
       },
-      "AdherenceStudySummary": {
+      "PontoCandidatoAderencia": {
         "type": "object",
-        "required": ["id", "evaluationId", "name", "hypothesisType", "periodStart", "periodEnd", "sexScope", "alpha", "status", "engineVersion", "observationCount", "candidateCount", "createdAt", "completedAt"],
+        "required": [
+          "idade",
+          "sexo",
+          "exposicao",
+          "eventosObservados",
+          "qx",
+          "eventosEsperados",
+          "residuo"
+        ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "evaluationId": { "type": ["integer", "null"] },
-          "name": { "type": "string" },
-          "hypothesisType": { "type": "string" },
-          "periodStart": { "type": "integer" },
-          "periodEnd": { "type": "integer" },
-          "sexScope": { "type": "string" },
-          "alpha": { "type": "number" },
-          "status": { "type": "string" },
-          "engineVersion": { "type": "string" },
-          "observationCount": { "type": "integer" },
-          "candidateCount": { "type": "integer" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "completedAt": { "type": ["string", "null"], "format": "date-time" }
+          "residuo": {
+            "type": "number"
+          },
+          "eventosObservados": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "idade": {
+            "type": "integer"
+          },
+          "eventosEsperados": {
+            "type": "number",
+            "minimum": 0
+          },
+          "sexo": {
+            "type": "string"
+          },
+          "exposicao": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "qx": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
         }
       },
-      "AdherenceCandidateResult": {
+      "ObservacaoAderencia": {
         "type": "object",
-        "required": ["id", "biometricVersionId", "tableCode", "tableName", "versionLabel", "rank", "observedEvents", "expectedEvents", "chiSquare", "chiSquareDf", "chiSquareCritical", "chiSquareP", "chiSquarePass", "ksD", "ksCritical", "ksP", "ksPass", "zStatistic", "zCritical", "zP", "zPass", "fisherP", "fisherPass", "dqm", "rejectedTests"],
+        "required": [
+          "ano",
+          "idade",
+          "sexo",
+          "exposicao",
+          "eventosObservados"
+        ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "biometricVersionId": { "type": "string", "format": "uuid" },
-          "tableCode": { "type": "string" },
-          "tableName": { "type": "string" },
-          "versionLabel": { "type": "string" },
-          "rank": { "type": "integer", "minimum": 1 },
-          "observedEvents": { "type": "number", "minimum": 0 },
-          "expectedEvents": { "type": "number", "minimum": 0 },
-          "chiSquare": { "type": "number", "minimum": 0 },
-          "chiSquareDf": { "type": "integer", "minimum": 1 },
-          "chiSquareCritical": { "type": "number", "minimum": 0 },
-          "chiSquareP": { "type": "number", "minimum": 0, "maximum": 1 },
-          "chiSquarePass": { "type": "boolean" },
-          "ksD": { "type": "number", "minimum": 0, "maximum": 1 },
-          "ksCritical": { "type": "number", "minimum": 0, "maximum": 1 },
-          "ksP": { "type": "number", "minimum": 0, "maximum": 1 },
-          "ksPass": { "type": "boolean" },
-          "zStatistic": { "type": "number" },
-          "zCritical": { "type": "number", "minimum": 0 },
-          "zP": { "type": "number", "minimum": 0, "maximum": 1 },
-          "zPass": { "type": "boolean" },
-          "fisherP": { "type": "number", "minimum": 0, "maximum": 1 },
-          "fisherPass": { "type": "boolean" },
-          "dqm": { "type": "number", "minimum": 0 },
-          "rejectedTests": { "type": "integer", "minimum": 0, "maximum": 4 }
+          "sexo": {
+            "type": "string",
+            "enum": [
+              "MASCULINO",
+              "FEMININO",
+              "UNISSEX"
+            ]
+          },
+          "ano": {
+            "type": "integer",
+            "minimum": 1900,
+            "maximum": 2200
+          },
+          "idade": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 130
+          },
+          "exposicao": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "eventosObservados": {
+            "type": "integer",
+            "minimum": 0
+          }
         }
       },
-      "AdherenceStudyDetail": {
+      "CriarEstudoAderencia": {
+        "type": "object",
+        "required": [
+          "nome",
+          "tipoHipotese",
+          "periodoInicial",
+          "periodoFinal",
+          "escopoSexo",
+          "alpha",
+          "idadeDivisaoFisher",
+          "idsVersoesCandidatas",
+          "observacoes"
+        ],
+        "properties": {
+          "observacoes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/ObservacaoAderencia"
+            }
+          },
+          "avaliacaoId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "alpha": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "exclusiveMaximum": 1
+          },
+          "idsVersoesCandidatas": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "nome": {
+            "type": "string",
+            "minLength": 1
+          },
+          "escopoSexo": {
+            "type": "string",
+            "enum": [
+              "AMBOS",
+              "MASCULINO",
+              "FEMININO",
+              "UNISSEX"
+            ]
+          },
+          "periodoInicial": {
+            "type": "integer",
+            "minimum": 1900,
+            "maximum": 2200
+          },
+          "periodoFinal": {
+            "type": "integer",
+            "minimum": 1900,
+            "maximum": 2200
+          },
+          "tipoHipotese": {
+            "type": "string",
+            "minLength": 1
+          },
+          "idadeDivisaoFisher": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 130
+          }
+        }
+      },
+      "PontosCandidatoAderencia": {
+        "type": "object",
+        "required": [
+          "candidate",
+          "pontos"
+        ],
+        "properties": {
+          "candidate": {
+            "$ref": "#/components/schemas/ResultadoCandidatoAderencia"
+          },
+          "pontos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PontoCandidatoAderencia"
+            }
+          }
+        }
+      },
+      "DetalheEstudoAderencia": {
         "allOf": [
-          { "$ref": "#/components/schemas/AdherenceStudySummary" },
-          { "type": "object", "required": ["fisherSplitAge", "candidates"], "properties": {
-            "fisherSplitAge": { "type": "integer" },
-            "candidates": { "type": "array", "items": { "$ref": "#/components/schemas/AdherenceCandidateResult" } }
-          } }
+          {
+            "$ref": "#/components/schemas/ResumoEstudoAderencia"
+          },
+          {
+            "type": "object",
+            "required": [
+              "idadeDivisaoFisher",
+              "candidatos"
+            ],
+            "properties": {
+              "idadeDivisaoFisher": {
+                "type": "integer"
+              },
+              "candidatos": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ResultadoCandidatoAderencia"
+                }
+              }
+            }
+          }
         ]
-      },
-      "AdherenceCandidatePoint": {
-        "type": "object",
-        "required": ["age", "sex", "exposure", "observedEvents", "qx", "expectedEvents", "residual"],
-        "properties": {
-          "age": { "type": "integer" },
-          "sex": { "type": "string" },
-          "exposure": { "type": "number", "exclusiveMinimum": 0 },
-          "observedEvents": { "type": "integer", "minimum": 0 },
-          "qx": { "type": "number", "minimum": 0, "maximum": 1 },
-          "expectedEvents": { "type": "number", "minimum": 0 },
-          "residual": { "type": "number" }
-        }
-      },
-      "AdherenceCandidatePoints": {
-        "type": "object",
-        "required": ["candidate", "points"],
-        "properties": {
-          "candidate": { "$ref": "#/components/schemas/AdherenceCandidateResult" },
-          "points": { "type": "array", "items": { "$ref": "#/components/schemas/AdherenceCandidatePoint" } }
-        }
       }
     }
   }

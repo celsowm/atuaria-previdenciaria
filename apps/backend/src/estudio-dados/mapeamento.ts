@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import * as XLSX from "xlsx";
+import XLSX from "xlsx";
 
 export type Transform =
   | "auto"
@@ -10,14 +10,14 @@ export type Transform =
   | "split-dash"
   | "sex";
 
-export type MappingRuleInput = {
+export type RegraMapeamentoInput = {
   sources: string[];
   targets: string[];
   transform: Transform;
 };
 
 export type ParsedSheet = {
-  sheetName: string;
+  nomeAba: string;
   headers: string[];
   rows: unknown[][];
 };
@@ -25,7 +25,7 @@ export type ParsedSheet = {
 const requiredCanonicalFields = [
   "participant.registration",
   "participant.birthDate",
-  "participant.sex"
+  "participant.sexo"
 ] as const;
 
 export function normalizeToken(value: string) {
@@ -44,7 +44,7 @@ export function fingerprintHeaders(headers: string[]) {
   return hashJson(headers.map(normalizeToken));
 }
 
-export function fingerprintRules(rules: MappingRuleInput[]) {
+export function fingerprintRules(rules: RegraMapeamentoInput[]) {
   return hashJson(
     rules.map((rule) => ({
       sources: rule.sources.map(normalizeToken),
@@ -76,22 +76,22 @@ export function compareHeaders(candidate: string[], profileHeaders: string[]) {
 
 export function parseWorkbookBuffer(
   buffer: Buffer,
-  options: { sheetName?: string; headerRow: number }
+  options: { nomeAba?: string; linhaCabecalho: number }
 ): ParsedSheet {
   const workbook = XLSX.read(buffer, { type: "buffer", cellDates: false });
-  const sheetName =
-    options.sheetName && workbook.Sheets[options.sheetName]
-      ? options.sheetName
+  const nomeAba =
+    options.nomeAba && workbook.Sheets[options.nomeAba]
+      ? options.nomeAba
       : workbook.SheetNames[0];
-  if (!sheetName) throw new Error("A planilha não possui abas legíveis.");
+  if (!nomeAba) throw new Error("A planilha não possui abas legíveis.");
 
-  const worksheet = workbook.Sheets[sheetName];
+  const worksheet = workbook.Sheets[nomeAba];
   const matrix = XLSX.utils.sheet_to_json<unknown[]>(worksheet, {
     header: 1,
     defval: "",
     raw: false
   });
-  const headerIndex = Math.max(0, options.headerRow - 1);
+  const headerIndex = Math.max(0, options.linhaCabecalho - 1);
   const headers = (matrix[headerIndex] ?? []).map((value, index) =>
     String(value || `COL_${index + 1}`).trim()
   );
@@ -99,7 +99,7 @@ export function parseWorkbookBuffer(
     .slice(headerIndex + 1)
     .filter((row) => row.some((value) => String(value ?? "").trim() !== ""));
 
-  return { sheetName, headers, rows };
+  return { nomeAba, headers, rows };
 }
 
 export function rowToObject(headers: string[], row: unknown[]) {
@@ -159,12 +159,12 @@ export function parseCanonicalNumber(value: unknown) {
 function normalizeBrazilianDate(value: unknown) {
   const match = String(value ?? "").trim().match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
   if (!match) return value;
-  let year = Number(match[3]);
+  let ano = Number(match[3]);
   if (match[3].length === 2) {
     const currentTwoDigits = new Date().getUTCFullYear() % 100;
-    year += year <= currentTwoDigits ? 2000 : 1900;
+    ano += ano <= currentTwoDigits ? 2000 : 1900;
   }
-  return `${year.toString().padStart(4, "0")}-${match[2].padStart(2, "0")}-${match[1].padStart(2, "0")}`;
+  return `${ano.toString().padStart(4, "0")}-${match[2].padStart(2, "0")}-${match[1].padStart(2, "0")}`;
 }
 
 function normalizeCompactDate(value: unknown) {
@@ -175,10 +175,10 @@ function normalizeCompactDate(value: unknown) {
 }
 
 export function applyRule(
-  rule: MappingRuleInput,
+  rule: RegraMapeamentoInput,
   normalizedRow: Record<string, unknown>
 ): Record<string, unknown> {
-  const values = rule.sources.map((source) => normalizedRow[source] ?? "");
+  const values = rule.sources.map((origem) => normalizedRow[origem] ?? "");
   const output: Record<string, unknown> = {};
   if (!rule.targets.length) return output;
 
@@ -198,11 +198,11 @@ export function applyRule(
   if (rule.transform === "date-yyyymmdd") value = normalizeCompactDate(value);
   if (rule.transform === "date-br") value = normalizeBrazilianDate(value);
   if (rule.transform === "sex") {
-    const sex = normalizeToken(String(value));
-    value = ["M", "1", "MASC", "MASCULINO"].includes(sex)
-      ? "MALE"
-      : ["F", "2", "FEM", "FEMININO"].includes(sex)
-        ? "FEMALE"
+    const sexo = normalizeToken(String(value));
+    value = ["M", "1", "MASC", "MASCULINO"].includes(sexo)
+      ? "MASCULINO"
+      : ["F", "2", "FEM", "FEMININO"].includes(sexo)
+        ? "FEMININO"
         : value;
   }
   if (rule.transform === "auto" && values.length > 1) {
@@ -215,16 +215,16 @@ export function applyRule(
 
 export function toCanonicalRow(
   normalizedRow: Record<string, unknown>,
-  rules: MappingRuleInput[]
+  rules: RegraMapeamentoInput[]
 ) {
   return Object.assign({}, ...rules.map((rule) => applyRule(rule, normalizedRow)));
 }
 
 function isIsoDate(value: unknown) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+  const [ano, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(ano, month - 1, day));
+  return date.getUTCFullYear() === ano && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
 export function validateCanonicalRow(row: Record<string, unknown>) {
@@ -239,10 +239,10 @@ export function validateCanonicalRow(row: Record<string, unknown>) {
     errors.push("participant.birthDate: data inválida");
   }
   if (
-    row["participant.sex"] &&
-    !["MALE", "FEMALE"].includes(String(row["participant.sex"]))
+    row["participant.sexo"] &&
+    !["MASCULINO", "FEMININO"].includes(String(row["participant.sexo"]))
   ) {
-    errors.push("participant.sex: valor não normalizado");
+    errors.push("participant.sexo: valor não normalizado");
   }
   if (
     row["participant.contributionSalary"] !== undefined &&

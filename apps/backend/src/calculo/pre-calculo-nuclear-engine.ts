@@ -1,9 +1,9 @@
 import {
-  registerCalculationEngine,
-  type CalculationEngineContext,
-  type CalculationEngineOutput,
-  type CalculationMetric
-} from "./calculation-engine.js";
+  registerCalculoEngine,
+  type CalculoEngineContext,
+  type CalculoEngineOutput,
+  type MetricaCalculo
+} from "./calculo-engine.js";
 
 function parseIsoDate(value: unknown) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
@@ -11,38 +11,38 @@ function parseIsoDate(value: unknown) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function ageAt(referenceDate: string, birthDate: unknown) {
-  const reference = parseIsoDate(referenceDate);
+function ageAt(dataReferencia: string, birthDate: unknown) {
+  const reference = parseIsoDate(dataReferencia);
   const birth = parseIsoDate(birthDate);
   if (!reference || !birth || birth > reference) return null;
-  let age = reference.getUTCFullYear() - birth.getUTCFullYear();
+  let idade = reference.getUTCFullYear() - birth.getUTCFullYear();
   const beforeBirthday =
     reference.getUTCMonth() < birth.getUTCMonth() ||
     (reference.getUTCMonth() === birth.getUTCMonth() && reference.getUTCDate() < birth.getUTCDate());
-  if (beforeBirthday) age -= 1;
-  return age >= 0 && age <= 130 ? age : null;
+  if (beforeBirthday) idade -= 1;
+  return idade >= 0 && idade <= 130 ? idade : null;
 }
 
-function parameterNumber(context: CalculationEngineContext, code: string) {
-  const parameter = context.parameterization.parameters.find((item) => item.code === code);
+function parameterNumber(context: CalculoEngineContext, codigo: string) {
+  const parameter = context.parametrizacao.parameters.find((item) => item.codigo === codigo);
   if (!parameter) return null;
   try {
-    const value = JSON.parse(parameter.valueJson) as unknown;
+    const value = JSON.parse(parameter.jsonValor) as unknown;
     return typeof value === "number" && Number.isFinite(value) ? value : null;
   } catch {
     return null;
   }
 }
 
-function integerMetric(code: string, category: string, label: string, value: number): CalculationMetric {
-  return { code, category, label, valueType: "INTEGER", value };
+function integerMetric(codigo: string, categoria: string, rotulo: string, value: number): MetricaCalculo {
+  return { codigo, categoria, rotulo, tipoValor: "INTEGER", value };
 }
 
-function numberMetric(code: string, category: string, label: string, value: number, unit?: string | null): CalculationMetric {
-  return { code, category, label, valueType: "NUMBER", value, unit: unit ?? null };
+function numberMetric(codigo: string, categoria: string, rotulo: string, value: number, unidade?: string | null): MetricaCalculo {
+  return { codigo, categoria, rotulo, tipoValor: "NUMBER", value, unidade: unidade ?? null };
 }
 
-async function execute(context: CalculationEngineContext): Promise<CalculationEngineOutput> {
+async function execute(context: CalculoEngineContext): Promise<CalculoEngineOutput> {
   if (!context.rows.length) throw new Error("Não existem linhas canônicas válidas para cálculo.");
 
   let male = 0;
@@ -52,26 +52,26 @@ async function execute(context: CalculationEngineContext): Promise<CalculationEn
   const populations = new Set<string>();
 
   for (const row of context.rows) {
-    populations.add(row.population);
-    const sex = String(row.data["participant.sex"] ?? "").toUpperCase();
-    if (sex === "MALE") male += 1;
-    if (sex === "FEMALE") female += 1;
-    const age = ageAt(context.evaluation.referenceDate, row.data["participant.birthDate"]);
-    if (age !== null) {
+    populations.add(row.populacao);
+    const sexo = String(row.data["participant.sexo"] ?? "").toUpperCase();
+    if (sexo === "MASCULINO") male += 1;
+    if (sexo === "FEMININO") female += 1;
+    const idade = ageAt(context.evaluation.dataReferencia, row.data["participant.birthDate"]);
+    if (idade !== null) {
       ageCount += 1;
-      ageSum += age;
+      ageSum += idade;
     }
   }
 
-  const metrics: CalculationMetric[] = [
-    integerMetric("INPUT.IMPORT_COUNT", "Base cadastral", "Imports congelados", context.importCount),
+  const metrics: MetricaCalculo[] = [
+    integerMetric("INPUT.IMPORT_COUNT", "Base cadastral", "Importacaos congelados", context.importCount),
     integerMetric("INPUT.POPULATION_COUNT", "Base cadastral", "Populações", populations.size),
     integerMetric("INPUT.VALID_ROWS", "Base cadastral", "Registros válidos", context.rows.length),
-    integerMetric("INPUT.INVALID_ROWS", "Base cadastral", "Registros inválidos excluídos", context.invalidRowCount),
-    integerMetric("DEMOGRAPHIC.MALE_COUNT", "Demográficas", "Participantes masculinos", male),
-    integerMetric("DEMOGRAPHIC.FEMALE_COUNT", "Demográficas", "Participantes femininos", female),
-    integerMetric("PARAMETERIZATION.PARAMETER_COUNT", "Parametrização", "Parâmetros ativos", context.parameterization.parameters.length),
-    integerMetric("PARAMETERIZATION.HYPOTHESIS_COUNT", "Parametrização", "Hipóteses selecionadas", context.parameterization.hypotheses.length)
+    integerMetric("INPUT.INVALID_ROWS", "Base cadastral", "Registros inválidos excluídos", context.quantidadeLinhasInvalidas),
+    integerMetric("DEMOGRAPHIC.MALE_COUNT", "Demográficas", "Participantees masculinos", male),
+    integerMetric("DEMOGRAPHIC.FEMALE_COUNT", "Demográficas", "Participantees femininos", female),
+    integerMetric("PARAMETERIZATION.PARAMETER_COUNT", "Parametrização", "Parâmetros ativos", context.parametrizacao.parameters.length),
+    integerMetric("PARAMETERIZATION.HYPOTHESIS_COUNT", "Parametrização", "Hipóteses selecionadas", context.parametrizacao.hypotheses.length)
   ];
 
   if (ageCount > 0) {
@@ -97,13 +97,13 @@ async function execute(context: CalculationEngineContext): Promise<CalculationEn
   return { metrics, participantResults: [] };
 }
 
-registerCalculationEngine({
-  code: "CORE_PRECALCULATION",
-  version: "core-precalculation-v1",
-  label: "Pré-cálculo determinístico",
-  description: "Consolida a base canônica congelada, métricas demográficas e fatores financeiros sem produzir reservas ou provisões oficiais.",
-  resultKind: "PRECALCULATION",
-  requiresPlanRules: false,
-  supportedModalities: ["BD", "CD", "CV"],
+registerCalculoEngine({
+  codigo: "CORE_PRECALCULATION",
+  versao: "core-precalculation-v1",
+  rotulo: "Pré-cálculo determinístico",
+  descricao: "Consolida a base canônica congelada, métricas demográficas e fatores financeiros sem produzir reservas ou provisões oficiais.",
+  tipoResultado: "PRECALCULO",
+  requiresRegrasPlano: false,
+  modalidadesSuportadas: ["BD", "CD", "CV"],
   execute
 });

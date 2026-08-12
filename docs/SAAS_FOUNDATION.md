@@ -25,7 +25,7 @@ A aplicação usa contas locais persistidas no próprio banco e sessões bearer 
 
 ### Usuários
 
-A entidade `User` é a fonte de verdade para:
+A entidade `Usuario` é a fonte de verdade para:
 
 - e-mail normalizado e único;
 - nome de exibição;
@@ -58,7 +58,7 @@ O backend usa a autenticação bearer nativa do `adorn-api`.
 - `/api/config` é público;
 - `/api/auth/login` é público;
 - as rotas funcionais exigem usuário autenticado;
-- `/api/users/*` exige perfil `admin`;
+- `/api/usuarios/*` exige perfil `admin`;
 - o backend impede desativar ou rebaixar o último administrador ativo.
 
 O primeiro administrador não possui senha padrão no código. Quando a tabela de usuários está vazia, ele pode ser criado uma única vez com:

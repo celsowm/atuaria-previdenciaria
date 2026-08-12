@@ -10,13 +10,13 @@ O frontend usa a URL do navegador como fonte de verdade da navegação. Não exi
 | Avaliações | `/avaliacoes` |
 | Avaliação | `/avaliacoes/:id` |
 | Parametrização da avaliação | `/avaliacoes/:id/parametrizacao` |
-| Versão de parametrização | `/avaliacoes/:id/parametrizacao/:parameterizationId` |
+| Versão de parametrização | `/avaliacoes/:id/parametrizacao/:parametrizacaoId` |
 | Cálculos da avaliação | `/avaliacoes/:id/calculos` |
 | Execução de cálculo | `/avaliacoes/:id/calculos/:calculationId` |
-| Planos | `/planos` |
-| Plano | `/planos/:id` |
+| Planoos | `/planos` |
+| Planoo | `/planos/:id` |
 | Regras atuariais do plano | `/planos/:id/regras` |
-| Versão das regras do plano | `/planos/:id/regras/:rulesVersionId` |
+| Versão das regras do plano | `/planos/:id/regras/:versaoRegrasId` |
 | Data Studio | `/data-studio` |
 | Crítica de importação | `/data-studio/criticas/:id` |
 | Hipóteses e Tábuas | `/hipoteses-e-tabuas` |

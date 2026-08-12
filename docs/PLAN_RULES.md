@@ -1,11 +1,11 @@
-# Regras Atuariais Versionadas do Plano
+# Regras Atuariais Versionadas do Planoo
 
-O cadastro mestre `Plan` identifica o plano. Regras de benefício, contribuição e elegibilidade não ficam misturadas nesse cadastro porque mudam por regulamento, nota técnica e vigência.
+O cadastro mestre `Plano` identifica o plano. Regras de benefício, contribuição e elegibilidade não ficam misturadas nesse cadastro porque mudam por regulamento, nota técnica e vigência.
 
 ```text
-Plan
-  └─ PlanRulesVersion 1:N
-        └─ PlanRuleValue 1:N
+Plano
+  └─ VersaoRegrasPlanoo 1:N
+        └─ PlanoRuleValue 1:N
 ```
 
 ## Princípio
@@ -13,14 +13,14 @@ Plan
 Uma avaliação atuarial histórica precisa conseguir demonstrar quais regras do plano foram usadas. Por isso as regras seguem:
 
 ```text
-DRAFT
+RASCUNHO
   ↓ aprovação
-APPROVED
+APROVADO
   ↓ nova versão aprovada
-SUPERSEDED
+SUBSTITUIDO
 ```
 
-Somente `DRAFT` pode ser alterada. `APPROVED` e `SUPERSEDED` são snapshots imutáveis: `SUPERSEDED` apenas informa que existe uma versão aprovada mais nova, sem invalidar o uso histórico da versão anterior dentro de sua vigência.
+Somente `RASCUNHO` pode ser alterada. `APROVADO` e `SUBSTITUIDO` são snapshots imutáveis: `SUBSTITUIDO` apenas informa que existe uma versão aprovada mais nova, sem invalidar o uso histórico da versão anterior dentro de sua vigência.
 
 Cada versão guarda também a modalidade (`BD`, `CD` ou `CV`) como snapshot. Depois que um plano possui qualquer versão de regras, sua modalidade não pode ser alterada no cadastro mestre.
 
@@ -30,11 +30,11 @@ Cada versão guarda também a modalidade (`BD`, `CD` ou `CV`) como snapshot. Dep
 
 Ao copiar uma versão anterior, os valores e notas podem ser reaproveitados, mas a nova versão **não herda automaticamente a vigência**. O usuário precisa confirmar a data do novo regulamento antes de aprovar.
 
-Um engine atuarial verifica a vigência contra `Evaluation.referenceDate`; portanto uma versão mais nova não deve ser usada retroativamente só porque hoje é a versão `APPROVED` corrente.
+Um engine atuarial verifica a vigência contra `Avaliacao.referenceDate`; portanto uma versão mais nova não deve ser usada retroativamente só porque hoje é a versão `APROVADO` corrente.
 
 ## Valores tipados
 
-`PlanRuleValue` usa o mesmo padrão extensível de valores tipados adotado na Parametrização:
+`PlanoRuleValue` usa o mesmo padrão extensível de valores tipados adotado na Parametrização:
 
 - `code` canônico;
 - categoria;
@@ -77,7 +77,7 @@ Regras adicionais que ainda não possuem componente visual aparecem como **Regra
 Na aprovação é calculado SHA-256 sobre o contrato canônico:
 
 ```text
-planId
+planoId
 + versão
 + modalidade
 + vigência
@@ -85,32 +85,32 @@ planId
 + tipo/unidade/origem
 ```
 
-A ordenação do payload do hash não depende de locale. O fingerprint é persistido no `CalculationRun` de engines atuariais e também participa do `inputFingerprint` completo da execução.
+A ordenação do payload do hash não depende de locale. O fingerprint é persistido no `ExecucaoCalculo` de engines atuariais e também participa do `inputFingerprint` completo da execução.
 
-## Relação Avaliação → Plano
+## Relação Avaliação → Planoo
 
-`Evaluation` possui `planId` opcional com FK para `plans`. `planName` continua sendo o snapshot textual exibível.
+`Avaliacao` possui `planoId` opcional com FK para `plans`. `planName` continua sendo o snapshot textual exibível.
 
-Bases existentes recebem um backfill somente quando existe **exatamente um** plano cujo nome seja igual ao `planName` histórico. Situações sem correspondência ou ambíguas permanecem com `planId = null`; o sistema não adivinha vínculos.
+Bases existentes recebem um backfill somente quando existe **exatamente um** plano cujo nome seja igual ao `planName` histórico. Situações sem correspondência ou ambíguas permanecem com `planoId = null`; o sistema não adivinha vínculos.
 
-Um engine `ACTUARIAL` recusa executar quando `planId` está ausente, mesmo que `planName` pareça coincidir com algum cadastro.
+Um engine `ACTUARIAL` recusa executar quando `planoId` está ausente, mesmo que `planName` pareça coincidir com algum cadastro.
 
 ## API
 
 ```text
-GET   /api/plans/:planId/rules
-POST  /api/plans/:planId/rules
-GET   /api/plan-rules/:id
-PATCH /api/plan-rules/:id
-PATCH /api/plan-rules/:id/values
-POST  /api/plan-rules/:id/approve
+GET   /api/planos/:planoId/regras
+POST  /api/planos/:planoId/regras
+GET   /api/regras-plano/:id
+PATCH /api/regras-plano/:id
+PATCH /api/regras-plano/:id/valores
+POST  /api/regras-plano/:id/approve
 ```
 
 ## URLs
 
 ```text
-/planos/:planId/regras
-/planos/:planId/regras/:rulesVersionId
+/planos/:planoId/regras
+/planos/:planoId/regras/:versaoRegrasId
 ```
 
 ## Self-test
@@ -130,14 +130,14 @@ O primeiro consumidor real deste contrato é `BD_PVFB`.
 Uma execução atuarial recebe explicitamente:
 
 ```text
-Evaluation.planId
-+ PlanRulesVersion APPROVED/SUPERSEDED e vigente na data-base
-+ ActuarialParameterization APPROVED/SUPERSEDED
+Avaliacao.planoId
++ VersaoRegrasPlanoo APROVADO/SUBSTITUIDO e vigente na data-base
++ ParametrizacaoAtuarial APROVADO/SUBSTITUIDO
 + frozen canonical imports
 + engine code/version
 ```
 
-O `CalculationRun` persiste:
+O `ExecucaoCalculo` persiste:
 
 ```text
 planRulesVersionId

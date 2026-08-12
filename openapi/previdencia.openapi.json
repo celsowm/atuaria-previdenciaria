@@ -1,21 +1,315 @@
 {
-  "tags": [{ "name": "Previdência" }],
+  "tags": [
+    {
+      "name": "Previdência"
+    }
+  ],
   "paths": {
     "/api/entidades-previdencia": {
-      "get": { "tags": ["Previdência"], "operationId": "listarEntidadesPrevidencia", "responses": { "200": { "description": "Entidades previdenciárias", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/EntidadePrevidencia" } } } } } } },
-      "post": { "tags": ["Previdência"], "operationId": "criarEntidadePrevidencia", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CriarEntidadePrevidencia" } } } }, "responses": { "201": { "description": "Entidade criada", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EntidadePrevidencia" } } } } } }
+      "get": {
+        "tags": [
+          "Previdência"
+        ],
+        "operationId": "listarEntidadesPrevidencia",
+        "responses": {
+          "200": {
+            "description": "Entidades previdenciárias",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EntidadePrevidencia"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Previdência"
+        ],
+        "operationId": "criarEntidadePrevidencia",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriarEntidadePrevidencia"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Entidade criada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntidadePrevidencia"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/planos/{planoId}/submassas": {
-      "get": { "tags": ["Previdência"], "operationId": "listarSubmassas", "parameters": [{ "name": "planoId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Submassas do plano", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Submassa" } } } } } } },
-      "post": { "tags": ["Previdência"], "operationId": "criarSubmassa", "parameters": [{ "name": "planoId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CriarSubmassa" } } } }, "responses": { "201": { "description": "Submassa criada", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Submassa" } } } } } }
+      "get": {
+        "tags": [
+          "Previdência"
+        ],
+        "operationId": "listarSubmassas",
+        "parameters": [
+          {
+            "name": "planoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submassas do plano",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Submassa"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Previdência"
+        ],
+        "operationId": "criarSubmassa",
+        "parameters": [
+          {
+            "name": "planoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriarSubmassa"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Submassa criada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Submassa"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
-      "EntidadePrevidencia": { "type": "object", "required": ["id", "codigo", "nome", "cnpj", "situacao", "criadoEm", "atualizadoEm"], "properties": { "id": { "type": "string", "format": "uuid" }, "codigo": { "type": "string" }, "nome": { "type": "string" }, "cnpj": { "type": ["string", "null"] }, "situacao": { "type": "string", "enum": ["ATIVA", "INATIVA"] }, "criadoEm": { "type": "string", "format": "date-time" }, "atualizadoEm": { "type": "string", "format": "date-time" } } },
-      "CriarEntidadePrevidencia": { "type": "object", "required": ["codigo", "nome"], "properties": { "codigo": { "type": "string" }, "nome": { "type": "string" }, "cnpj": { "type": ["string", "null"] } } },
-      "Submassa": { "type": "object", "required": ["id", "planoId", "codigo", "nome", "vigenciaInicial", "vigenciaFinal", "situacao", "impressaoDigitalRegras", "observacoes", "criadoEm", "atualizadoEm", "aprovadaEm"], "properties": { "id": { "type": "string", "format": "uuid" }, "planoId": { "type": "string", "format": "uuid" }, "codigo": { "type": "string" }, "nome": { "type": "string" }, "vigenciaInicial": { "type": "string", "format": "date" }, "vigenciaFinal": { "type": ["string", "null"], "format": "date" }, "situacao": { "type": "string", "enum": ["RASCUNHO", "APROVADA", "SUBSTITUIDA"] }, "impressaoDigitalRegras": { "type": ["string", "null"] }, "observacoes": { "type": ["string", "null"] }, "criadoEm": { "type": "string", "format": "date-time" }, "atualizadoEm": { "type": "string", "format": "date-time" }, "aprovadaEm": { "type": ["string", "null"], "format": "date-time" } } },
-      "CriarSubmassa": { "type": "object", "required": ["codigo", "nome", "vigenciaInicial"], "properties": { "codigo": { "type": "string" }, "nome": { "type": "string" }, "vigenciaInicial": { "type": "string", "format": "date" }, "vigenciaFinal": { "type": ["string", "null"], "format": "date" }, "observacoes": { "type": ["string", "null"] } } }
+      "CriarEntidadePrevidencia": {
+        "type": "object",
+        "required": [
+          "codigo",
+          "nome"
+        ],
+        "properties": {
+          "cnpj": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          }
+        }
+      },
+      "EntidadePrevidencia": {
+        "type": "object",
+        "required": [
+          "id",
+          "codigo",
+          "nome",
+          "cnpj",
+          "situacao",
+          "criadoEm",
+          "atualizadoEm"
+        ],
+        "properties": {
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cnpj": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "atualizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "situacao": {
+            "type": "string",
+            "enum": [
+              "ATIVA",
+              "INATIVA"
+            ]
+          }
+        }
+      },
+      "Submassa": {
+        "type": "object",
+        "required": [
+          "id",
+          "planoId",
+          "codigo",
+          "nome",
+          "vigenciaInicial",
+          "vigenciaFinal",
+          "situacao",
+          "impressaoDigitalRegras",
+          "observacoes",
+          "criadoEm",
+          "atualizadoEm",
+          "aprovadaEm"
+        ],
+        "properties": {
+          "planoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "situacao": {
+            "type": "string",
+            "enum": [
+              "RASCUNHO",
+              "APROVADA",
+              "SUBSTITUIDA"
+            ]
+          },
+          "atualizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "aprovadaEm": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "observacoes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "impressaoDigitalRegras": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "vigenciaFinal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "vigenciaInicial": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "CriarSubmassa": {
+        "type": "object",
+        "required": [
+          "codigo",
+          "nome",
+          "vigenciaInicial"
+        ],
+        "properties": {
+          "vigenciaFinal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "observacoes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "vigenciaInicial": {
+            "type": "string",
+            "format": "date"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }

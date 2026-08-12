@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { entityRef, eq, getTableDefFromEntity, selectFromEntity } from "metal-orm";
 import { createSession, consultarSql, executarSql } from "../db.js";
-import { Plan } from "../domain/plan-entities.js";
+import { Plano } from "../domain/plano-entities.js";
 import {
   Beneficio,
   EntidadePrevidencia,

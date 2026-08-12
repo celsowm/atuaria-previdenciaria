@@ -1,111 +1,111 @@
 import { Dto, Field, t } from "adorn-api";
 
-@Dto({ name: "CalculationEngine", description: "Registered deterministic calculation engine." })
-export class CalculationEngineDto {
-  @Field(t.string()) code!: string;
-  @Field(t.string()) version!: string;
-  @Field(t.string()) label!: string;
-  @Field(t.string()) description!: string;
-  @Field(t.enum(["PRECALCULATION", "ACTUARIAL"])) resultKind!: string;
-  @Field(t.boolean()) requiresPlanRules!: boolean;
-  @Field(t.array(t.enum(["BD", "CD", "CV"]), { minItems: 1 })) supportedModalities!: string[];
+@Dto({ name: "CalculoEngine", description: "Registered deterministic calculation engine." })
+export class CalculoEngineDto {
+  @Field(t.string()) codigo!: string;
+  @Field(t.string()) versao!: string;
+  @Field(t.string()) rotulo!: string;
+  @Field(t.string()) descricao!: string;
+  @Field(t.enum(["PRECALCULO", "ATUARIAL"])) tipoResultado!: string;
+  @Field(t.boolean()) requiresRegrasPlano!: boolean;
+  @Field(t.array(t.enum(["BD", "CD", "CV"]), { minItems: 1 })) modalidadesSuportadas!: string[];
 }
 
-@Dto({ name: "CalculationRunSummary", description: "Immutable calculation run metadata." })
-export class CalculationRunSummaryDto {
+@Dto({ name: "ResumoExecucaoCalculo", description: "Immutable calculation run metadata." })
+export class ResumoExecucaoCalculoDto {
   @Field(t.string({ format: "uuid" })) id!: string;
-  @Field(t.integer({ minimum: 1 })) evaluationId!: number;
-  @Field(t.string({ format: "uuid" })) parameterizationId!: string;
-  @Field(t.nullable(t.string({ format: "uuid" }))) planRulesVersionId!: string | null;
-  @Field(t.nullable(t.string())) planRulesFingerprint!: string | null;
-  @Field(t.string()) engineCode!: string;
-  @Field(t.string()) engineVersion!: string;
-  @Field(t.enum(["PROCESSING", "COMPLETED", "FAILED"])) status!: string;
-  @Field(t.string()) inputFingerprint!: string;
-  @Field(t.nullable(t.string())) resultFingerprint!: string | null;
-  @Field(t.integer({ minimum: 0 })) inputImportCount!: number;
-  @Field(t.integer({ minimum: 0 })) inputRowCount!: number;
-  @Field(t.integer({ minimum: 0 })) validRowCount!: number;
-  @Field(t.integer({ minimum: 0 })) invalidRowCount!: number;
-  @Field(t.integer({ minimum: 0 })) participantResultCount!: number;
-  @Field(t.string({ format: "date-time" })) createdAt!: string;
-  @Field(t.nullable(t.string({ format: "date-time" }))) completedAt!: string | null;
-  @Field(t.nullable(t.string())) errorMessage!: string | null;
+  @Field(t.integer({ minimum: 1 })) avaliacaoId!: number;
+  @Field(t.string({ format: "uuid" })) parametrizacaoId!: string;
+  @Field(t.nullable(t.string({ format: "uuid" }))) versaoRegrasPlanoId!: string | null;
+  @Field(t.nullable(t.string())) impressaoDigitalRegrasPlano!: string | null;
+  @Field(t.string()) codigoMotor!: string;
+  @Field(t.string()) versaoMotor!: string;
+  @Field(t.enum(["PROCESSANDO", "CONCLUIDO", "FALHO"])) situacao!: string;
+  @Field(t.string()) impressaoDigitalEntrada!: string;
+  @Field(t.nullable(t.string())) impressaoDigitalResultado!: string | null;
+  @Field(t.integer({ minimum: 0 })) quantidadeImportacoesEntrada!: number;
+  @Field(t.integer({ minimum: 0 })) quantidadeLinhasEntrada!: number;
+  @Field(t.integer({ minimum: 0 })) quantidadeLinhasValidas!: number;
+  @Field(t.integer({ minimum: 0 })) quantidadeLinhasInvalidas!: number;
+  @Field(t.integer({ minimum: 0 })) quantidadeResultadosParticipantes!: number;
+  @Field(t.string({ format: "date-time" })) criadoEm!: string;
+  @Field(t.nullable(t.string({ format: "date-time" }))) concluidoEm!: string | null;
+  @Field(t.nullable(t.string())) mensagemErro!: string | null;
 }
 
-@Dto({ name: "CalculationInput", description: "Frozen import selected as calculation input." })
-export class CalculationInputDto {
+@Dto({ name: "EntradaCalculo", description: "Frozen import selected as calculation input." })
+export class EntradaCalculoDto {
   @Field(t.string({ format: "uuid" })) id!: string;
-  @Field(t.string({ format: "uuid" })) importJobId!: string;
-  @Field(t.string()) population!: string;
-  @Field(t.string()) fileSha256!: string;
-  @Field(t.string()) schemaFingerprint!: string;
-  @Field(t.string()) canonicalFingerprint!: string;
-  @Field(t.integer({ minimum: 0 })) rowCount!: number;
-  @Field(t.integer({ minimum: 0 })) validRows!: number;
-  @Field(t.integer({ minimum: 0 })) invalidRows!: number;
-  @Field(t.string({ format: "date-time" })) importedAt!: string;
+  @Field(t.string({ format: "uuid" })) importacaoId!: string;
+  @Field(t.string()) populacao!: string;
+  @Field(t.string()) arquivoSha256!: string;
+  @Field(t.string()) impressaoDigitalEsquema!: string;
+  @Field(t.string()) impressaoDigitalCanonica!: string;
+  @Field(t.integer({ minimum: 0 })) quantidadeLinhas!: number;
+  @Field(t.integer({ minimum: 0 })) linhasValidas!: number;
+  @Field(t.integer({ minimum: 0 })) linhasInvalidas!: number;
+  @Field(t.string({ format: "date-time" })) importadoEm!: string;
 }
 
-@Dto({ name: "CalculationResultMetric", description: "Typed deterministic metric produced by a calculation engine." })
-export class CalculationResultMetricDto {
+@Dto({ name: "MetricaResultadoCalculo", description: "Typed deterministic metric produced by a calculation engine." })
+export class MetricaResultadoCalculoDto {
   @Field(t.string({ format: "uuid" })) id!: string;
-  @Field(t.string()) code!: string;
-  @Field(t.string()) category!: string;
-  @Field(t.string()) label!: string;
-  @Field(t.enum(["NUMBER", "INTEGER", "TEXT", "BOOLEAN"])) valueType!: string;
-  @Field(t.string()) valueJson!: string;
-  @Field(t.nullable(t.string())) unit!: string | null;
+  @Field(t.string()) codigo!: string;
+  @Field(t.string()) categoria!: string;
+  @Field(t.string()) rotulo!: string;
+  @Field(t.enum(["NUMBER", "INTEGER", "TEXT", "BOOLEAN"])) tipoValor!: string;
+  @Field(t.string()) jsonValor!: string;
+  @Field(t.nullable(t.string())) unidade!: string | null;
   @Field(t.integer({ minimum: 0 })) ordinal!: number;
 }
 
-@Dto({ name: "CalculationParticipantResult", description: "Participant-level result for actuarial reconciliation." })
-export class CalculationParticipantResultDto {
+@Dto({ name: "ResultadoParticipanteCalculo", description: "Participante-level result for actuarial reconciliation." })
+export class ResultadoParticipanteCalculoDto {
   @Field(t.string({ format: "uuid" })) id!: string;
-  @Field(t.string({ format: "uuid" })) importJobId!: string;
-  @Field(t.string()) population!: string;
-  @Field(t.integer({ minimum: 1 })) sourceRowNumber!: number;
-  @Field(t.nullable(t.string())) participantRegistration!: string | null;
+  @Field(t.string({ format: "uuid" })) importacaoId!: string;
+  @Field(t.string()) populacao!: string;
+  @Field(t.integer({ minimum: 1 })) numeroLinhaOrigem!: number;
+  @Field(t.nullable(t.string())) matriculaParticipante!: string | null;
   @Field(t.nullable(t.string())) campoUnicoLgpd!: string | null;
-  @Field(t.string()) resultJson!: string;
+  @Field(t.string()) jsonResultado!: string;
   @Field(t.integer({ minimum: 0 })) ordinal!: number;
 }
 
-@Dto({ name: "CalculationParticipantResultPage", description: "Paged participant-level calculation results." })
-export class CalculationParticipantResultPageDto {
-  @Field(t.array(t.ref(CalculationParticipantResultDto))) items!: CalculationParticipantResultDto[];
+@Dto({ name: "ResultadoParticipanteCalculoPage", description: "Paged participant-level calculation results." })
+export class ResultadoParticipanteCalculoPageDto {
+  @Field(t.array(t.ref(ResultadoParticipanteCalculoDto))) items!: ResultadoParticipanteCalculoDto[];
   @Field(t.integer({ minimum: 0 })) totalItems!: number;
   @Field(t.integer({ minimum: 1 })) page!: number;
   @Field(t.integer({ minimum: 1, maximum: 200 })) pageSize!: number;
 }
 
-@Dto({ name: "CalculationParticipantQuery" })
-export class CalculationParticipantQueryDto {
+@Dto({ name: "ConsultaParticipantesCalculo" })
+export class ConsultaParticipantesCalculoDto {
   @Field(t.optional(t.integer({ minimum: 1 }))) page?: number;
   @Field(t.optional(t.integer({ minimum: 1, maximum: 200 }))) pageSize?: number;
 }
 
-@Dto({ name: "CalculationRun", description: "Complete immutable calculation run with frozen inputs and aggregate metrics." })
-export class CalculationRunDto extends CalculationRunSummaryDto {
-  @Field(t.string()) parameterFingerprint!: string;
-  @Field(t.string()) dataFingerprint!: string;
-  @Field(t.array(t.ref(CalculationInputDto))) inputs!: CalculationInputDto[];
-  @Field(t.array(t.ref(CalculationResultMetricDto))) metrics!: CalculationResultMetricDto[];
+@Dto({ name: "ExecucaoCalculo", description: "Complete immutable calculation run with frozen inputs and aggregate metrics." })
+export class ExecucaoCalculoDto extends ResumoExecucaoCalculoDto {
+  @Field(t.string()) impressaoDigitalParametros!: string;
+  @Field(t.string()) impressaoDigitalDados!: string;
+  @Field(t.array(t.ref(EntradaCalculoDto))) inputs!: EntradaCalculoDto[];
+  @Field(t.array(t.ref(MetricaResultadoCalculoDto))) metrics!: MetricaResultadoCalculoDto[];
 }
 
-@Dto({ name: "CreateCalculationRun", description: "Execute one registered engine against approved immutable inputs." })
-export class CreateCalculationRunDto {
-  @Field(t.string({ format: "uuid" })) parameterizationId!: string;
-  @Field(t.optional(t.string({ format: "uuid" }))) planRulesVersionId?: string;
-  @Field(t.optional(t.string({ minLength: 1 }))) engineCode?: string;
+@Dto({ name: "CriarExecucaoCalculo", description: "Execute one registered engine against approved immutable inputs." })
+export class CriarExecucaoCalculoDto {
+  @Field(t.string({ format: "uuid" })) parametrizacaoId!: string;
+  @Field(t.optional(t.string({ format: "uuid" }))) versaoRegrasPlanoId?: string;
+  @Field(t.optional(t.string({ minLength: 1 }))) codigoMotor?: string;
 }
 
-@Dto({ name: "CalculationEvaluationParams" })
-export class CalculationEvaluationParamsDto {
-  @Field(t.integer({ minimum: 1 })) evaluationId!: number;
+@Dto({ name: "ParametrosAvaliacaoCalculo" })
+export class ParametrosAvaliacaoCalculoDto {
+  @Field(t.integer({ minimum: 1 })) avaliacaoId!: number;
 }
 
-@Dto({ name: "CalculationRunParams" })
-export class CalculationRunParamsDto {
+@Dto({ name: "ParametrosExecucaoCalculo" })
+export class ParametrosExecucaoCalculoDto {
   @Field(t.string({ format: "uuid" })) id!: string;
 }

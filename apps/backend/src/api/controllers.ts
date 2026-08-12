@@ -17,33 +17,33 @@ import {
 import { entityRef, selectFromEntity } from "metal-orm";
 import { APPLICATION_SLUG, getPublicApplicationConfig } from "../application-config.js";
 import { createSession } from "../db.js";
-import { Evaluation, LlmProvider, LlmProviderCredential, MappingProfile } from "../domain/entities.js";
-import { matchMappingProfile, persistImport } from "../data-studio/import-service.js";
-import type { MappingRuleInput, Transform } from "../data-studio/mapping.js";
+import { Avaliacao, ProvedorLlm, CredencialProvedorLlm, PerfilMapeamento } from "../domain/entities.js";
+import { matchPerfilMapeamento, persistImportacao } from "../estudio-dados/importacao-service.js";
+import type { RegraMapeamentoInput, Transform } from "../estudio-dados/mapeamento.js";
 import {
-  getCritiqueIssueDetail,
-  getCritiqueRun,
-  listCritiqueIssues,
-  resolveCritiqueIssue,
-  runCritique
-} from "../critique/critique-service.js";
-import { refreshEvaluationAfterIssue } from "../critique/critique-status.js";
+  getInconsistenciaCriticaDetail,
+  getExecucaoCritica,
+  listInconsistenciaCriticas,
+  resolveInconsistenciaCritica,
+  runCritica
+} from "../critica/critica-service.js";
+import { refreshAvaliacaoAfterIssue } from "../critica/critica-status.js";
 import {
-  CreateCritiqueRunDto,
-  CreateImportDto,
-  CritiqueIssueDetailDto,
-  CritiqueIssueDto,
-  CritiqueIssueParamsDto,
-  CritiqueRunDto,
-  CritiqueRunParamsDto,
+  CriarExecucaoCriticaDto,
+  CriarImportacaoDto,
+  InconsistenciaCriticaDetailDto,
+  InconsistenciaCriticaDto,
+  InconsistenciaCriticaParamsDto,
+  ExecucaoCriticaDto,
+  ExecucaoCriticaParamsDto,
   DashboardDto,
-  EvaluationDto,
-  ImportResultDto,
-  LlmProviderDto,
-  MappingProfileDto,
-  MappingProfileMatchDto,
-  MappingProfileMatchRequestDto,
-  ResolveCritiqueIssueDto
+  AvaliacaoDto,
+  ImportacaoResultDto,
+  ProvedorLlmDto,
+  PerfilMapeamentoDto,
+  PerfilMapeamentoMatchDto,
+  PerfilMapeamentoMatchRequestDto,
+  ResolverInconsistenciaCriticaDto
 } from "./dtos.js";
 
 type Session = ReturnType<typeof createSession>;
@@ -57,9 +57,9 @@ async function withSession<T>(handler: (session: Session) => Promise<T>) {
   }
 }
 
-const evaluationRef = entityRef(Evaluation);
-const mappingRef = entityRef(MappingProfile);
-const providerRef = entityRef(LlmProvider);
+const evaluationRef = entityRef(Avaliacao);
+const mappingRef = entityRef(PerfilMapeamento);
+const providerRef = entityRef(ProvedorLlm);
 const allowedTransforms = new Set<Transform>([
   "auto",
   "date-yyyymmdd",
@@ -70,7 +70,7 @@ const allowedTransforms = new Set<Transform>([
   "sex"
 ]);
 
-function parseMappingRules(value: string): MappingRuleInput[] {
+function parseRegraMapeamentos(value: string): RegraMapeamentoInput[] {
   let parsed: unknown;
   try {
     parsed = JSON.parse(value);
@@ -79,11 +79,11 @@ function parseMappingRules(value: string): MappingRuleInput[] {
   }
   if (!Array.isArray(parsed)) throw new HttpError(400, "rulesJson deve ser uma lista de regras.");
 
-  return parsed.map((candidate, index) => {
-    if (!candidate || typeof candidate !== "object") {
+  return parsed.map((candidato, index) => {
+    if (!candidato || typeof candidato !== "object") {
       throw new HttpError(400, `Regra ${index + 1} inválida.`);
     }
-    const rule = candidate as Record<string, unknown>;
+    const rule = candidato as Record<string, unknown>;
     const sources = rule.sources;
     const targets = rule.targets;
     const transform = rule.transform;
@@ -102,19 +102,19 @@ function parseMappingRules(value: string): MappingRuleInput[] {
 }
 
 @Auth()
-@Controller({ path: "/api", tags: ["System"] })
+@Controller({ path: "/api", tags: ["Sistema"] })
 export class SystemController {
   @Get("/health")
   @Public()
-  @Returns(t.object({ status: t.string(), service: t.string(), version: t.string() }))
+  @Returns(t.object({ situacao: t.string(), service: t.string(), versao: t.string() }))
   health() {
-    return { status: "ok", service: `${APPLICATION_SLUG}-backend`, version: "0.0.1" };
+    return { situacao: "ok", service: `${APPLICATION_SLUG}-backend`, versao: "0.0.1" };
   }
 
   @Get("/config")
   @Public()
   @Returns(t.object({
-    name: t.string(),
+    nome: t.string(),
     shortName: t.string(),
     organizationName: t.nullable(t.string())
   }))
@@ -126,11 +126,11 @@ export class SystemController {
   @Returns(DashboardDto)
   async dashboard(): Promise<DashboardDto> {
     return withSession(async (session) => {
-      const evaluations = await selectFromEntity(Evaluation).execute(session);
+      const avaliacoes = await selectFromEntity(Avaliacao).execute(session);
       return {
-        inProgress: evaluations.filter((item) => item.status === "Em andamento").length,
-        awaitingCorrections: evaluations.filter((item) => item.blockingIssues > 0).length,
-        pendingStudies: evaluations.filter((item) => item.stage === "Aderência").length,
+        inProgress: avaliacoes.filter((item) => item.situacao === "Em andamento").length,
+        awaitingCorrections: avaliacoes.filter((item) => item.inconsistenciasBloqueantes > 0).length,
+        pendingStudies: avaliacoes.filter((item) => item.etapa === "Aderência").length,
         draftsAwaitingReview: 2
       };
     });
@@ -138,106 +138,106 @@ export class SystemController {
 }
 
 @Auth()
-@Controller({ path: "/api/evaluations", tags: ["Evaluations"] })
-export class EvaluationController {
+@Controller({ path: "/api/avaliacoes", tags: ["Avaliacoes"] })
+export class AvaliacaoController {
   @Get("/")
-  @Returns(t.array(t.ref(EvaluationDto)))
-  async list(): Promise<EvaluationDto[]> {
+  @Returns(t.array(t.ref(AvaliacaoDto)))
+  async list(): Promise<AvaliacaoDto[]> {
     return withSession(async (session) => {
-      const rows = await selectFromEntity(Evaluation)
-        .orderBy(evaluationRef.updatedAt, "DESC")
+      const rows = await selectFromEntity(Avaliacao)
+        .orderBy(evaluationRef.atualizadoEm, "DESC")
         .execute(session);
       return rows.map((row) => ({
         id: row.id,
-        planId: row.planId ?? null,
-        planName: row.planName,
-        referenceDate: row.referenceDate,
-        status: row.status,
-        stage: row.stage,
-        progress: row.progress,
-        blockingIssues: row.blockingIssues,
-        updatedAt: row.updatedAt
+        planoId: row.planoId ?? null,
+        nomePlano: row.nomePlano,
+        dataReferencia: row.dataReferencia,
+        situacao: row.situacao,
+        etapa: row.etapa,
+        progresso: row.progresso,
+        inconsistenciasBloqueantes: row.inconsistenciasBloqueantes,
+        atualizadoEm: row.atualizadoEm
       }));
     });
   }
 }
 
 @Auth()
-@Controller({ path: "/api/mapping-profiles", tags: ["Data Studio"] })
-export class MappingProfileController {
+@Controller({ path: "/api/perfis-mapeamento", tags: ["EstudioDados"] })
+export class PerfilMapeamentoController {
   @Get("/")
-  @Returns(t.array(t.ref(MappingProfileDto)))
-  async list(): Promise<MappingProfileDto[]> {
+  @Returns(t.array(t.ref(PerfilMapeamentoDto)))
+  async list(): Promise<PerfilMapeamentoDto[]> {
     return withSession(async (session) => {
-      const rows = await selectFromEntity(MappingProfile)
-        .orderBy(mappingRef.updatedAt, "DESC")
+      const rows = await selectFromEntity(PerfilMapeamento)
+        .orderBy(mappingRef.atualizadoEm, "DESC")
         .execute(session);
       return rows.map((row) => ({
         id: row.id,
-        name: row.name,
-        population: row.population,
-        version: row.version,
-        mappedFields: row.mappedFields,
-        totalFields: row.totalFields,
-        updatedAt: row.updatedAt
+        nome: row.nome,
+        populacao: row.populacao,
+        versao: row.versao,
+        camposMapeados: row.camposMapeados,
+        quantidadeCampos: row.quantidadeCampos,
+        atualizadoEm: row.atualizadoEm
       }));
     });
   }
 
-  @Post("/match")
-  @Body(MappingProfileMatchRequestDto)
-  @Returns(MappingProfileMatchDto)
-  async match(ctx: RequestContext<MappingProfileMatchRequestDto>): Promise<MappingProfileMatchDto> {
-    return matchMappingProfile(ctx.body.headers, ctx.body.population);
+  @Post("/correspondencia")
+  @Body(PerfilMapeamentoMatchRequestDto)
+  @Returns(PerfilMapeamentoMatchDto)
+  async match(ctx: RequestContext<PerfilMapeamentoMatchRequestDto>): Promise<PerfilMapeamentoMatchDto> {
+    return matchPerfilMapeamento(ctx.body.headers, ctx.body.populacao);
   }
 }
 
 @Auth()
-@Controller({ path: "/api/imports", tags: ["Data Studio"] })
-export class ImportController {
+@Controller({ path: "/api/importacoes", tags: ["EstudioDados"] })
+export class ImportacaoController {
   @Post("/")
   @UploadedFile("file", t.file({ description: "XLSX, XLS or CSV source file." }))
-  @Body(CreateImportDto)
-  @Returns({ status: 201, schema: ImportResultDto })
+  @Body(CriarImportacaoDto)
+  @Returns({ status: 201, schema: ImportacaoResultDto })
   async create(
     ctx: RequestContext<
-      CreateImportDto,
+      CriarImportacaoDto,
       undefined,
       undefined,
       undefined,
       { file: UploadedFileInfo }
     >
-  ): Promise<ImportResultDto> {
+  ): Promise<ImportacaoResultDto> {
     const file = ctx.files?.file;
     if (!file) throw new HttpError(400, "Arquivo de origem é obrigatório.");
-    const rules = parseMappingRules(ctx.body.rulesJson);
+    const rules = parseRegraMapeamentos(ctx.body.regrasJson);
     if (!rules.some((rule) => rule.targets.length > 0)) {
       throw new HttpError(400, "A importação precisa possuir ao menos um campo canônico mapeado.");
     }
 
-    return persistImport(file, {
-      evaluationId: ctx.body.evaluationId,
+    return persistImportacao(file, {
+      avaliacaoId: ctx.body.avaliacaoId,
       submassaId: ctx.body.submassaId,
-      population: ctx.body.population,
-      profileId: ctx.body.profileId,
-      profileName: ctx.body.profileName,
-      saveProfile: ctx.body.saveProfile ?? true,
-      sheetName: ctx.body.sheetName,
-      headerRow: ctx.body.headerRow,
-      rules
+      populacao: ctx.body.populacao,
+      perfilMapeamentoId: ctx.body.perfilMapeamentoId,
+      nomePerfil: ctx.body.nomePerfil,
+      savePerfil: ctx.body.savePerfil ?? true,
+      nomeAba: ctx.body.nomeAba,
+      linhaCabecalho: ctx.body.linhaCabecalho,
+      regras: rules
     });
   }
 }
 
 @Auth()
-@Controller({ path: "/api/critique", tags: ["Critique"] })
-export class CritiqueController {
-  @Post("/runs")
-  @Body(CreateCritiqueRunDto)
-  @Returns({ status: 201, schema: CritiqueRunDto })
-  async createRun(ctx: RequestContext<CreateCritiqueRunDto>): Promise<CritiqueRunDto> {
+@Controller({ path: "/api/critica", tags: ["Critica"] })
+export class CriticaController {
+  @Post("/execucoes")
+  @Body(CriarExecucaoCriticaDto)
+  @Returns({ status: 201, schema: ExecucaoCriticaDto })
+  async createRun(ctx: RequestContext<CriarExecucaoCriticaDto>): Promise<ExecucaoCriticaDto> {
     try {
-      const result = await runCritique(ctx.body.importJobId, ctx.body.previousImportJobId);
+      const result = await runCritica(ctx.body.importacaoId, ctx.body.importacaoAnteriorId);
       if (!result) throw new HttpError(500, "A execução de crítica não pôde ser recuperada.");
       return result;
     } catch (error) {
@@ -246,67 +246,67 @@ export class CritiqueController {
     }
   }
 
-  @Get("/runs/:id")
-  @Params(CritiqueRunParamsDto)
-  @Returns(CritiqueRunDto)
-  async getRun(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<CritiqueRunDto> {
-    const result = await getCritiqueRun(ctx.params.id);
+  @Get("/execucoes/:id")
+  @Params(ExecucaoCriticaParamsDto)
+  @Returns(ExecucaoCriticaDto)
+  async getRun(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<ExecucaoCriticaDto> {
+    const result = await getExecucaoCritica(ctx.params.id);
     if (!result) throw new HttpError(404, "Execução de crítica não encontrada.");
     return result;
   }
 
-  @Get("/runs/:id/issues")
-  @Params(CritiqueRunParamsDto)
-  @Returns(t.array(t.ref(CritiqueIssueDto)))
-  async listIssues(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<CritiqueIssueDto[]> {
-    const run = await getCritiqueRun(ctx.params.id);
+  @Get("/execucoes/:id/inconsistencias")
+  @Params(ExecucaoCriticaParamsDto)
+  @Returns(t.array(t.ref(InconsistenciaCriticaDto)))
+  async listIssues(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<InconsistenciaCriticaDto[]> {
+    const run = await getExecucaoCritica(ctx.params.id);
     if (!run) throw new HttpError(404, "Execução de crítica não encontrada.");
-    return listCritiqueIssues(ctx.params.id);
+    return listInconsistenciaCriticas(ctx.params.id);
   }
 
-  @Get("/issues/:id")
-  @Params(CritiqueIssueParamsDto)
-  @Returns(CritiqueIssueDetailDto)
-  async getIssue(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<CritiqueIssueDetailDto> {
-    const issue = await getCritiqueIssueDetail(ctx.params.id);
+  @Get("/inconsistencias/:id")
+  @Params(InconsistenciaCriticaParamsDto)
+  @Returns(InconsistenciaCriticaDetailDto)
+  async getIssue(ctx: RequestContext<unknown, undefined, { id: string }>): Promise<InconsistenciaCriticaDetailDto> {
+    const issue = await getInconsistenciaCriticaDetail(ctx.params.id);
     if (!issue) throw new HttpError(404, "Ocorrência de crítica não encontrada.");
     return issue;
   }
 
-  @Patch("/issues/:id")
-  @Params(CritiqueIssueParamsDto)
-  @Body(ResolveCritiqueIssueDto)
-  @Returns(CritiqueIssueDetailDto)
-  async resolveIssue(ctx: RequestContext<ResolveCritiqueIssueDto, undefined, { id: string }>): Promise<CritiqueIssueDetailDto> {
-    const status = ctx.body.status as "JUSTIFIED" | "RESOLVED" | "IGNORED";
-    if (!["JUSTIFIED", "RESOLVED", "IGNORED"].includes(status)) {
-      throw new HttpError(400, "status deve ser JUSTIFIED, RESOLVED ou IGNORED.");
+  @Patch("/inconsistencias/:id")
+  @Params(InconsistenciaCriticaParamsDto)
+  @Body(ResolverInconsistenciaCriticaDto)
+  @Returns(InconsistenciaCriticaDetailDto)
+  async resolveIssue(ctx: RequestContext<ResolverInconsistenciaCriticaDto, undefined, { id: string }>): Promise<InconsistenciaCriticaDetailDto> {
+    const situacao = ctx.body.situacao as "JUSTIFICADO" | "RESOLVIDO" | "IGNORADO";
+    if (!["JUSTIFICADO", "RESOLVIDO", "IGNORADO"].includes(situacao)) {
+      throw new HttpError(400, "situacao deve ser JUSTIFICADO, RESOLVIDO ou IGNORADO.");
     }
-    const issue = await resolveCritiqueIssue(ctx.params.id, status, ctx.body.note);
+    const issue = await resolveInconsistenciaCritica(ctx.params.id, situacao, ctx.body.nota);
     if (!issue) throw new HttpError(404, "Ocorrência de crítica não encontrada.");
-    await refreshEvaluationAfterIssue(ctx.params.id);
+    await refreshAvaliacaoAfterIssue(ctx.params.id);
     return issue;
   }
 }
 
 @Auth()
-@Controller({ path: "/api/llm/providers", tags: ["AI"] })
-export class LlmProviderController {
+@Controller({ path: "/api/llm/providers", tags: ["Ia"] })
+export class ProvedorLlmController {
   @Get("/")
-  @Returns(t.array(t.ref(LlmProviderDto)))
-  async list(): Promise<LlmProviderDto[]> {
+  @Returns(t.array(t.ref(ProvedorLlmDto)))
+  async list(): Promise<ProvedorLlmDto[]> {
     return withSession(async (session) => {
       const [providers, credentials] = await Promise.all([
-        selectFromEntity(LlmProvider).orderBy(providerRef.$.name, "ASC").execute(session),
-        selectFromEntity(LlmProviderCredential).execute(session)
+        selectFromEntity(ProvedorLlm).orderBy(providerRef.$.nome, "ASC").execute(session),
+        selectFromEntity(CredencialProvedorLlm).execute(session)
       ]);
       return providers.map((row) => ({
         id: row.id,
-        name: row.name,
-        baseUrl: row.baseUrl,
-        model: row.model,
-        credentialCount: credentials.filter((credential) => credential.providerId === row.id && credential.enabled === 1).length,
-        enabled: row.enabled === 1
+        nome: row.nome,
+        urlBase: row.urlBase,
+        modelo: row.modelo,
+        credentialCount: credentials.filter((credential) => credential.provedorId === row.id && credential.habilitado === 1).length,
+        habilitado: row.habilitado === 1
       }));
     });
   }

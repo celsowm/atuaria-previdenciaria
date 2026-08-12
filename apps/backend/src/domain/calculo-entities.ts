@@ -2,16 +2,16 @@ import { Entity, col } from "metal-orm";
 import { Column, PrimaryKey } from "./colunas-portuguesas.js";
 
 @Entity({ tableName: "calculation_runs" })
-export class CalculationRun {
+export class ExecucaoCalculo {
   @PrimaryKey(col.text())
   id!: string;
 
   @Column(col.notNull(col.references(col.int(), {
-    table: "evaluations",
+    table: "avaliacoes",
     column: "id",
     onDelete: "RESTRICT"
   })))
-  evaluationId!: number;
+  avaliacaoId!: number;
 
   @Column(col.references(col.text(), {
     table: "submassas",
@@ -35,66 +35,66 @@ export class CalculationRun {
     column: "id",
     onDelete: "RESTRICT"
   })))
-  parameterizationId!: string;
+  parametrizacaoId!: string;
 
   @Column(col.references(col.text(), {
     table: "plan_rules_versions",
     column: "id",
     onDelete: "RESTRICT"
   }))
-  planRulesVersionId?: string | null;
+  versaoRegrasPlanoId?: string | null;
 
   @Column(col.text())
-  planRulesFingerprint?: string | null;
+  impressaoDigitalRegrasPlano?: string | null;
 
   @Column(col.notNull(col.text()))
-  engineCode!: string;
+  codigoMotor!: string;
 
   @Column(col.notNull(col.text()))
-  engineVersion!: string;
+  versaoMotor!: string;
 
   @Column(col.notNull(col.text()))
-  status!: string;
+  situacao!: string;
 
   @Column(col.notNull(col.text()))
-  parameterFingerprint!: string;
+  impressaoDigitalParametros!: string;
 
   @Column(col.notNull(col.text()))
-  dataFingerprint!: string;
+  impressaoDigitalDados!: string;
 
   @Column(col.notNull(col.text()))
-  inputFingerprint!: string;
+  impressaoDigitalEntrada!: string;
 
   @Column(col.text())
-  resultFingerprint?: string | null;
+  impressaoDigitalResultado?: string | null;
 
   @Column(col.notNull(col.int()))
-  inputImportCount!: number;
+  quantidadeImportacoesEntrada!: number;
 
   @Column(col.notNull(col.int()))
-  inputRowCount!: number;
+  quantidadeLinhasEntrada!: number;
 
   @Column(col.notNull(col.int()))
-  validRowCount!: number;
+  quantidadeLinhasValidas!: number;
 
   @Column(col.notNull(col.int()))
-  invalidRowCount!: number;
+  quantidadeLinhasInvalidas!: number;
 
   @Column(col.int())
-  participantResultCount?: number | null;
+  quantidadeResultadosParticipantes?: number | null;
 
   @Column(col.notNull(col.text()))
-  createdAt!: string;
+  criadoEm!: string;
 
   @Column(col.text())
-  completedAt?: string | null;
+  concluidoEm?: string | null;
 
   @Column(col.text())
-  errorMessage?: string | null;
+  mensagemErro?: string | null;
 }
 
 @Entity({ tableName: "calculation_inputs" })
-export class CalculationInput {
+export class EntradaCalculo {
   @PrimaryKey(col.text())
   id!: string;
 
@@ -103,42 +103,42 @@ export class CalculationInput {
     column: "id",
     onDelete: "CASCADE"
   })))
-  calculationRunId!: string;
+  execucaoCalculoId!: string;
 
   @Column(col.notNull(col.references(col.text(), {
     table: "import_jobs",
     column: "id",
     onDelete: "RESTRICT"
   })))
-  importJobId!: string;
+  importacaoId!: string;
 
   @Column(col.notNull(col.text()))
-  population!: string;
+  populacao!: string;
 
   @Column(col.notNull(col.text()))
-  fileSha256!: string;
+  arquivoSha256!: string;
 
   @Column(col.notNull(col.text()))
-  schemaFingerprint!: string;
+  impressaoDigitalEsquema!: string;
 
   @Column(col.notNull(col.text()))
-  canonicalFingerprint!: string;
+  impressaoDigitalCanonica!: string;
 
   @Column(col.notNull(col.int()))
-  rowCount!: number;
+  quantidadeLinhas!: number;
 
   @Column(col.notNull(col.int()))
-  validRows!: number;
+  linhasValidas!: number;
 
   @Column(col.notNull(col.int()))
-  invalidRows!: number;
+  linhasInvalidas!: number;
 
   @Column(col.notNull(col.text()))
-  importedAt!: string;
+  importadoEm!: string;
 }
 
 @Entity({ tableName: "calculation_result_metrics" })
-export class CalculationResultMetric {
+export class MetricaResultadoCalculo {
   @PrimaryKey(col.text())
   id!: string;
 
@@ -147,32 +147,32 @@ export class CalculationResultMetric {
     column: "id",
     onDelete: "CASCADE"
   })))
-  calculationRunId!: string;
+  execucaoCalculoId!: string;
 
   @Column(col.notNull(col.text()))
-  code!: string;
+  codigo!: string;
 
   @Column(col.notNull(col.text()))
-  category!: string;
+  categoria!: string;
 
   @Column(col.notNull(col.text()))
-  label!: string;
+  rotulo!: string;
 
   @Column(col.notNull(col.text()))
-  valueType!: string;
+  tipoValor!: string;
 
   @Column(col.notNull(col.text()))
-  valueJson!: string;
+  jsonValor!: string;
 
   @Column(col.text())
-  unit?: string | null;
+  unidade?: string | null;
 
   @Column(col.notNull(col.int()))
   ordinal!: number;
 }
 
 @Entity({ tableName: "calculation_participant_results" })
-export class CalculationParticipantResult {
+export class ResultadoParticipanteCalculo {
   @PrimaryKey(col.text())
   id!: string;
 
@@ -181,29 +181,29 @@ export class CalculationParticipantResult {
     column: "id",
     onDelete: "CASCADE"
   })))
-  calculationRunId!: string;
+  execucaoCalculoId!: string;
 
   @Column(col.notNull(col.references(col.text(), {
     table: "import_jobs",
     column: "id",
     onDelete: "RESTRICT"
   })))
-  importJobId!: string;
+  importacaoId!: string;
 
   @Column(col.notNull(col.text()))
-  population!: string;
+  populacao!: string;
 
   @Column(col.notNull(col.int()))
-  sourceRowNumber!: number;
+  numeroLinhaOrigem!: number;
 
   @Column(col.text())
-  participantRegistration?: string | null;
+  matriculaParticipante?: string | null;
 
   @Column(col.text())
   campoUnicoLgpd?: string | null;
 
   @Column(col.notNull(col.text()))
-  resultJson!: string;
+  jsonResultado!: string;
 
   @Column(col.notNull(col.int()))
   ordinal!: number;

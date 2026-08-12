@@ -2,7 +2,7 @@ import { Entity, col } from "metal-orm";
 import { Column, PrimaryKey } from "./colunas-portuguesas.js";
 
 @Entity({ tableName: "plans" })
-export class Plan {
+export class Plano {
   @PrimaryKey(col.text())
   id!: string;
 
@@ -14,26 +14,26 @@ export class Plan {
   entidadePrevidenciaId!: string;
 
   @Column(col.notNull(col.unique(col.text())))
-  code!: string;
+  codigo!: string;
 
   @Column(col.notNull(col.text()))
-  name!: string;
+  nome!: string;
 
   @Column(col.notNull(col.text()))
-  modality!: string;
+  modalidade!: string;
 
   @Column(col.text())
-  sponsorName!: string | null;
+  nomePatrocinador!: string | null;
 
   @Column(col.text())
   cnpj!: string | null;
 
   @Column(col.notNull(col.text()))
-  status!: string;
+  situacao!: string;
 
   @Column(col.notNull(col.text()))
-  createdAt!: string;
+  criadoEm!: string;
 
   @Column(col.notNull(col.text()))
-  updatedAt!: string;
+  atualizadoEm!: string;
 }

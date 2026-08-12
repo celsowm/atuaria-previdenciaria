@@ -15,21 +15,21 @@ import {
   type RequestContext
 } from "adorn-api";
 import {
-  createUser,
-  listUsers,
+  createUsuario,
+  listUsuarios,
   login,
   logout,
-  updateUser,
-  type ApplicationAuthUser
+  updateUsuario,
+  type ApplicationUsuarioAutenticado
 } from "../auth/auth-service.js";
 import {
-  AuthUserDto,
-  CreateUserDto,
+  UsuarioAutenticadoDto,
+  CriarUsuarioDto,
   LoginRequestDto,
   LoginResponseDto,
   LogoutResponseDto,
-  UpdateUserDto,
-  UserParamsDto
+  AtualizarUsuarioDto,
+  UsuarioParamsDto
 } from "./auth-dtos.js";
 
 function badRequest(error: unknown): never {
@@ -37,7 +37,7 @@ function badRequest(error: unknown): never {
 }
 
 @Auth()
-@Controller({ path: "/api/auth", tags: ["Authentication"] })
+@Controller({ path: "/api/auth", tags: ["Autenticacao"] })
 export class AuthController {
   @Post("/login")
   @Public()
@@ -50,11 +50,11 @@ export class AuthController {
   }
 
   @Get("/me")
-  @Returns(AuthUserDto)
-  async me(ctx: RequestContext): Promise<AuthUserDto> {
-    const authenticated = getUser<ApplicationAuthUser>(ctx.req);
+  @Returns(UsuarioAutenticadoDto)
+  async me(ctx: RequestContext): Promise<UsuarioAutenticadoDto> {
+    const authenticated = getUser<ApplicationUsuarioAutenticado>(ctx.req);
     if (!authenticated) throw new HttpError(401, "Sessão inválida.");
-    const user = (await listUsers()).find((candidate) => candidate.id === authenticated.id);
+    const user = (await listUsuarios()).find((candidato) => candidato.id === authenticated.id);
     if (!user) throw new HttpError(401, "Usuário não encontrado.");
     return user;
   }
@@ -70,34 +70,34 @@ export class AuthController {
 }
 
 @Auth({ roles: ["admin"] })
-@Controller({ path: "/api/users", tags: ["Users"] })
-export class UserController {
+@Controller({ path: "/api/usuarios", tags: ["Usuarios"] })
+export class UsuarioController {
   @Get("/")
-  @Returns(t.array(t.ref(AuthUserDto)))
-  async list(): Promise<AuthUserDto[]> {
-    return listUsers();
+  @Returns(t.array(t.ref(UsuarioAutenticadoDto)))
+  async list(): Promise<UsuarioAutenticadoDto[]> {
+    return listUsuarios();
   }
 
   @Post("/")
-  @Body(CreateUserDto)
-  @Returns({ status: 201, schema: AuthUserDto })
-  async create(ctx: RequestContext<CreateUserDto>): Promise<AuthUserDto> {
+  @Body(CriarUsuarioDto)
+  @Returns({ status: 201, schema: UsuarioAutenticadoDto })
+  async create(ctx: RequestContext<CriarUsuarioDto>): Promise<UsuarioAutenticadoDto> {
     try {
-      return await createUser(ctx.body);
+      return await createUsuario(ctx.body);
     } catch (error) {
       return badRequest(error);
     }
   }
 
   @Patch("/:id")
-  @Params(UserParamsDto)
-  @Body(UpdateUserDto)
-  @Returns(AuthUserDto)
+  @Params(UsuarioParamsDto)
+  @Body(AtualizarUsuarioDto)
+  @Returns(UsuarioAutenticadoDto)
   async update(
-    ctx: RequestContext<UpdateUserDto, undefined, { id: string }>
-  ): Promise<AuthUserDto> {
+    ctx: RequestContext<AtualizarUsuarioDto, undefined, { id: string }>
+  ): Promise<UsuarioAutenticadoDto> {
     try {
-      const user = await updateUser(ctx.params.id, ctx.body);
+      const user = await updateUsuario(ctx.params.id, ctx.body);
       if (!user) throw new HttpError(404, "Usuário não encontrado.");
       return user;
     } catch (error) {

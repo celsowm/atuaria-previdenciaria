@@ -1,105 +1,105 @@
 import { Dto, Field, t } from "adorn-api";
 
-@Dto({ name: "ActuarialParameterValue", description: "Typed value captured inside a versioned actuarial parameterization snapshot." })
-export class ActuarialParameterValueDto {
+@Dto({ name: "ValorParametroAtuarial", description: "Typed value captured inside a versioned actuarial parametrizacao snapshot." })
+export class ValorParametroAtuarialDto {
   @Field(t.string({ format: "uuid" })) id!: string;
-  @Field(t.string()) code!: string;
-  @Field(t.string()) category!: string;
-  @Field(t.string()) label!: string;
-  @Field(t.enum(["NUMBER", "INTEGER", "TEXT", "BOOLEAN"])) valueType!: string;
-  @Field(t.string()) valueJson!: string;
-  @Field(t.nullable(t.string())) unit!: string | null;
-  @Field(t.string()) source!: string;
-  @Field(t.string({ format: "date-time" })) updatedAt!: string;
+  @Field(t.string()) codigo!: string;
+  @Field(t.string()) categoria!: string;
+  @Field(t.string()) rotulo!: string;
+  @Field(t.enum(["NUMBER", "INTEGER", "TEXT", "BOOLEAN"])) tipoValor!: string;
+  @Field(t.string()) jsonValor!: string;
+  @Field(t.nullable(t.string())) unidade!: string | null;
+  @Field(t.string()) origem!: string;
+  @Field(t.string({ format: "date-time" })) atualizadoEm!: string;
 }
 
-@Dto({ name: "ActuarialHypothesisSelection", description: "Adherence-study candidate promoted into an actuarial parameterization snapshot." })
-export class ActuarialHypothesisSelectionDto {
+@Dto({ name: "SelecaoHipoteseAtuarial", description: "Aderencia-study candidato promoted into an actuarial parametrizacao snapshot." })
+export class SelecaoHipoteseAtuarialDto {
   @Field(t.string({ format: "uuid" })) id!: string;
-  @Field(t.string()) hypothesisType!: string;
-  @Field(t.string({ format: "uuid" })) adherenceStudyId!: string;
-  @Field(t.string({ format: "uuid" })) candidateResultId!: string;
-  @Field(t.string({ format: "uuid" })) biometricVersionId!: string;
-  @Field(t.string()) tableCode!: string;
-  @Field(t.string()) tableName!: string;
-  @Field(t.string()) versionLabel!: string;
-  @Field(t.integer({ minimum: 1 })) candidateRank!: number;
-  @Field(t.string({ format: "date-time" })) selectedAt!: string;
+  @Field(t.string()) tipoHipotese!: string;
+  @Field(t.string({ format: "uuid" })) estudoAderenciaId!: string;
+  @Field(t.string({ format: "uuid" })) resultadoCandidatoId!: string;
+  @Field(t.string({ format: "uuid" })) versaoBiometriaId!: string;
+  @Field(t.string()) codigoTabua!: string;
+  @Field(t.string()) nomeTabua!: string;
+  @Field(t.string()) rotuloVersao!: string;
+  @Field(t.integer({ minimum: 1 })) posicaoCandidato!: number;
+  @Field(t.string({ format: "date-time" })) selecionadoEm!: string;
 }
 
-@Dto({ name: "ActuarialParameterizationSummary", description: "Versioned actuarial parameterization metadata." })
-export class ActuarialParameterizationSummaryDto {
+@Dto({ name: "ParametrizacaoAtuarialSummary", description: "Versioned actuarial parametrizacao metadata." })
+export class ParametrizacaoAtuarialSummaryDto {
   @Field(t.string({ format: "uuid" })) id!: string;
-  @Field(t.integer({ minimum: 1 })) evaluationId!: number;
-  @Field(t.integer({ minimum: 1 })) version!: number;
-  @Field(t.string()) name!: string;
-  @Field(t.enum(["DRAFT", "APPROVED", "SUPERSEDED"])) status!: string;
-  @Field(t.nullable(t.string())) notes!: string | null;
-  @Field(t.string({ format: "date-time" })) createdAt!: string;
-  @Field(t.string({ format: "date-time" })) updatedAt!: string;
-  @Field(t.nullable(t.string({ format: "date-time" }))) approvedAt!: string | null;
+  @Field(t.integer({ minimum: 1 })) avaliacaoId!: number;
+  @Field(t.integer({ minimum: 1 })) versao!: number;
+  @Field(t.string()) nome!: string;
+  @Field(t.enum(["RASCUNHO", "APROVADO", "SUBSTITUIDO"])) situacao!: string;
+  @Field(t.nullable(t.string())) observacoes!: string | null;
+  @Field(t.string({ format: "date-time" })) criadoEm!: string;
+  @Field(t.string({ format: "date-time" })) atualizadoEm!: string;
+  @Field(t.nullable(t.string({ format: "date-time" }))) aprovadoEm!: string | null;
 }
 
-@Dto({ name: "ActuarialParameterization", description: "Complete immutable-ready actuarial parameterization snapshot." })
-export class ActuarialParameterizationDto {
+@Dto({ name: "ParametrizacaoAtuarial", description: "Complete immutable-ready actuarial parametrizacao snapshot." })
+export class ParametrizacaoAtuarialDto {
   @Field(t.string({ format: "uuid" })) id!: string;
-  @Field(t.integer({ minimum: 1 })) evaluationId!: number;
-  @Field(t.integer({ minimum: 1 })) version!: number;
-  @Field(t.string()) name!: string;
-  @Field(t.enum(["DRAFT", "APPROVED", "SUPERSEDED"])) status!: string;
-  @Field(t.nullable(t.string())) notes!: string | null;
-  @Field(t.string({ format: "date-time" })) createdAt!: string;
-  @Field(t.string({ format: "date-time" })) updatedAt!: string;
-  @Field(t.nullable(t.string({ format: "date-time" }))) approvedAt!: string | null;
-  @Field(t.array(t.ref(ActuarialParameterValueDto))) parameters!: ActuarialParameterValueDto[];
-  @Field(t.array(t.ref(ActuarialHypothesisSelectionDto))) hypotheses!: ActuarialHypothesisSelectionDto[];
+  @Field(t.integer({ minimum: 1 })) avaliacaoId!: number;
+  @Field(t.integer({ minimum: 1 })) versao!: number;
+  @Field(t.string()) nome!: string;
+  @Field(t.enum(["RASCUNHO", "APROVADO", "SUBSTITUIDO"])) situacao!: string;
+  @Field(t.nullable(t.string())) observacoes!: string | null;
+  @Field(t.string({ format: "date-time" })) criadoEm!: string;
+  @Field(t.string({ format: "date-time" })) atualizadoEm!: string;
+  @Field(t.nullable(t.string({ format: "date-time" }))) aprovadoEm!: string | null;
+  @Field(t.array(t.ref(ValorParametroAtuarialDto))) parametros!: ValorParametroAtuarialDto[];
+  @Field(t.array(t.ref(SelecaoHipoteseAtuarialDto))) hipoteses!: SelecaoHipoteseAtuarialDto[];
 }
 
-@Dto({ name: "CreateActuarialParameterization", description: "Create a new draft parameterization version for an evaluation." })
-export class CreateActuarialParameterizationDto {
-  @Field(t.optional(t.string({ minLength: 1, maxLength: 200 }))) name?: string;
-  @Field(t.optional(t.nullable(t.string({ maxLength: 4000 })))) notes?: string | null;
-  @Field(t.optional(t.string({ format: "uuid" }))) copyFromId?: string;
+@Dto({ name: "CriarParametrizacaoAtuarial", description: "Create a new draft parametrizacao versao for an evaluation." })
+export class CriarParametrizacaoAtuarialDto {
+  @Field(t.optional(t.string({ minLength: 1, maxLength: 200 }))) nome?: string;
+  @Field(t.optional(t.nullable(t.string({ maxLength: 4000 })))) observacoes?: string | null;
+  @Field(t.optional(t.string({ format: "uuid" }))) copiarDeId?: string;
 }
 
-@Dto({ name: "UpdateActuarialParameterization", description: "Update draft-only parameterization metadata." })
-export class UpdateActuarialParameterizationDto {
-  @Field(t.optional(t.string({ minLength: 1, maxLength: 200 }))) name?: string;
-  @Field(t.optional(t.nullable(t.string({ maxLength: 4000 })))) notes?: string | null;
+@Dto({ name: "AtualizarParametrizacaoAtuarial", description: "Update draft-only parametrizacao metadata." })
+export class AtualizarParametrizacaoAtuarialDto {
+  @Field(t.optional(t.string({ minLength: 1, maxLength: 200 }))) nome?: string;
+  @Field(t.optional(t.nullable(t.string({ maxLength: 4000 })))) observacoes?: string | null;
 }
 
-@Dto({ name: "SetActuarialParameterValue", description: "Upsert one typed actuarial parameter value." })
-export class SetActuarialParameterValueDto {
-  @Field(t.string({ minLength: 1, maxLength: 120 })) code!: string;
-  @Field(t.string({ minLength: 1, maxLength: 120 })) category!: string;
-  @Field(t.string({ minLength: 1, maxLength: 200 })) label!: string;
-  @Field(t.enum(["NUMBER", "INTEGER", "TEXT", "BOOLEAN"])) valueType!: string;
-  @Field(t.string({ minLength: 1 })) valueJson!: string;
-  @Field(t.optional(t.nullable(t.string({ maxLength: 60 })))) unit?: string | null;
-  @Field(t.optional(t.nullable(t.string({ maxLength: 120 })))) source?: string | null;
+@Dto({ name: "DefinirValorParametroAtuarial", description: "Upsert one typed actuarial parameter value." })
+export class DefinirValorParametroAtuarialDto {
+  @Field(t.string({ minLength: 1, maxLength: 120 })) codigo!: string;
+  @Field(t.string({ minLength: 1, maxLength: 120 })) categoria!: string;
+  @Field(t.string({ minLength: 1, maxLength: 200 })) rotulo!: string;
+  @Field(t.enum(["NUMBER", "INTEGER", "TEXT", "BOOLEAN"])) tipoValor!: string;
+  @Field(t.string({ minLength: 1 })) jsonValor!: string;
+  @Field(t.optional(t.nullable(t.string({ maxLength: 60 })))) unidade?: string | null;
+  @Field(t.optional(t.nullable(t.string({ maxLength: 120 })))) origem?: string | null;
 }
 
-@Dto({ name: "SetActuarialParameters", description: "Upsert parameter values into a draft parameterization." })
-export class SetActuarialParametersDto {
-  @Field(t.array(t.ref(SetActuarialParameterValueDto), { minItems: 1 })) parameters!: SetActuarialParameterValueDto[];
+@Dto({ name: "DefinirParametrosAtuariais", description: "Upsert parameter values into a draft parametrizacao." })
+export class DefinirParametrosAtuariaisDto {
+  @Field(t.array(t.ref(DefinirValorParametroAtuarialDto), { minItems: 1 })) parametros!: DefinirValorParametroAtuarialDto[];
 }
 
-@Dto({ name: "PromoteAdherenceCandidate", description: "Promote one adherence candidate into the draft parameterization." })
-export class PromoteAdherenceCandidateDto {
-  @Field(t.string({ format: "uuid" })) candidateResultId!: string;
+@Dto({ name: "PromoverCandidatoAderencia", description: "Promote one adherence candidato into the draft parametrizacao." })
+export class PromoverCandidatoAderenciaDto {
+  @Field(t.string({ format: "uuid" })) resultadoCandidatoId!: string;
 }
 
-@Dto({ name: "RemoveActuarialHypothesisSelection", description: "Deactivate one selected hypothesis in a draft parameterization." })
-export class RemoveActuarialHypothesisSelectionDto {
-  @Field(t.string({ format: "uuid" })) selectionId!: string;
+@Dto({ name: "RemoverSelecaoHipoteseAtuarial", description: "Deactivate one selected hypothesis in a draft parametrizacao." })
+export class RemoverSelecaoHipoteseAtuarialDto {
+  @Field(t.string({ format: "uuid" })) selecaoId!: string;
 }
 
-@Dto({ name: "EvaluationParameterizationParams" })
-export class EvaluationParameterizationParamsDto {
-  @Field(t.integer({ minimum: 1 })) evaluationId!: number;
+@Dto({ name: "AvaliacaoParametrizacaoParams" })
+export class AvaliacaoParametrizacaoParamsDto {
+  @Field(t.integer({ minimum: 1 })) avaliacaoId!: number;
 }
 
-@Dto({ name: "ActuarialParameterizationParams" })
-export class ActuarialParameterizationParamsDto {
+@Dto({ name: "ParametrizacaoAtuarialParams" })
+export class ParametrizacaoAtuarialParamsDto {
   @Field(t.string({ format: "uuid" })) id!: string;
 }

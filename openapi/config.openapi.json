@@ -4,18 +4,26 @@
     "title": "Application Configuration API fragment",
     "version": "0.0.1"
   },
-  "tags": [{ "name": "System" }],
+  "tags": [
+    {
+      "name": "Sistema"
+    }
+  ],
   "paths": {
     "/api/config": {
       "get": {
-        "tags": ["System"],
-        "operationId": "getApplicationConfig",
+        "tags": [
+          "Sistema"
+        ],
+        "operationId": "obterConfiguracaoAplicacao",
         "responses": {
           "200": {
             "description": "Public runtime branding and deployment configuration",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ApplicationConfig" }
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguracaoAplicacao"
+                }
               }
             }
           }
@@ -25,13 +33,26 @@
   },
   "components": {
     "schemas": {
-      "ApplicationConfig": {
+      "ConfiguracaoAplicacao": {
         "type": "object",
-        "required": ["name", "shortName", "organizationName"],
+        "required": [
+          "nome",
+          "shortName",
+          "organizationName"
+        ],
         "properties": {
-          "name": { "type": "string" },
-          "shortName": { "type": "string" },
-          "organizationName": { "type": ["string", "null"] }
+          "organizationName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "shortName": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          }
         }
       }
     }

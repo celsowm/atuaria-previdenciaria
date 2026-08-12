@@ -13,7 +13,7 @@ aprovação
         ↓
 snapshot imutável
         ↓
-CalculationRun
+ExecucaoCalculo
 ```
 
 ## Por que versionar
@@ -22,26 +22,26 @@ Uma rodada de cálculo não pode depender de valores que mudam depois. Por isso 
 
 ```text
 Avaliação #42
-  ├─ Parametrização v1  SUPERSEDED
-  ├─ Parametrização v2  APPROVED
-  └─ Parametrização v3  DRAFT
+  ├─ Parametrização v1  SUBSTITUIDO
+  ├─ Parametrização v2  APROVADO
+  └─ Parametrização v3  RASCUNHO
 ```
 
-Somente `DRAFT` pode ser alterada. Ao aprovar uma versão:
+Somente `RASCUNHO` pode ser alterada. Ao aprovar uma versão:
 
-- ela passa para `APPROVED`;
+- ela passa para `APROVADO`;
 - a aprovação recebe timestamp;
-- uma versão anteriormente aprovada da mesma avaliação passa para `SUPERSEDED`;
+- uma versão anteriormente aprovada da mesma avaliação passa para `SUBSTITUIDO`;
 - parâmetros e hipóteses da versão aprovada deixam de ser editáveis;
 - alterações posteriores exigem uma nova versão, que pode copiar a anterior;
 - existe no máximo um rascunho aberto por avaliação.
 
-O futuro `CalculationRun` deverá referenciar explicitamente o `parameterizationId` aprovado utilizado na execução.
+O futuro `ExecucaoCalculo` deverá referenciar explicitamente o `parametrizacaoId` aprovado utilizado na execução.
 
 ## Entidades
 
 ```text
-ActuarialParameterization
+ParametrizacaoAtuarial
   ├─ ActuarialParameterValue 1:N
   └─ ActuarialHypothesisSelection 1:N
 ```
@@ -77,15 +77,15 @@ Um resultado do Estudo de Aderência pode ser promovido explicitamente para a pa
 
 A promoção não significa que o candidato `#1` é automaticamente aprovado. A decisão continua sendo humana e explícita.
 
-Um estudo ainda sem `evaluationId` pode ser associado à avaliação no momento da primeira promoção. Um estudo já associado a outra avaliação não pode ser reutilizado silenciosamente.
+Um estudo ainda sem `avaliacaoId` pode ser associado à avaliação no momento da primeira promoção. Um estudo já associado a outra avaliação não pode ser reutilizado silenciosamente.
 
-Hipóteses copiadas de uma versão anterior também podem ser removidas enquanto a nova versão está em `DRAFT`. A remoção desativa a seleção sem apagar seu registro físico. Depois da aprovação, a seleção fica congelada com o restante do snapshot.
+Hipóteses copiadas de uma versão anterior também podem ser removidas enquanto a nova versão está em `RASCUNHO`. A remoção desativa a seleção sem apagar seu registro físico. Depois da aprovação, a seleção fica congelada com o restante do snapshot.
 
 ## URLs amigáveis
 
 ```text
-/avaliacoes/:evaluationId/parametrizacao
-/avaliacoes/:evaluationId/parametrizacao/:parameterizationId
+/avaliacoes/:avaliacaoId/parametrizacao
+/avaliacoes/:avaliacaoId/parametrizacao/:parametrizacaoId
 ```
 
 A primeira URL resolve a lista de versões; a segunda abre uma versão específica e pode ser copiada/reaberta diretamente.
@@ -93,14 +93,14 @@ A primeira URL resolve a lista de versões; a segunda abre uma versão específi
 ## API
 
 ```text
-GET   /api/evaluations/:evaluationId/parameterizations
-POST  /api/evaluations/:evaluationId/parameterizations
-GET   /api/parameterizations/:id
-PATCH /api/parameterizations/:id
-PATCH /api/parameterizations/:id/parameters
-POST  /api/parameterizations/:id/adherence-candidate
-POST  /api/parameterizations/:id/hypothesis/remove
-POST  /api/parameterizations/:id/approve
+GET   /api/avaliacoes/:avaliacaoId/parametrizacoes
+POST  /api/avaliacoes/:avaliacaoId/parametrizacoes
+GET   /api/parametrizacoes/:id
+PATCH /api/parametrizacoes/:id
+PATCH /api/parametrizacoes/:id/parameters
+POST  /api/parametrizacoes/:id/adherence-candidate
+POST  /api/parametrizacoes/:id/hypothesis/remove
+POST  /api/parametrizacoes/:id/approve
 ```
 
 Todas as rotas exigem autenticação.
@@ -112,9 +112,9 @@ O motor de cálculo não deverá ler parâmetros soltos da configuração global
 Ele deverá receber um snapshot aprovado:
 
 ```text
-CalculationRun
-  ├─ evaluationId
-  ├─ parameterizationId  -> APPROVED
+ExecucaoCalculo
+  ├─ avaliacaoId
+  ├─ parametrizacaoId  -> APROVADO
   ├─ engineVersion
   ├─ input fingerprints
   └─ resultados

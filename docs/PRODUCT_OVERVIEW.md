@@ -44,7 +44,7 @@ Cada etapa deve conhecer entradas, saídas, usuário responsável, data/hora, ve
 - comparação histórica;
 - auditoria integral.
 
-### Planos
+### Planoos
 
 - cadastro do plano e patrocinadores;
 - regulamentos e documentos relacionados;
@@ -58,7 +58,7 @@ Cada etapa deve conhecer entradas, saídas, usuário responsável, data/hora, ve
 Responsável por converter dados externos heterogêneos no modelo canônico do ATUAS.
 
 ```text
-Arquivo → Estrutura → Mapping → Transformações → Preview → Validação → Concluir
+Arquivo → Estrutura → Mapeamento → Transformações → Preview → Validação → Concluir
 ```
 
 Requisitos essenciais:
@@ -228,9 +228,9 @@ Cada provider pode possuir quantas credenciais forem necessárias, com prioridad
 
 ```text
 getValuation
-getPlan
+getPlano
 getCensusSummary
-getAdherenceStudy
+getEstudoAderencia
 getAssumptions
 getValuationResults
 getPreviousValuation

@@ -8,32 +8,32 @@ import {
 import { promisify } from "node:util";
 import type { AuthUser } from "adorn-api";
 import { consultarSql, executarSql } from "../db.js";
-import { User } from "../domain/auth-entities.js";
+import { Usuario } from "../domain/autenticacao-entities.js";
 
 const scrypt = promisify(scryptCallback);
 const passwordVersion = "scrypt-v1";
 const allowedRoles = new Set(["admin", "actuary", "reviewer"]);
 
-export type ApplicationAuthUser = AuthUser & {
+export type ApplicationUsuarioAutenticado = AuthUser & {
   id: string;
   email: string;
-  displayName: string;
-  role: string;
+  nomeExibicao: string;
+  perfil: string;
   roles: string[];
 };
 
-export type UserView = {
+export type UsuarioView = {
   id: string;
   email: string;
-  displayName: string;
-  role: string;
-  active: boolean;
-  createdAt: string;
-  updatedAt: string;
-  lastLoginAt: string | null;
+  nomeExibicao: string;
+  perfil: string;
+  ativo: boolean;
+  criadoEm: string;
+  atualizadoEm: string;
+  ultimoAcessoEm: string | null;
 };
 
-const camposUsuario = `id,email,nome_exibicao AS displayName,resumo_senha AS passwordHash,perfil AS role,ativo AS active,criado_em AS createdAt,atualizado_em AS updatedAt,ultimo_acesso_em AS lastLoginAt`;
+const camposUsuario = `id,email,nome_exibicao AS nomeExibicao,resumo_senha AS resumoSenha,perfil AS perfil,ativo AS ativo,criado_em AS criadoEm,atualizado_em AS atualizadoEm,ultimo_acesso_em AS ultimoAcessoEm`;
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -45,8 +45,8 @@ function validateEmail(email: string) {
   }
 }
 
-function validateRole(role: string) {
-  if (!allowedRoles.has(role)) {
+function validateRole(perfil: string) {
+  if (!allowedRoles.has(perfil)) {
     throw new Error("Perfil inválido. Use admin, actuary ou reviewer.");
   }
 }
@@ -65,15 +65,15 @@ async function hashPassword(password: string) {
 }
 
 async function verifyPassword(password: string, encoded: string) {
-  const [version, saltEncoded, hashEncoded] = encoded.split("$");
-  if (version !== passwordVersion || !saltEncoded || !hashEncoded) return false;
+  const [versao, saltEncoded, hashEncoded] = encoded.split("$");
+  if (versao !== passwordVersion || !saltEncoded || !hashEncoded) return false;
   const salt = Buffer.from(saltEncoded, "base64url");
-  const expected = Buffer.from(hashEncoded, "base64url");
-  const actual = (await scrypt(password, salt, expected.length)) as Buffer;
-  return expected.length === actual.length && timingSafeEqual(expected, actual);
+  const esperado = Buffer.from(hashEncoded, "base64url");
+  const actual = (await scrypt(password, salt, esperado.length)) as Buffer;
+  return esperado.length === actual.length && timingSafeEqual(esperado, actual);
 }
 
-function tokenHash(token: string) {
+function resumoToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
@@ -83,60 +83,60 @@ function sessionTtlMs() {
   return days * 24 * 60 * 60 * 1000;
 }
 
-function toView(user: User): UserView {
+function toView(user: Usuario): UsuarioView {
   return {
     id: user.id,
     email: user.email,
-    displayName: user.displayName,
-    role: user.role,
-    active: user.active === 1,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-    lastLoginAt: user.lastLoginAt ?? null
+    nomeExibicao: user.nomeExibicao,
+    perfil: user.perfil,
+    ativo: user.ativo === 1,
+    criadoEm: user.criadoEm,
+    atualizadoEm: user.atualizadoEm,
+    ultimoAcessoEm: user.ultimoAcessoEm ?? null
   };
 }
 
-function toAuthUser(user: User): ApplicationAuthUser {
+function toUsuarioAutenticado(user: Usuario): ApplicationUsuarioAutenticado {
   return {
     id: user.id,
     email: user.email,
-    displayName: user.displayName,
-    role: user.role,
-    roles: [user.role]
+    nomeExibicao: user.nomeExibicao,
+    perfil: user.perfil,
+    roles: [user.perfil]
   };
 }
 
-async function allUsers() {
-  return consultarSql<User>(`SELECT ${camposUsuario} FROM usuarios`);
+async function allUsuarios() {
+  return consultarSql<Usuario>(`SELECT ${camposUsuario} FROM usuarios`);
 }
 
-async function findUserByEmail(email: string) {
-  const [user] = await consultarSql<User>(`SELECT ${camposUsuario} FROM usuarios WHERE email = ? LIMIT 1`, [email]);
+async function findUsuarioByEmail(email: string) {
+  const [user] = await consultarSql<Usuario>(`SELECT ${camposUsuario} FROM usuarios WHERE email = ? LIMIT 1`, [email]);
   return user ?? null;
 }
 
 async function findSessionByTokenHash(hash: string) {
-  const [record] = await consultarSql<{ id: string; userId: string; tokenHash: string; createdAt: string; expiresAt: string; revokedAt: string | null }>(
-    `SELECT id,usuario_id AS userId,resumo_token AS tokenHash,criado_em AS createdAt,expira_em AS expiresAt,revogado_em AS revokedAt FROM sessoes_usuario WHERE resumo_token = ? LIMIT 1`,
+  const [record] = await consultarSql<{ id: string; usuarioId: string; resumoToken: string; criadoEm: string; expiraEm: string; revogadoEm: string | null }>(
+    `SELECT id,usuario_id AS usuarioId,resumo_token AS resumoToken,criado_em AS criadoEm,expira_em AS expiraEm,revogado_em AS revogadoEm FROM sessoes_usuario WHERE resumo_token = ? LIMIT 1`,
     [hash]
   );
   return record ?? null;
 }
 
-async function findUserById(id: string) {
-  const [user] = await consultarSql<User>(`SELECT ${camposUsuario} FROM usuarios WHERE id = ? LIMIT 1`, [id]);
+async function findUsuarioById(id: string) {
+  const [user] = await consultarSql<Usuario>(`SELECT ${camposUsuario} FROM usuarios WHERE id = ? LIMIT 1`, [id]);
   return user ?? null;
 }
 
 export async function bootstrapAdminFromEnvironment() {
-  const users = await allUsers();
-  if (users.length > 0) return;
+  const usuarios = await allUsuarios();
+  if (usuarios.length > 0) return;
 
   const email = process.env.APP_BOOTSTRAP_ADMIN_EMAIL?.trim();
   const password = process.env.APP_BOOTSTRAP_ADMIN_PASSWORD;
   if (!email && !password) {
     console.warn(
-      "Application has no users. Set APP_BOOTSTRAP_ADMIN_EMAIL and APP_BOOTSTRAP_ADMIN_PASSWORD to create the first administrator."
+      "Application has no usuarios. Set APP_BOOTSTRAP_ADMIN_EMAIL and APP_BOOTSTRAP_ADMIN_PASSWORD to create the first administrator."
     );
     return;
   }
@@ -146,148 +146,148 @@ export async function bootstrapAdminFromEnvironment() {
     );
   }
 
-  await createUser({
+  await createUsuario({
     email,
-    displayName: process.env.APP_BOOTSTRAP_ADMIN_NAME?.trim() || "Administrador",
+    nomeExibicao: process.env.APP_BOOTSTRAP_ADMIN_NAME?.trim() || "Administrador",
     password,
-    role: "admin"
+    perfil: "admin"
   });
   console.log(`Bootstrap administrator created: ${normalizeEmail(email)}`);
 }
 
-export async function listUsers() {
-  const users = await allUsers();
-  return users
-    .sort((a, b) => a.displayName.localeCompare(b.displayName, "pt-BR"))
+export async function listUsuarios() {
+  const usuarios = await allUsuarios();
+  return usuarios
+    .sort((a, b) => a.nomeExibicao.localeCompare(b.nomeExibicao, "pt-BR"))
     .map(toView);
 }
 
-export async function createUser(input: {
+export async function createUsuario(input: {
   email: string;
-  displayName: string;
+  nomeExibicao: string;
   password: string;
-  role: string;
+  perfil: string;
 }) {
   const email = normalizeEmail(input.email);
   validateEmail(email);
-  validateRole(input.role);
-  const displayName = input.displayName.trim();
-  if (!displayName) throw new Error("Nome do usuário é obrigatório.");
+  validateRole(input.perfil);
+  const nomeExibicao = input.nomeExibicao.trim();
+  if (!nomeExibicao) throw new Error("Nome do usuário é obrigatório.");
 
-  if (await findUserByEmail(email)) {
+  if (await findUsuarioByEmail(email)) {
     throw new Error("Já existe um usuário com este e-mail.");
   }
 
   const now = new Date().toISOString();
-  const user = new User();
+  const user = new Usuario();
   user.id = randomUUID();
   user.email = email;
-  user.displayName = displayName;
-  user.passwordHash = await hashPassword(input.password);
-  user.role = input.role;
-  user.active = 1;
-  user.createdAt = now;
-  user.updatedAt = now;
-  user.lastLoginAt = null;
+  user.nomeExibicao = nomeExibicao;
+  user.resumoSenha = await hashPassword(input.password);
+  user.perfil = input.perfil;
+  user.ativo = 1;
+  user.criadoEm = now;
+  user.atualizadoEm = now;
+  user.ultimoAcessoEm = null;
 
   await executarSql(
     "INSERT INTO usuarios (id,email,nome_exibicao,resumo_senha,perfil,ativo,criado_em,atualizado_em,ultimo_acesso_em) VALUES (?,?,?,?,?,?,?,?,?)",
-    [user.id, user.email, user.displayName, user.passwordHash, user.role, user.active, user.createdAt, user.updatedAt, user.lastLoginAt]
+    [user.id, user.email, user.nomeExibicao, user.resumoSenha, user.perfil, user.ativo, user.criadoEm, user.atualizadoEm, user.ultimoAcessoEm]
   );
   return toView(user);
 }
 
-export async function updateUser(
+export async function updateUsuario(
   id: string,
   input: {
-    displayName?: string;
-    role?: string;
-    active?: boolean;
+    nomeExibicao?: string;
+    perfil?: string;
+    ativo?: boolean;
     password?: string;
   }
 ) {
-  const shouldRevokeSessions = input.password !== undefined || input.active === false;
+  const shouldRevokeSessions = input.password !== undefined || input.ativo === false;
   const updated = await (async () => {
-    const user = await findUserById(id);
+    const user = await findUsuarioById(id);
     if (!user) return null;
 
-    if (input.role !== undefined) validateRole(input.role);
-    if (input.displayName !== undefined && !input.displayName.trim()) {
+    if (input.perfil !== undefined) validateRole(input.perfil);
+    if (input.nomeExibicao !== undefined && !input.nomeExibicao.trim()) {
       throw new Error("Nome do usuário é obrigatório.");
     }
 
     const removesAdmin =
-      user.role === "admin" &&
-      user.active === 1 &&
-      ((input.role !== undefined && input.role !== "admin") || input.active === false);
+      user.perfil === "admin" &&
+      user.ativo === 1 &&
+      ((input.perfil !== undefined && input.perfil !== "admin") || input.ativo === false);
     if (removesAdmin) {
-      const users = await allUsers();
-      const activeAdmins = users.filter((candidate) => candidate.role === "admin" && candidate.active === 1);
+      const usuarios = await allUsuarios();
+      const activeAdmins = usuarios.filter((candidate) => candidate.perfil === "admin" && candidate.ativo === 1);
       if (activeAdmins.length <= 1) {
         throw new Error("Não é possível remover ou desativar o último administrador ativo.");
       }
     }
 
-    if (input.displayName !== undefined) user.displayName = input.displayName.trim();
-    if (input.role !== undefined) user.role = input.role;
-    if (input.active !== undefined) user.active = input.active ? 1 : 0;
-    if (input.password !== undefined) user.passwordHash = await hashPassword(input.password);
-    user.updatedAt = new Date().toISOString();
-    await executarSql("UPDATE usuarios SET nome_exibicao=?, perfil=?, ativo=?, resumo_senha=?, atualizado_em=? WHERE id=?", [user.displayName, user.role, user.active, user.passwordHash, user.updatedAt, id]);
+    if (input.nomeExibicao !== undefined) user.nomeExibicao = input.nomeExibicao.trim();
+    if (input.perfil !== undefined) user.perfil = input.perfil;
+    if (input.ativo !== undefined) user.ativo = input.ativo ? 1 : 0;
+    if (input.password !== undefined) user.resumoSenha = await hashPassword(input.password);
+    user.atualizadoEm = new Date().toISOString();
+    await executarSql("UPDATE usuarios SET nome_exibicao=?, perfil=?, ativo=?, resumo_senha=?, atualizado_em=? WHERE id=?", [user.nomeExibicao, user.perfil, user.ativo, user.resumoSenha, user.atualizadoEm, id]);
     return toView(user);
   })();
 
   if (updated && shouldRevokeSessions) {
-    await revokeUserSessions(id);
+    await revokeSessaoUsuarios(id);
   }
   return updated;
 }
 
 export async function login(emailInput: string, password: string) {
   const email = normalizeEmail(emailInput);
-  const user = await findUserByEmail(email);
-  if (!user || user.active !== 1 || !(await verifyPassword(password, user.passwordHash))) {
+  const user = await findUsuarioByEmail(email);
+  if (!user || user.ativo !== 1 || !(await verifyPassword(password, user.resumoSenha))) {
     return null;
   }
 
   const token = randomBytes(32).toString("base64url");
   const now = new Date();
   const sessionId = randomUUID();
-  const sessionHash = tokenHash(token);
-  const createdAt = now.toISOString();
-  const expiresAt = new Date(now.getTime() + sessionTtlMs()).toISOString();
-  await executarSql("INSERT INTO sessoes_usuario (id,usuario_id,resumo_token,criado_em,expira_em,revogado_em) VALUES (?,?,?,?,?,?)", [sessionId, user.id, sessionHash, createdAt, expiresAt, null]);
-  await executarSql("UPDATE usuarios SET ultimo_acesso_em=?, atualizado_em=? WHERE id=?", [createdAt, createdAt, user.id]);
+  const sessionHash = resumoToken(token);
+  const criadoEm = now.toISOString();
+  const expiraEm = new Date(now.getTime() + sessionTtlMs()).toISOString();
+  await executarSql("INSERT INTO sessoes_usuario (id,usuario_id,resumo_token,criado_em,expira_em,revogado_em) VALUES (?,?,?,?,?,?)", [sessionId, user.id, sessionHash, criadoEm, expiraEm, null]);
+  await executarSql("UPDATE usuarios SET ultimo_acesso_em=?, atualizado_em=? WHERE id=?", [criadoEm, criadoEm, user.id]);
 
   return {
     token,
-    expiresAt,
-    user: toView({ ...user, lastLoginAt: now.toISOString(), updatedAt: now.toISOString() } as User)
+    expiraEm,
+    user: toView({ ...user, ultimoAcessoEm: now.toISOString(), atualizadoEm: now.toISOString() } as Usuario)
   };
 }
 
-export async function verifyBearerToken(token: string): Promise<ApplicationAuthUser | null> {
-  const sessionRecord = await findSessionByTokenHash(tokenHash(token));
+export async function verifyBearerToken(token: string): Promise<ApplicationUsuarioAutenticado | null> {
+  const sessionRecord = await findSessionByTokenHash(resumoToken(token));
   if (
     !sessionRecord ||
-    sessionRecord.revokedAt ||
-    Date.parse(sessionRecord.expiresAt) <= Date.now()
+    sessionRecord.revogadoEm ||
+    Date.parse(sessionRecord.expiraEm) <= Date.now()
   ) {
     return null;
   }
 
-  const user = await findUserById(sessionRecord.userId);
-  if (!user || user.active !== 1) return null;
-  return toAuthUser(user);
+  const user = await findUsuarioById(sessionRecord.usuarioId);
+  if (!user || user.ativo !== 1) return null;
+  return toUsuarioAutenticado(user);
 }
 
 export async function logout(token: string) {
-  const sessionRecord = await findSessionByTokenHash(tokenHash(token));
-  if (!sessionRecord || sessionRecord.revokedAt) return;
+  const sessionRecord = await findSessionByTokenHash(resumoToken(token));
+  if (!sessionRecord || sessionRecord.revogadoEm) return;
 
   await executarSql("UPDATE sessoes_usuario SET revogado_em=? WHERE id=? AND revogado_em IS NULL", [new Date().toISOString(), sessionRecord.id]);
 }
 
-export async function revokeUserSessions(userId: string) {
-  await executarSql("UPDATE sessoes_usuario SET revogado_em=? WHERE usuario_id=? AND revogado_em IS NULL", [new Date().toISOString(), userId]);
+export async function revokeSessaoUsuarios(usuarioId: string) {
+  await executarSql("UPDATE sessoes_usuario SET revogado_em=? WHERE usuario_id=? AND revogado_em IS NULL", [new Date().toISOString(), usuarioId]);
 }

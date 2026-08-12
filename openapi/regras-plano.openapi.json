@@ -1,167 +1,552 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Plan Rules API fragment",
+    "title": "Fragmento da API de regras de plano",
     "version": "0.0.1"
   },
-  "tags": [{ "name": "Plan Rules" }],
+  "tags": [
+    {
+      "name": "RegrasPlano"
+    }
+  ],
   "paths": {
-    "/api/plans/{planId}/rules": {
+    "/api/planos/{planoId}/regras": {
       "get": {
-        "tags": ["Plan Rules"],
-        "operationId": "listPlanRulesVersions",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "planId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "tags": [
+          "RegrasPlano"
+        ],
+        "operationId": "listarVersoesRegrasPlano",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "planoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Versioned plan rules",
-            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/PlanRulesVersionSummary" } } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResumoVersaoRegrasPlano"
+                  }
+                }
+              }
+            }
           }
         }
       },
       "post": {
-        "tags": ["Plan Rules"],
-        "operationId": "createPlanRulesVersion",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "planId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreatePlanRulesVersion" } } } },
+        "tags": [
+          "RegrasPlano"
+        ],
+        "operationId": "criarVersaoRegrasPlano",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "planoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriarVersaoRegrasPlano"
+              }
+            }
+          }
+        },
         "responses": {
-          "201": { "description": "Created draft plan rules version", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlanRulesVersion" } } } }
+          "201": {
+            "description": "Created draft plan rules version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoRegrasPlano"
+                }
+              }
+            }
+          }
         }
       }
     },
-    "/api/plan-rules/{id}": {
+    "/api/regras-plano/{id}": {
       "get": {
-        "tags": ["Plan Rules"],
-        "operationId": "getPlanRulesVersion",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "tags": [
+          "RegrasPlano"
+        ],
+        "operationId": "obterVersaoRegrasPlano",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Plan rules version", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlanRulesVersion" } } } },
-          "404": { "description": "Plan rules version not found" }
+          "200": {
+            "description": "Versão de regras do plano",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoRegrasPlano"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Versão de regras do plano não encontrada"
+          }
         }
       },
       "patch": {
-        "tags": ["Plan Rules"],
-        "operationId": "updatePlanRulesVersion",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdatePlanRulesVersion" } } } },
+        "tags": [
+          "RegrasPlano"
+        ],
+        "operationId": "atualizarVersaoRegrasPlano",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtualizarVersaoRegrasPlano"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": { "description": "Updated draft plan rules version", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlanRulesVersion" } } } }
+          "200": {
+            "description": "Updated draft plan rules version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoRegrasPlano"
+                }
+              }
+            }
+          }
         }
       }
     },
-    "/api/plan-rules/{id}/values": {
+    "/api/regras-plano/{id}/valores": {
       "patch": {
-        "tags": ["Plan Rules"],
-        "operationId": "setPlanRuleValues",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SetPlanRuleValues" } } } },
+        "tags": [
+          "RegrasPlano"
+        ],
+        "operationId": "definirValoresRegrasPlano",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinirValorRegraPlano"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": { "description": "Replaced active plan rule set", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlanRulesVersion" } } } }
+          "200": {
+            "description": "Replaced active plan rule set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoRegrasPlano"
+                }
+              }
+            }
+          }
         }
       }
     },
-    "/api/plan-rules/{id}/approve": {
+    "/api/regras-plano/{id}/aprovar": {
       "post": {
-        "tags": ["Plan Rules"],
-        "operationId": "approvePlanRulesVersion",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "tags": [
+          "RegrasPlano"
+        ],
+        "operationId": "aprovarVersaoRegrasPlano",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Approved immutable plan rules snapshot", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlanRulesVersion" } } } }
+          "200": {
+            "description": "Approved immutable plan rules snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersaoRegrasPlano"
+                }
+              }
+            }
+          }
         }
       }
     }
   },
   "components": {
     "schemas": {
-      "PlanRuleValue": {
+      "AtualizarVersaoRegrasPlano": {
         "type": "object",
-        "required": ["id", "code", "category", "label", "valueType", "valueJson", "unit", "source", "updatedAt"],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "code": { "type": "string" },
-          "category": { "type": "string" },
-          "label": { "type": "string" },
-          "valueType": { "type": "string", "enum": ["NUMBER", "INTEGER", "TEXT", "BOOLEAN"] },
-          "valueJson": { "type": "string" },
-          "unit": { "type": ["string", "null"] },
-          "source": { "type": "string" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "vigenciaInicial": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "observacoes": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 4000
+          },
+          "vigenciaFinal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
         }
       },
-      "PlanRulesVersionSummary": {
+      "DefinirValorRegraPlano": {
         "type": "object",
-        "required": ["id", "planId", "version", "name", "modality", "status", "effectiveFrom", "effectiveTo", "rulesFingerprint", "notes", "createdAt", "updatedAt", "approvedAt"],
+        "required": [
+          "codigo",
+          "categoria",
+          "rotulo",
+          "tipoValor",
+          "jsonValor"
+        ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "planId": { "type": "string", "format": "uuid" },
-          "version": { "type": "integer", "minimum": 1 },
-          "name": { "type": "string" },
-          "modality": { "type": "string", "enum": ["BD", "CD", "CV"] },
-          "status": { "type": "string", "enum": ["DRAFT", "APPROVED", "SUPERSEDED"] },
-          "effectiveFrom": { "type": ["string", "null"], "format": "date" },
-          "effectiveTo": { "type": ["string", "null"], "format": "date" },
-          "rulesFingerprint": { "type": ["string", "null"] },
-          "notes": { "type": ["string", "null"] },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" },
-          "approvedAt": { "type": ["string", "null"], "format": "date-time" }
+          "tipoValor": {
+            "type": "string",
+            "enum": [
+              "NUMBER",
+              "INTEGER",
+              "TEXT",
+              "BOOLEAN"
+            ]
+          },
+          "unidade": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 60
+          },
+          "codigo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "jsonValor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "origem": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "categoria": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "rotulo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
         }
       },
-      "PlanRulesVersion": {
+      "ResumoVersaoRegrasPlano": {
+        "type": "object",
+        "required": [
+          "id",
+          "planoId",
+          "versao",
+          "nome",
+          "modalidade",
+          "situacao",
+          "vigenciaInicial",
+          "vigenciaFinal",
+          "rulesFingerprint",
+          "observacoes",
+          "criadoEm",
+          "atualizadoEm",
+          "aprovadoEm"
+        ],
+        "properties": {
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "aprovadoEm": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "modalidade": {
+            "type": "string",
+            "enum": [
+              "BD",
+              "CD",
+              "CV"
+            ]
+          },
+          "observacoes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "versao": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "atualizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "planoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "vigenciaFinal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "rulesFingerprint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "situacao": {
+            "type": "string",
+            "enum": [
+              "RASCUNHO",
+              "APROVADO",
+              "SUBSTITUIDO"
+            ]
+          },
+          "vigenciaInicial": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CriarVersaoRegrasPlano": {
+        "type": "object",
+        "properties": {
+          "vigenciaInicial": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "observacoes": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 4000
+          },
+          "vigenciaFinal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "copiarDeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        }
+      },
+      "ValorRegraPlano": {
+        "type": "object",
+        "required": [
+          "id",
+          "codigo",
+          "categoria",
+          "rotulo",
+          "tipoValor",
+          "jsonValor",
+          "unidade",
+          "origem",
+          "atualizadoEm"
+        ],
+        "properties": {
+          "tipoValor": {
+            "type": "string",
+            "enum": [
+              "NUMBER",
+              "INTEGER",
+              "TEXT",
+              "BOOLEAN"
+            ]
+          },
+          "unidade": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "atualizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "jsonValor": {
+            "type": "string"
+          },
+          "origem": {
+            "type": "string"
+          },
+          "categoria": {
+            "type": "string"
+          },
+          "rotulo": {
+            "type": "string"
+          }
+        }
+      },
+      "VersaoRegrasPlano": {
         "allOf": [
-          { "$ref": "#/components/schemas/PlanRulesVersionSummary" },
+          {
+            "$ref": "#/components/schemas/ResumoVersaoRegrasPlano"
+          },
           {
             "type": "object",
-            "required": ["rules"],
+            "required": [
+              "regras"
+            ],
             "properties": {
-              "rules": { "type": "array", "items": { "$ref": "#/components/schemas/PlanRuleValue" } }
+              "regras": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ValorRegraPlano"
+                }
+              }
             }
           }
         ]
-      },
-      "CreatePlanRulesVersion": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
-          "effectiveFrom": { "type": ["string", "null"], "format": "date" },
-          "effectiveTo": { "type": ["string", "null"], "format": "date" },
-          "notes": { "type": ["string", "null"], "maxLength": 4000 },
-          "copyFromId": { "type": "string", "format": "uuid" }
-        }
-      },
-      "UpdatePlanRulesVersion": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
-          "effectiveFrom": { "type": ["string", "null"], "format": "date" },
-          "effectiveTo": { "type": ["string", "null"], "format": "date" },
-          "notes": { "type": ["string", "null"], "maxLength": 4000 }
-        }
-      },
-      "SetPlanRuleValue": {
-        "type": "object",
-        "required": ["code", "category", "label", "valueType", "valueJson"],
-        "properties": {
-          "code": { "type": "string", "minLength": 1, "maxLength": 120 },
-          "category": { "type": "string", "minLength": 1, "maxLength": 120 },
-          "label": { "type": "string", "minLength": 1, "maxLength": 200 },
-          "valueType": { "type": "string", "enum": ["NUMBER", "INTEGER", "TEXT", "BOOLEAN"] },
-          "valueJson": { "type": "string", "minLength": 1 },
-          "unit": { "type": ["string", "null"], "maxLength": 60 },
-          "source": { "type": ["string", "null"], "maxLength": 200 }
-        }
-      },
-      "SetPlanRuleValues": {
-        "type": "object",
-        "required": ["rules"],
-        "properties": {
-          "rules": { "type": "array", "items": { "$ref": "#/components/schemas/SetPlanRuleValue" } }
-        }
       }
     }
   }

@@ -2,36 +2,36 @@ import { randomUUID } from "node:crypto";
 import { getTableDefFromEntity, selectFromEntity } from "metal-orm";
 import { createSession } from "../db.js";
 import {
-  BiometricTable,
-  BiometricTablePoint,
-  BiometricTableVersion
-} from "../domain/biometric-entities.js";
+  TabuaBiometria,
+  PontoTabuaBiometria,
+  VersaoTabuaBiometria
+} from "../domain/biometria-entities.js";
 
-export type BiometricPointInput = {
-  age: number;
-  sex: "MALE" | "FEMALE" | "UNISEX";
+export type PontoBiometriaInput = {
+  idade: number;
+  sexo: "MASCULINO" | "FEMININO" | "UNISSEX";
   qx: number;
 };
 
-export type CreateBiometricTableInput = {
-  code: string;
-  name: string;
-  kind: string;
-  sexScope: string;
-  source?: string;
-  description?: string;
-  version?: string;
-  effectiveFrom?: string;
-  points: BiometricPointInput[];
+export type CreateTabuaBiometriaInput = {
+  codigo: string;
+  nome: string;
+  tipo: string;
+  escopoSexo: string;
+  origem?: string;
+  descricao?: string;
+  versao?: string;
+  vigenciaInicial?: string;
+  pontos: PontoBiometriaInput[];
 };
 
-export type DeriveBiometricVersionInput = {
-  parentVersionId: string;
-  version: string;
-  transform: "QX_SCALE" | "AGE_SHIFT";
-  factor?: number;
-  years?: number;
-  effectiveFrom?: string;
+export type DeriveVersaoBiometriaInput = {
+  versaoOrigemId: string;
+  versao: string;
+  transformacao: "QX_SCALE" | "AGE_SHIFT";
+  fator?: number;
+  anos?: number;
+  vigenciaInicial?: string;
 };
 
 async function withSession<T>(handler: (session: ReturnType<typeof createSession>) => Promise<T>) {
@@ -43,254 +43,254 @@ async function withSession<T>(handler: (session: ReturnType<typeof createSession
   }
 }
 
-function tableOf(entity: typeof BiometricTable | typeof BiometricTableVersion | typeof BiometricTablePoint) {
+function tableOf(entity: typeof TabuaBiometria | typeof VersaoTabuaBiometria | typeof PontoTabuaBiometria) {
   const table = getTableDefFromEntity(entity);
   if (!table) throw new Error(`Metal ORM metadata not bootstrapped for ${entity.name}`);
   return table;
 }
 
-function validatePoints(points: BiometricPointInput[]) {
-  if (!points.length) throw new Error("A tábua precisa possuir ao menos um ponto.");
+function validatePoints(pontos: PontoBiometriaInput[]) {
+  if (!pontos.length) throw new Error("A tábua precisa possuir ao menos um ponto.");
   const seen = new Set<string>();
-  for (const point of points) {
-    if (!Number.isInteger(point.age) || point.age < 0 || point.age > 130) {
-      throw new Error(`Idade inválida: ${point.age}.`);
+  for (const ponto of pontos) {
+    if (!Number.isInteger(ponto.idade) || ponto.idade < 0 || ponto.idade > 130) {
+      throw new Error(`Idade inválida: ${ponto.idade}.`);
     }
-    if (!["MALE", "FEMALE", "UNISEX"].includes(point.sex)) {
-      throw new Error(`Sexo inválido na idade ${point.age}: ${point.sex}.`);
+    if (!["MASCULINO", "FEMININO", "UNISSEX"].includes(ponto.sexo)) {
+      throw new Error(`Sexo inválido na idade ${ponto.idade}: ${ponto.sexo}.`);
     }
-    if (!Number.isFinite(point.qx) || point.qx < 0 || point.qx > 1) {
-      throw new Error(`qx inválido na idade ${point.age}: ${point.qx}.`);
+    if (!Number.isFinite(ponto.qx) || ponto.qx < 0 || ponto.qx > 1) {
+      throw new Error(`qx inválido na idade ${ponto.idade}: ${ponto.qx}.`);
     }
-    const key = `${point.sex}:${point.age}`;
-    if (seen.has(key)) throw new Error(`Ponto duplicado para ${point.sex}, idade ${point.age}.`);
+    const key = `${ponto.sexo}:${ponto.idade}`;
+    if (seen.has(key)) throw new Error(`Ponto duplicado para ${ponto.sexo}, idade ${ponto.idade}.`);
     seen.add(key);
   }
 }
 
-function summarizeVersion(version: BiometricTableVersion) {
+function summarizeVersion(versao: VersaoTabuaBiometria) {
   return {
-    id: version.id,
-    version: version.version,
-    status: version.status,
-    effectiveFrom: version.effectiveFrom ?? null,
-    effectiveTo: version.effectiveTo ?? null,
-    parentVersionId: version.parentVersionId ?? null,
-    derivationType: version.derivationType ?? null,
-    derivationParametersJson: version.derivationParametersJson,
-    minAge: version.minAge,
-    maxAge: version.maxAge,
-    pointCount: version.pointCount,
-    createdAt: version.createdAt
+    id: versao.id,
+    versao: versao.versao,
+    situacao: versao.situacao,
+    vigenciaInicial: versao.vigenciaInicial ?? null,
+    vigenciaFinal: versao.vigenciaFinal ?? null,
+    versaoOrigemId: versao.versaoOrigemId ?? null,
+    tipoDerivacao: versao.tipoDerivacao ?? null,
+    parametrosDerivacaoJson: versao.parametrosDerivacaoJson,
+    idadeMinima: versao.idadeMinima,
+    idadeMaxima: versao.idadeMaxima,
+    quantidadePontos: versao.quantidadePontos,
+    criadoEm: versao.criadoEm
   };
 }
 
-export async function createBiometricTable(input: CreateBiometricTableInput) {
-  const code = input.code.trim();
-  const name = input.name.trim();
-  if (!code || !name) throw new Error("Código e nome da tábua são obrigatórios.");
-  validatePoints(input.points);
+export async function createTabuaBiometria(input: CreateTabuaBiometriaInput) {
+  const codigo = input.codigo.trim();
+  const nome = input.nome.trim();
+  if (!codigo || !nome) throw new Error("Código e nome da tábua são obrigatórios.");
+  validatePoints(input.pontos);
 
-  const existing = await withSession((session) => selectFromEntity(BiometricTable).execute(session));
-  if (existing.some((item) => item.code.toUpperCase() === code.toUpperCase())) {
-    throw new Error(`Já existe uma tábua com o código ${code}.`);
+  const existing = await withSession((session) => selectFromEntity(TabuaBiometria).execute(session));
+  if (existing.some((item) => item.codigo.toUpperCase() === codigo.toUpperCase())) {
+    throw new Error(`Já existe uma tábua com o código ${codigo}.`);
   }
 
   const now = new Date().toISOString();
-  const table = new BiometricTable();
+  const table = new TabuaBiometria();
   table.id = randomUUID();
-  table.code = code;
-  table.name = name;
-  table.kind = input.kind.trim();
-  table.sexScope = input.sexScope.trim();
-  table.source = input.source?.trim() || null;
-  table.description = input.description?.trim() || null;
-  table.enabled = 1;
-  table.createdAt = now;
-  table.updatedAt = now;
+  table.codigo = codigo;
+  table.nome = nome;
+  table.tipo = input.tipo.trim();
+  table.escopoSexo = input.escopoSexo.trim();
+  table.origem = input.origem?.trim() || null;
+  table.descricao = input.descricao?.trim() || null;
+  table.habilitada = 1;
+  table.criadoEm = now;
+  table.atualizadoEm = now;
 
-  const version = new BiometricTableVersion();
-  version.id = randomUUID();
-  version.tableId = table.id;
-  version.version = input.version?.trim() || "v1";
-  version.status = "ACTIVE";
-  version.effectiveFrom = input.effectiveFrom?.trim() || null;
-  version.effectiveTo = null;
-  version.parentVersionId = null;
-  version.derivationType = null;
-  version.derivationParametersJson = "{}";
-  version.minAge = Math.min(...input.points.map((point) => point.age));
-  version.maxAge = Math.max(...input.points.map((point) => point.age));
-  version.pointCount = input.points.length;
-  version.createdAt = now;
+  const versao = new VersaoTabuaBiometria();
+  versao.id = randomUUID();
+  versao.tabuaId = table.id;
+  versao.versao = input.versao?.trim() || "v1";
+  versao.situacao = "ATIVO";
+  versao.vigenciaInicial = input.vigenciaInicial?.trim() || null;
+  versao.vigenciaFinal = null;
+  versao.versaoOrigemId = null;
+  versao.tipoDerivacao = null;
+  versao.parametrosDerivacaoJson = "{}";
+  versao.idadeMinima = Math.min(...input.pontos.map((ponto) => ponto.idade));
+  versao.idadeMaxima = Math.max(...input.pontos.map((ponto) => ponto.idade));
+  versao.quantidadePontos = input.pontos.length;
+  versao.criadoEm = now;
 
   await withSession(async (session) => {
-    session.trackNew(tableOf(BiometricTable), table, table.id);
-    session.trackNew(tableOf(BiometricTableVersion), version, version.id);
-    for (const point of input.points) {
-      const entity = new BiometricTablePoint();
+    session.trackNew(tableOf(TabuaBiometria), table, table.id);
+    session.trackNew(tableOf(VersaoTabuaBiometria), versao, versao.id);
+    for (const ponto of input.pontos) {
+      const entity = new PontoTabuaBiometria();
       entity.id = randomUUID();
-      entity.versionId = version.id;
-      entity.age = point.age;
-      entity.sex = point.sex;
-      entity.qx = point.qx;
-      session.trackNew(tableOf(BiometricTablePoint), entity, entity.id);
+      entity.versaoId = versao.id;
+      entity.idade = ponto.idade;
+      entity.sexo = ponto.sexo;
+      entity.qx = ponto.qx;
+      session.trackNew(tableOf(PontoTabuaBiometria), entity, entity.id);
     }
     await session.commit();
   });
 
-  return getBiometricTable(table.id);
+  return getTabuaBiometria(table.id);
 }
 
-export async function listBiometricTables() {
+export async function listTabuaBiometrias() {
   return withSession(async (session) => {
     const [tables, versions] = await Promise.all([
-      selectFromEntity(BiometricTable).execute(session),
-      selectFromEntity(BiometricTableVersion).execute(session)
+      selectFromEntity(TabuaBiometria).execute(session),
+      selectFromEntity(VersaoTabuaBiometria).execute(session)
     ]);
     return tables
-      .filter((table) => table.enabled === 1)
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .filter((table) => table.habilitada === 1)
+      .sort((a, b) => a.nome.localeCompare(b.nome))
       .map((table) => {
         const ownVersions = versions
-          .filter((version) => version.tableId === table.id)
-          .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+          .filter((versao) => versao.tabuaId === table.id)
+          .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
         const latest = ownVersions[0];
         return {
           id: table.id,
-          code: table.code,
-          name: table.name,
-          kind: table.kind,
-          sexScope: table.sexScope,
-          source: table.source ?? null,
-          description: table.description ?? null,
-          versionCount: ownVersions.length,
-          latestVersionId: latest?.id ?? null,
-          latestVersion: latest?.version ?? null,
-          pointCount: latest?.pointCount ?? 0,
-          minAge: latest?.minAge ?? null,
-          maxAge: latest?.maxAge ?? null,
-          updatedAt: table.updatedAt
+          codigo: table.codigo,
+          nome: table.nome,
+          tipo: table.tipo,
+          escopoSexo: table.escopoSexo,
+          origem: table.origem ?? null,
+          descricao: table.descricao ?? null,
+          quantidadeVersoes: ownVersions.length,
+          ultimaVersaoId: latest?.id ?? null,
+          ultimaVersao: latest?.versao ?? null,
+          quantidadePontos: latest?.quantidadePontos ?? 0,
+          idadeMinima: latest?.idadeMinima ?? null,
+          idadeMaxima: latest?.idadeMaxima ?? null,
+          atualizadoEm: table.atualizadoEm
         };
       });
   });
 }
 
-export async function getBiometricTable(tableId: string) {
+export async function getTabuaBiometria(tabuaId: string) {
   return withSession(async (session) => {
-    const table = await session.find(BiometricTable, tableId);
+    const table = await session.find(TabuaBiometria, tabuaId);
     if (!table) return null;
-    const versions = (await selectFromEntity(BiometricTableVersion).execute(session))
-      .filter((version) => version.tableId === table.id)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const versions = (await selectFromEntity(VersaoTabuaBiometria).execute(session))
+      .filter((versao) => versao.tabuaId === table.id)
+      .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
     return {
       id: table.id,
-      code: table.code,
-      name: table.name,
-      kind: table.kind,
-      sexScope: table.sexScope,
-      source: table.source ?? null,
-      description: table.description ?? null,
-      enabled: table.enabled === 1,
-      createdAt: table.createdAt,
-      updatedAt: table.updatedAt,
+      codigo: table.codigo,
+      nome: table.nome,
+      tipo: table.tipo,
+      escopoSexo: table.escopoSexo,
+      origem: table.origem ?? null,
+      descricao: table.descricao ?? null,
+          habilitada: table.habilitada === 1,
+      criadoEm: table.criadoEm,
+      atualizadoEm: table.atualizadoEm,
       versions: versions.map(summarizeVersion)
     };
   });
 }
 
-export async function getBiometricVersionPoints(versionId: string) {
+export async function getVersaoBiometriaPoints(versaoId: string) {
   return withSession(async (session) => {
-    const version = await session.find(BiometricTableVersion, versionId);
-    if (!version) return null;
-    const points: BiometricPointInput[] = (await selectFromEntity(BiometricTablePoint).execute(session))
-      .filter((point) => point.versionId === version.id)
-      .sort((a, b) => a.sex.localeCompare(b.sex) || a.age - b.age)
-      .map((point) => ({
-        age: point.age,
-        sex: point.sex as BiometricPointInput["sex"],
-        qx: Number(point.qx)
+    const versao = await session.find(VersaoTabuaBiometria, versaoId);
+    if (!versao) return null;
+    const pontos: PontoBiometriaInput[] = (await selectFromEntity(PontoTabuaBiometria).execute(session))
+      .filter((ponto) => ponto.versaoId === versao.id)
+      .sort((a, b) => a.sexo.localeCompare(b.sexo) || a.idade - b.idade)
+      .map((ponto) => ({
+        idade: ponto.idade,
+        sexo: ponto.sexo as PontoBiometriaInput["sexo"],
+        qx: Number(ponto.qx)
       }));
-    return { version: summarizeVersion(version), points };
+    return { versao: summarizeVersion(versao), pontos };
   });
 }
 
-export async function deriveBiometricVersion(tableId: string, input: DeriveBiometricVersionInput) {
+export async function deriveVersaoBiometria(tabuaId: string, input: DeriveVersaoBiometriaInput) {
   const [table, parentBundle] = await Promise.all([
-    withSession((session) => session.find(BiometricTable, tableId)),
-    getBiometricVersionPoints(input.parentVersionId)
+    withSession((session) => session.find(TabuaBiometria, tabuaId)),
+    getVersaoBiometriaPoints(input.versaoOrigemId)
   ]);
   if (!table) throw new Error("Tábua não encontrada.");
   if (!parentBundle) throw new Error("Versão de origem não encontrada.");
 
-  const parentVersion = await withSession((session) => session.find(BiometricTableVersion, input.parentVersionId));
-  if (!parentVersion || parentVersion.tableId !== table.id) {
+  const parentVersion = await withSession((session) => session.find(VersaoTabuaBiometria, input.versaoOrigemId));
+  if (!parentVersion || parentVersion.tabuaId !== table.id) {
     throw new Error("A versão de origem não pertence à tábua selecionada.");
   }
 
-  const allVersions = await withSession((session) => selectFromEntity(BiometricTableVersion).execute(session));
-  if (allVersions.some((version) => version.tableId === table.id && version.version.toUpperCase() === input.version.trim().toUpperCase())) {
-    throw new Error(`A versão ${input.version} já existe nesta tábua.`);
+  const allVersions = await withSession((session) => selectFromEntity(VersaoTabuaBiometria).execute(session));
+  if (allVersions.some((versao) => versao.tabuaId === table.id && versao.versao.toUpperCase() === input.versao.trim().toUpperCase())) {
+    throw new Error(`A versão ${input.versao} já existe nesta tábua.`);
   }
 
-  let derived: BiometricPointInput[];
-  let parameters: Record<string, number>;
-  if (input.transform === "QX_SCALE") {
-    const factor = input.factor;
-    if (factor === undefined || !Number.isFinite(factor) || factor <= 0 || factor > 5) {
-      throw new Error("factor deve ser maior que zero e menor ou igual a 5.");
+  let derived: PontoBiometriaInput[];
+  let parametros: Record<string, number>;
+  if (input.transformacao === "QX_SCALE") {
+    const fator = input.fator;
+    if (fator === undefined || !Number.isFinite(fator) || fator <= 0 || fator > 5) {
+      throw new Error("fator deve ser maior que zero e menor ou igual a 5.");
     }
-    derived = parentBundle.points.map((point) => ({
-      age: point.age,
-      sex: point.sex,
-      qx: Math.min(1, Math.max(0, point.qx * factor))
+    derived = parentBundle.pontos.map((ponto) => ({
+      idade: ponto.idade,
+      sexo: ponto.sexo,
+      qx: Math.min(1, Math.max(0, ponto.qx * fator))
     }));
-    parameters = { factor };
+    parametros = { fator };
   } else {
-    const years = input.years;
-    if (years === undefined || !Number.isInteger(years) || years < -20 || years > 20) {
-      throw new Error("years deve ser um inteiro entre -20 e 20.");
+    const anos = input.anos;
+    if (anos === undefined || !Number.isInteger(anos) || anos < -20 || anos > 20) {
+      throw new Error("anos deve ser um inteiro entre -20 e 20.");
     }
-    const bySexAge = new Map(parentBundle.points.map((point) => [`${point.sex}:${point.age}`, point]));
-    derived = parentBundle.points.flatMap((point) => {
-      const source = bySexAge.get(`${point.sex}:${point.age + years}`);
-      return source ? [{ age: point.age, sex: point.sex, qx: source.qx }] : [];
+    const bySexAge = new Map(parentBundle.pontos.map((ponto) => [`${ponto.sexo}:${ponto.idade}`, ponto]));
+    derived = parentBundle.pontos.flatMap((ponto) => {
+      const origem = bySexAge.get(`${ponto.sexo}:${ponto.idade + anos}`);
+      return origem ? [{ idade: ponto.idade, sexo: ponto.sexo, qx: origem.qx }] : [];
     });
-    parameters = { years };
+    parametros = { anos };
   }
   validatePoints(derived);
 
   const now = new Date().toISOString();
-  const version = new BiometricTableVersion();
-  version.id = randomUUID();
-  version.tableId = table.id;
-  version.version = input.version.trim();
-  version.status = "ACTIVE";
-  version.effectiveFrom = input.effectiveFrom?.trim() || null;
-  version.effectiveTo = null;
-  version.parentVersionId = parentVersion.id;
-  version.derivationType = input.transform;
-  version.derivationParametersJson = JSON.stringify(parameters);
-  version.minAge = Math.min(...derived.map((point) => point.age));
-  version.maxAge = Math.max(...derived.map((point) => point.age));
-  version.pointCount = derived.length;
-  version.createdAt = now;
+  const versao = new VersaoTabuaBiometria();
+  versao.id = randomUUID();
+  versao.tabuaId = table.id;
+  versao.versao = input.versao.trim();
+  versao.situacao = "ATIVO";
+  versao.vigenciaInicial = input.vigenciaInicial?.trim() || null;
+  versao.vigenciaFinal = null;
+  versao.versaoOrigemId = parentVersion.id;
+  versao.tipoDerivacao = input.transformacao;
+  versao.parametrosDerivacaoJson = JSON.stringify(parametros);
+  versao.idadeMinima = Math.min(...derived.map((ponto) => ponto.idade));
+  versao.idadeMaxima = Math.max(...derived.map((ponto) => ponto.idade));
+  versao.quantidadePontos = derived.length;
+  versao.criadoEm = now;
 
   await withSession(async (session) => {
-    session.trackNew(tableOf(BiometricTableVersion), version, version.id);
-    for (const point of derived) {
-      const entity = new BiometricTablePoint();
+    session.trackNew(tableOf(VersaoTabuaBiometria), versao, versao.id);
+    for (const ponto of derived) {
+      const entity = new PontoTabuaBiometria();
       entity.id = randomUUID();
-      entity.versionId = version.id;
-      entity.age = point.age;
-      entity.sex = point.sex;
-      entity.qx = point.qx;
-      session.trackNew(tableOf(BiometricTablePoint), entity, entity.id);
+      entity.versaoId = versao.id;
+      entity.idade = ponto.idade;
+      entity.sexo = ponto.sexo;
+      entity.qx = ponto.qx;
+      session.trackNew(tableOf(PontoTabuaBiometria), entity, entity.id);
     }
-    const storedTable = await session.find(BiometricTable, table.id);
-    if (storedTable) storedTable.updatedAt = now;
+    const storedTable = await session.find(TabuaBiometria, table.id);
+    if (storedTable) storedTable.atualizadoEm = now;
     await session.commit();
   });
 
-  return getBiometricVersionPoints(version.id);
+  return getVersaoBiometriaPoints(versao.id);
 }

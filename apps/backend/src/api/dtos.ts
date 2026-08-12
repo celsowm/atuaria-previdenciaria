@@ -1,162 +1,162 @@
 import { Dto, Field, t } from "adorn-api";
 
-@Dto({ name: "Evaluation", description: "Actuarial valuation workspace summary." })
-export class EvaluationDto {
+@Dto({ name: "Avaliacao", description: "Actuarial valuation workspace summary." })
+export class AvaliacaoDto {
   @Field(t.integer()) id!: number;
-  @Field(t.nullable(t.string({ format: "uuid" }))) planId!: string | null;
-  @Field(t.string()) planName!: string;
-  @Field(t.string({ format: "date" })) referenceDate!: string;
-  @Field(t.string()) status!: string;
-  @Field(t.string()) stage!: string;
-  @Field(t.integer({ minimum: 0, maximum: 100 })) progress!: number;
-  @Field(t.integer({ minimum: 0 })) blockingIssues!: number;
-  @Field(t.string({ format: "date-time" })) updatedAt!: string;
+  @Field(t.nullable(t.string({ format: "uuid" }))) planoId!: string | null;
+  @Field(t.string()) nomePlano!: string;
+  @Field(t.string({ format: "date" })) dataReferencia!: string;
+  @Field(t.string()) situacao!: string;
+  @Field(t.string()) etapa!: string;
+  @Field(t.integer({ minimum: 0, maximum: 100 })) progresso!: number;
+  @Field(t.integer({ minimum: 0 })) inconsistenciasBloqueantes!: number;
+  @Field(t.string({ format: "date-time" })) atualizadoEm!: string;
 }
 
-@Dto({ name: "MappingProfile", description: "Reusable import mapping profile." })
-export class MappingProfileDto {
+@Dto({ name: "PerfilMapeamento", description: "Reusable import mapping profile." })
+export class PerfilMapeamentoDto {
   @Field(t.integer()) id!: number;
-  @Field(t.string()) name!: string;
-  @Field(t.string()) population!: string;
-  @Field(t.string()) version!: string;
-  @Field(t.integer()) mappedFields!: number;
-  @Field(t.integer()) totalFields!: number;
-  @Field(t.string({ format: "date-time" })) updatedAt!: string;
+  @Field(t.string()) nome!: string;
+  @Field(t.string()) populacao!: string;
+  @Field(t.string()) versao!: string;
+  @Field(t.integer()) camposMapeados!: number;
+  @Field(t.integer()) quantidadeCampos!: number;
+  @Field(t.string({ format: "date-time" })) atualizadoEm!: string;
 }
 
-@Dto({ name: "MappingProfileMatchRequest", description: "Find the best reusable mapping profile for a workbook schema." })
-export class MappingProfileMatchRequestDto {
-  @Field(t.string({ minLength: 1 })) population!: string;
+@Dto({ name: "PerfilMapeamentoMatchRequest", description: "Find the best reusable mapping profile for a workbook schema." })
+export class PerfilMapeamentoMatchRequestDto {
+  @Field(t.string({ minLength: 1 })) populacao!: string;
   @Field(t.array(t.string({ minLength: 1 }))) headers!: string[];
 }
 
-@Dto({ name: "MappingProfileMatch", description: "Compatibility result against a previous mapping profile." })
-export class MappingProfileMatchDto {
+@Dto({ name: "PerfilMapeamentoMatch", description: "Compatibility result against a previous mapping profile." })
+export class PerfilMapeamentoMatchDto {
   @Field(t.boolean()) matched!: boolean;
-  @Field(t.optional(t.integer())) profileId?: number;
-  @Field(t.optional(t.string())) profileName?: string;
-  @Field(t.optional(t.string())) version?: string;
+  @Field(t.optional(t.integer())) perfilMapeamentoId?: number;
+  @Field(t.optional(t.string())) nomePerfil?: string;
+  @Field(t.optional(t.string())) versao?: string;
   @Field(t.integer({ minimum: 0, maximum: 100 })) compatibility!: number;
   @Field(t.boolean()) exact!: boolean;
   @Field(t.array(t.string())) missingColumns!: string[];
   @Field(t.array(t.string())) newColumns!: string[];
-  @Field(t.string()) rulesJson!: string;
+  @Field(t.string()) regrasJson!: string;
 }
 
-@Dto({ name: "CreateImport", description: "Multipart metadata used to execute an auditable workbook import." })
-export class CreateImportDto {
-  @Field(t.string({ minLength: 1 })) population!: string;
-  @Field(t.optional(t.integer({ minimum: 1 }))) evaluationId?: number;
+@Dto({ name: "CriarImportacao", description: "Multipart metadata used to execute an auditable workbook import." })
+export class CriarImportacaoDto {
+  @Field(t.string({ minLength: 1 })) populacao!: string;
+  @Field(t.optional(t.integer({ minimum: 1 }))) avaliacaoId?: number;
   @Field(t.string({ format: "uuid" })) submassaId!: string;
-  @Field(t.optional(t.integer({ minimum: 1 }))) profileId?: number;
-  @Field(t.optional(t.string({ minLength: 1 }))) profileName?: string;
-  @Field(t.optional(t.boolean())) saveProfile?: boolean;
-  @Field(t.optional(t.string({ minLength: 1 }))) sheetName?: string;
-  @Field(t.integer({ minimum: 1 })) headerRow!: number;
-  @Field(t.string({ minLength: 2 })) rulesJson!: string;
+  @Field(t.optional(t.integer({ minimum: 1 }))) perfilMapeamentoId?: number;
+  @Field(t.optional(t.string({ minLength: 1 }))) nomePerfil?: string;
+  @Field(t.optional(t.boolean())) savePerfil?: boolean;
+  @Field(t.optional(t.string({ minLength: 1 }))) nomeAba?: string;
+  @Field(t.integer({ minimum: 1 })) linhaCabecalho!: number;
+  @Field(t.string({ minLength: 2 })) regrasJson!: string;
 }
 
-@Dto({ name: "ImportResult", description: "Completed Data Studio import with persisted RAW, normalized and canonical rows." })
-export class ImportResultDto {
+@Dto({ name: "ImportacaoResult", description: "Completed Data Studio import with persisted RAW, normalized and canonical rows." })
+export class ImportacaoResultDto {
   @Field(t.string({ format: "uuid" })) id!: string;
-  @Field(t.string({ format: "uuid" })) fileId!: string;
-  @Field(t.nullable(t.integer())) mappingProfileId!: number | null;
-  @Field(t.nullable(t.string())) mappingProfileVersion!: string | null;
-  @Field(t.string()) fileName!: string;
-  @Field(t.string()) fileSha256!: string;
-  @Field(t.string()) population!: string;
-  @Field(t.string()) sheetName!: string;
-  @Field(t.integer({ minimum: 0 })) rowCount!: number;
-  @Field(t.integer({ minimum: 0 })) validRows!: number;
-  @Field(t.integer({ minimum: 0 })) invalidRows!: number;
-  @Field(t.string()) status!: string;
+  @Field(t.string({ format: "uuid" })) arquivoId!: string;
+  @Field(t.nullable(t.integer())) perfilMapeamentoId!: number | null;
+  @Field(t.nullable(t.string())) versaoPerfilMapeamento!: string | null;
+  @Field(t.string()) nomeArquivo!: string;
+  @Field(t.string()) arquivoSha256!: string;
+  @Field(t.string()) populacao!: string;
+  @Field(t.string()) nomeAba!: string;
+  @Field(t.integer({ minimum: 0 })) quantidadeLinhas!: number;
+  @Field(t.integer({ minimum: 0 })) linhasValidas!: number;
+  @Field(t.integer({ minimum: 0 })) linhasInvalidas!: number;
+  @Field(t.string()) situacao!: string;
 }
 
-@Dto({ name: "CreateCritiqueRun", description: "Start deterministic cadastral critique for a persisted import." })
-export class CreateCritiqueRunDto {
-  @Field(t.string({ format: "uuid" })) importJobId!: string;
-  @Field(t.optional(t.string({ format: "uuid" }))) previousImportJobId?: string;
+@Dto({ name: "CriarExecucaoCritica", description: "Start deterministic cadastral critique for a persisted import." })
+export class CriarExecucaoCriticaDto {
+  @Field(t.string({ format: "uuid" })) importacaoId!: string;
+  @Field(t.optional(t.string({ format: "uuid" }))) importacaoAnteriorId?: string;
 }
 
-@Dto({ name: "CritiqueRun", description: "Persisted cadastral critique execution summary." })
-export class CritiqueRunDto {
+@Dto({ name: "ExecucaoCritica", description: "Persisted cadastral critique execution summary." })
+export class ExecucaoCriticaDto {
   @Field(t.string({ format: "uuid" })) id!: string;
-  @Field(t.string({ format: "uuid" })) importJobId!: string;
-  @Field(t.nullable(t.string({ format: "uuid" }))) previousImportJobId!: string | null;
-  @Field(t.string()) status!: string;
-  @Field(t.integer({ minimum: 0 })) blockingCount!: number;
-  @Field(t.integer({ minimum: 0 })) inconsistencyCount!: number;
-  @Field(t.integer({ minimum: 0 })) warningCount!: number;
-  @Field(t.integer({ minimum: 0 })) infoCount!: number;
+  @Field(t.string({ format: "uuid" })) importacaoId!: string;
+  @Field(t.nullable(t.string({ format: "uuid" }))) importacaoAnteriorId!: string | null;
+  @Field(t.string()) situacao!: string;
+  @Field(t.integer({ minimum: 0 })) quantidadeBloqueios!: number;
+  @Field(t.integer({ minimum: 0 })) quantidadeInconsistencias!: number;
+  @Field(t.integer({ minimum: 0 })) quantidadeAvisos!: number;
+  @Field(t.integer({ minimum: 0 })) quantidadeInformacoes!: number;
   @Field(t.integer({ minimum: 0 })) totalIssues!: number;
   @Field(t.boolean()) comparedWithPrevious!: boolean;
-  @Field(t.string({ format: "date-time" })) createdAt!: string;
-  @Field(t.nullable(t.string({ format: "date-time" }))) completedAt!: string | null;
+  @Field(t.string({ format: "date-time" })) criadoEm!: string;
+  @Field(t.nullable(t.string({ format: "date-time" }))) concluidoEm!: string | null;
 }
 
-@Dto({ name: "CritiqueRunParams" })
-export class CritiqueRunParamsDto {
+@Dto({ name: "ExecucaoCriticaParams" })
+export class ExecucaoCriticaParamsDto {
   @Field(t.string({ format: "uuid" })) id!: string;
 }
 
-@Dto({ name: "CritiqueIssue", description: "Cadastral critique occurrence." })
-export class CritiqueIssueDto {
+@Dto({ name: "InconsistenciaCritica", description: "Cadastral critique occurrence." })
+export class InconsistenciaCriticaDto {
   @Field(t.string({ format: "uuid" })) id!: string;
-  @Field(t.string()) ruleCode!: string;
-  @Field(t.string()) severity!: string;
-  @Field(t.string()) category!: string;
-  @Field(t.string()) status!: string;
-  @Field(t.nullable(t.string())) participantRegistration!: string | null;
+  @Field(t.string()) codigoRegra!: string;
+  @Field(t.string()) severidade!: string;
+  @Field(t.string()) categoria!: string;
+  @Field(t.string()) situacao!: string;
+  @Field(t.nullable(t.string())) matriculaParticipante!: string | null;
   @Field(t.nullable(t.string())) campoUnicoLgpd!: string | null;
-  @Field(t.nullable(t.string())) fieldPath!: string | null;
-  @Field(t.nullable(t.string())) currentValueJson!: string | null;
-  @Field(t.nullable(t.string())) previousValueJson!: string | null;
-  @Field(t.string()) message!: string;
-  @Field(t.string({ format: "date-time" })) createdAt!: string;
+  @Field(t.nullable(t.string())) caminhoCampo!: string | null;
+  @Field(t.nullable(t.string())) jsonValorAtual!: string | null;
+  @Field(t.nullable(t.string())) jsonValorAnterior!: string | null;
+  @Field(t.string()) mensagem!: string;
+  @Field(t.string({ format: "date-time" })) criadoEm!: string;
 }
 
-@Dto({ name: "CritiqueIssueParams" })
-export class CritiqueIssueParamsDto {
+@Dto({ name: "InconsistenciaCriticaParams" })
+export class InconsistenciaCriticaParamsDto {
   @Field(t.string({ format: "uuid" })) id!: string;
 }
 
-@Dto({ name: "CritiqueIssueDetail", description: "Critique occurrence with complete source-data provenance." })
-export class CritiqueIssueDetailDto {
+@Dto({ name: "InconsistenciaCriticaDetail", description: "Critica occurrence with complete source-data provenance." })
+export class InconsistenciaCriticaDetailDto {
   @Field(t.string({ format: "uuid" })) id!: string;
-  @Field(t.string()) ruleCode!: string;
-  @Field(t.string()) severity!: string;
-  @Field(t.string()) category!: string;
-  @Field(t.string()) status!: string;
-  @Field(t.nullable(t.string())) participantRegistration!: string | null;
+  @Field(t.string()) codigoRegra!: string;
+  @Field(t.string()) severidade!: string;
+  @Field(t.string()) categoria!: string;
+  @Field(t.string()) situacao!: string;
+  @Field(t.nullable(t.string())) matriculaParticipante!: string | null;
   @Field(t.nullable(t.string())) campoUnicoLgpd!: string | null;
-  @Field(t.nullable(t.string())) fieldPath!: string | null;
-  @Field(t.nullable(t.string())) currentValueJson!: string | null;
-  @Field(t.nullable(t.string())) previousValueJson!: string | null;
-  @Field(t.string()) message!: string;
-  @Field(t.string({ format: "date-time" })) createdAt!: string;
-  @Field(t.string()) detailsJson!: string;
-  @Field(t.nullable(t.string())) rawJson!: string | null;
-  @Field(t.nullable(t.string())) normalizedJson!: string | null;
-  @Field(t.nullable(t.string())) canonicalJson!: string | null;
+  @Field(t.nullable(t.string())) caminhoCampo!: string | null;
+  @Field(t.nullable(t.string())) jsonValorAtual!: string | null;
+  @Field(t.nullable(t.string())) jsonValorAnterior!: string | null;
+  @Field(t.string()) mensagem!: string;
+  @Field(t.string({ format: "date-time" })) criadoEm!: string;
+  @Field(t.string()) jsonDetalhes!: string;
+  @Field(t.nullable(t.string())) jsonBruto!: string | null;
+  @Field(t.nullable(t.string())) jsonNormalizado!: string | null;
+  @Field(t.nullable(t.string())) jsonCanonico!: string | null;
   @Field(t.nullable(t.string())) previousCanonicalJson!: string | null;
-  @Field(t.nullable(t.string())) resolutionNote!: string | null;
-  @Field(t.nullable(t.string({ format: "date-time" }))) resolvedAt!: string | null;
+  @Field(t.nullable(t.string())) notaResolucao!: string | null;
+  @Field(t.nullable(t.string({ format: "date-time" }))) resolvidoEm!: string | null;
 }
 
-@Dto({ name: "ResolveCritiqueIssue", description: "Resolve or justify a persisted cadastral critique occurrence." })
-export class ResolveCritiqueIssueDto {
-  @Field(t.string({ minLength: 1 })) status!: string;
-  @Field(t.string({ minLength: 1 })) note!: string;
+@Dto({ name: "ResolverInconsistenciaCritica", description: "Resolve or justify a persisted cadastral critique occurrence." })
+export class ResolverInconsistenciaCriticaDto {
+  @Field(t.string({ minLength: 1 })) situacao!: string;
+  @Field(t.string({ minLength: 1 })) nota!: string;
 }
 
-@Dto({ name: "LlmProvider", description: "OpenAI-compatible LLM provider configuration summary." })
-export class LlmProviderDto {
+@Dto({ name: "ProvedorLlm", description: "OpenAI-compatible LLM provider configuration summary." })
+export class ProvedorLlmDto {
   @Field(t.integer()) id!: number;
-  @Field(t.string()) name!: string;
-  @Field(t.string({ format: "uri" })) baseUrl!: string;
-  @Field(t.string()) model!: string;
+  @Field(t.string()) nome!: string;
+  @Field(t.string({ format: "uri" })) urlBase!: string;
+  @Field(t.string()) modelo!: string;
   @Field(t.integer({ minimum: 0 })) credentialCount!: number;
-  @Field(t.boolean()) enabled!: boolean;
+  @Field(t.boolean()) habilitado!: boolean;
 }
 
 @Dto({ name: "Dashboard", description: "Operational dashboard totals." })

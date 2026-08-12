@@ -19,22 +19,22 @@ import {
   Typography
 } from "@mui/material";
 import AddRounded from "@mui/icons-material/AddRounded";
-import { api, type AuthUser } from "../../api/client";
+import { api, type UsuarioAutenticado } from "../../api/client";
 
-type UserRole = AuthUser["role"];
+type UserRole = UsuarioAutenticado["perfil"];
 
 const roles = [
-  { value: "admin", label: "Administrador" },
-  { value: "actuary", label: "Atuário" },
-  { value: "reviewer", label: "Revisor" }
-] as const satisfies ReadonlyArray<{ value: UserRole; label: string }>;
+  { value: "admin", rotulo: "Administrador" },
+  { value: "actuary", rotulo: "Atuário" },
+  { value: "reviewer", rotulo: "Revisor" }
+] as const satisfies ReadonlyArray<{ value: UserRole; rotulo: string }>;
 
 function roleLabel(role: UserRole) {
-  return roles.find((candidate) => candidate.value === role)?.label ?? role;
+  return roles.find((candidate) => candidate.value === role)?.rotulo ?? role;
 }
 
 export function AdminUsersPage() {
-  const [users, setUsers] = useState<AuthUser[]>([]);
+  const [usuarios, setUsers] = useState<UsuarioAutenticado[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -42,7 +42,7 @@ export function AdminUsersPage() {
   const reload = async () => {
     setLoading(true);
     try {
-      setUsers(await api.users());
+      setUsers(await api.usuarios());
       setError(null);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível carregar os usuários.");
@@ -55,9 +55,9 @@ export function AdminUsersPage() {
     void reload();
   }, []);
 
-  const update = async (user: AuthUser, patch: { role?: UserRole; active?: boolean }) => {
+  const update = async (user: UsuarioAutenticado, patch: { perfil?: UserRole; ativo?: boolean }) => {
     try {
-      const updated = await api.updateUser(user.id, patch);
+      const updated = await api.atualizarUsuario(user.id, patch);
       setUsers((current) => current.map((candidate) => candidate.id === updated.id ? updated : candidate));
       setError(null);
     } catch (reason) {
@@ -77,17 +77,17 @@ export function AdminUsersPage() {
       </Box>
 
       {error && <Alert severity="error">{error}</Alert>}
-      {loading && users.length === 0 ? (
+      {loading && usuarios.length === 0 ? (
         <Box sx={{ minHeight: 280, display: "grid", placeItems: "center" }}><CircularProgress size={28} /></Box>
       ) : (
         <Stack spacing={1.25}>
-          {users.map((user) => (
+          {usuarios.map((user) => (
             <Paper key={user.id} elevation={0} sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "minmax(260px,1fr) 180px 130px 150px" }, gap: 2, alignItems: "center" }}>
                 <Stack direction="row" spacing={1.5} alignItems="center" minWidth={0}>
-                  <Avatar sx={{ width: 38, height: 38 }}>{user.displayName.slice(0, 2).toUpperCase()}</Avatar>
-                  <Box minWidth={0}>
-                    <Typography fontWeight={700} noWrap>{user.displayName}</Typography>
+                  <Avatar sx={{ width: 38, height: 38 }}>{user.nomeExibicao.slice(0, 2).toUpperCase()}</Avatar>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography fontWeight={700} noWrap>{user.nomeExibicao}</Typography>
                     <Typography variant="body2" color="text.secondary" noWrap>{user.email}</Typography>
                   </Box>
                 </Stack>
@@ -95,16 +95,16 @@ export function AdminUsersPage() {
                   select
                   size="small"
                   label="Perfil"
-                  value={user.role}
-                  onChange={(event) => void update(user, { role: event.target.value as UserRole })}
+                  value={user.perfil}
+                  onChange={(event) => void update(user, { perfil: event.target.value as UserRole })}
                 >
-                  {roles.map((role) => <MenuItem key={role.value} value={role.value}>{role.label}</MenuItem>)}
+                  {roles.map((role) => <MenuItem key={role.value} value={role.value}>{role.rotulo}</MenuItem>)}
                 </TextField>
-                <Chip size="small" variant="outlined" label={roleLabel(user.role)} />
+                <Chip size="small" variant="outlined" label={roleLabel(user.perfil)} />
                 <FormControlLabel
                   sx={{ m: 0 }}
-                  control={<Switch checked={user.active} onChange={(_, checked) => void update(user, { active: checked })} />}
-                  label={user.active ? "Ativo" : "Inativo"}
+                  control={<Switch checked={user.ativo} onChange={(_, checked) => void update(user, { ativo: checked })} />}
+                  label={user.ativo ? "Ativo" : "Inativo"}
                 />
               </Box>
             </Paper>
@@ -113,14 +113,14 @@ export function AdminUsersPage() {
       )}
 
       <CreateUserDialog open={open} onClose={() => setOpen(false)} onCreated={(user) => {
-        setUsers((current) => [...current, user].sort((a, b) => a.displayName.localeCompare(b.displayName, "pt-BR")));
+        setUsers((current) => [...current, user].sort((a, b) => a.nomeExibicao.localeCompare(b.nomeExibicao, "pt-BR")));
         setOpen(false);
       }} />
     </Stack>
   );
 }
 
-function CreateUserDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (user: AuthUser) => void }) {
+function CreateUserDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (user: UsuarioAutenticado) => void }) {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -133,7 +133,7 @@ function CreateUserDialog({ open, onClose, onCreated }: { open: boolean; onClose
     setSaving(true);
     setError(null);
     try {
-      const user = await api.createUser({ displayName, email, password, role });
+      const user = await api.criarUsuario({ nomeExibicao: displayName, email, password, perfil: role });
       setDisplayName("");
       setEmail("");
       setPassword("");
@@ -157,7 +157,7 @@ function CreateUserDialog({ open, onClose, onCreated }: { open: boolean; onClose
             <TextField label="E-mail" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
             <TextField label="Senha inicial" type="password" helperText="Mínimo de 10 caracteres." value={password} onChange={(event) => setPassword(event.target.value)} required inputProps={{ minLength: 10 }} />
             <TextField select label="Perfil" value={role} onChange={(event) => setRole(event.target.value as UserRole)}>
-              {roles.map((candidate) => <MenuItem key={candidate.value} value={candidate.value}>{candidate.label}</MenuItem>)}
+              {roles.map((candidate) => <MenuItem key={candidate.value} value={candidate.value}>{candidate.rotulo}</MenuItem>)}
             </TextField>
           </Stack>
         </DialogContent>

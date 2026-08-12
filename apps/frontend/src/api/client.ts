@@ -1,56 +1,66 @@
 import type { components as ApiComponents } from "./generated/index";
 
-export type Evaluation = ApiComponents["schemas"]["Evaluation"];
-export type DashboardTotals = ApiComponents["schemas"]["Dashboard"];
-export type MappingProfile = ApiComponents["schemas"]["MappingProfile"];
-export type MappingProfileMatch = ApiComponents["schemas"]["MappingProfileMatch"];
-export type ImportResult = ApiComponents["schemas"]["ImportResult"];
-export type CritiqueRun = ApiComponents["schemas"]["CritiqueRun"];
-export type CritiqueIssue = ApiComponents["schemas"]["CritiqueIssue"];
-export type CritiqueIssueDetail = ApiComponents["schemas"]["CritiqueIssueDetail"];
-export type BiometricPoint = ApiComponents["schemas"]["BiometricPoint"];
-export type BiometricVersion = ApiComponents["schemas"]["BiometricVersion"];
-export type BiometricTableSummary = ApiComponents["schemas"]["BiometricTableSummary"];
-export type BiometricTableDetail = ApiComponents["schemas"]["BiometricTableDetail"];
-export type BiometricVersionPoints = ApiComponents["schemas"]["BiometricVersionPoints"];
-export type CreateBiometricTableInput = ApiComponents["schemas"]["CreateBiometricTable"];
-export type DeriveBiometricVersionInput = ApiComponents["schemas"]["DeriveBiometricVersion"];
-export type AdherenceObservation = ApiComponents["schemas"]["AdherenceObservation"];
-export type CreateAdherenceStudyInput = ApiComponents["schemas"]["CreateAdherenceStudy"];
-export type AdherenceStudySummary = ApiComponents["schemas"]["AdherenceStudySummary"];
-export type AdherenceCandidateResult = ApiComponents["schemas"]["AdherenceCandidateResult"];
-export type AdherenceStudyDetail = ApiComponents["schemas"]["AdherenceStudyDetail"];
-export type AdherenceCandidatePoint = ApiComponents["schemas"]["AdherenceCandidatePoint"];
-export type AdherenceCandidatePoints = ApiComponents["schemas"]["AdherenceCandidatePoints"];
-export type ActuarialParameterizationSummary = ApiComponents["schemas"]["ActuarialParameterizationSummary"];
-export type ActuarialParameterization = ApiComponents["schemas"]["ActuarialParameterization"];
-export type CreateActuarialParameterizationInput = ApiComponents["schemas"]["CreateActuarialParameterization"];
-export type UpdateActuarialParameterizationInput = ApiComponents["schemas"]["UpdateActuarialParameterization"];
-export type SetActuarialParameterValueInput = ApiComponents["schemas"]["SetActuarialParameterValue"];
-export type CalculationEngine = ApiComponents["schemas"]["CalculationEngine"];
-export type CalculationRunSummary = ApiComponents["schemas"]["CalculationRunSummary"];
-export type CalculationRun = ApiComponents["schemas"]["CalculationRun"];
-export type CalculationParticipantResult = ApiComponents["schemas"]["CalculationParticipantResult"];
-export type CalculationParticipantResultPage = ApiComponents["schemas"]["CalculationParticipantResultPage"];
-export type CreateCalculationRunInput = ApiComponents["schemas"]["CreateCalculationRun"];
-export type LlmProvider = ApiComponents["schemas"]["LlmProvider"];
-export type AuthUser = ApiComponents["schemas"]["AuthUser"];
-export type LoginResponse = ApiComponents["schemas"]["LoginResponse"];
-export type CreateUserInput = ApiComponents["schemas"]["CreateUser"];
-export type UpdateUserInput = ApiComponents["schemas"]["UpdateUser"];
-export type Plan = ApiComponents["schemas"]["Plan"];
-export type CreatePlanInput = ApiComponents["schemas"]["CreatePlan"];
-export type UpdatePlanInput = ApiComponents["schemas"]["UpdatePlan"];
-export type PlanRulesVersionSummary = ApiComponents["schemas"]["PlanRulesVersionSummary"];
-export type PlanRulesVersion = ApiComponents["schemas"]["PlanRulesVersion"];
-export type CreatePlanRulesVersionInput = ApiComponents["schemas"]["CreatePlanRulesVersion"];
-export type UpdatePlanRulesVersionInput = ApiComponents["schemas"]["UpdatePlanRulesVersion"];
-export type SetPlanRuleValueInput = ApiComponents["schemas"]["SetPlanRuleValue"];
-export type ApplicationConfig = ApiComponents["schemas"]["ApplicationConfig"];
-export type ActuarialClosing = { id: string; evaluationId: number; calculationRunId: string; status: "DRAFT" | "FINALIZED"; notes: string | null; createdAt: string; updatedAt: string; finalizedAt: string | null; lines: Array<{ id: string; code: string; category: string; label: string; valueJson: string; unit: string | null; source: string; ordinal: number }> };
+export type Avaliacao = ApiComponents["schemas"]["Avaliacao"];
+export type Painel = ApiComponents["schemas"]["Painel"];
+export type PerfilMapeamento = ApiComponents["schemas"]["PerfilMapeamento"];
+export type CorrespondenciaPerfilMapeamento = ApiComponents["schemas"]["CorrespondenciaPerfilMapeamento"];
+export type ResultadoImportacao = ApiComponents["schemas"]["ResultadoImportacao"];
+export type ExecucaoCritica = ApiComponents["schemas"]["ExecucaoCritica"];
+export type InconsistenciaCritica = ApiComponents["schemas"]["InconsistenciaCritica"];
+export type DetalheInconsistenciaCritica = ApiComponents["schemas"]["DetalheInconsistenciaCritica"];
+export type PontoBiometria = ApiComponents["schemas"]["PontoBiometria"];
+export type VersaoBiometria = ApiComponents["schemas"]["VersaoBiometria"];
+export type ResumoTabuaBiometria = ApiComponents["schemas"]["ResumoTabuaBiometria"];
+export type DetalheTabuaBiometria = ApiComponents["schemas"]["DetalheTabuaBiometria"];
+export type PontosVersaoBiometria = ApiComponents["schemas"]["PontosVersaoBiometria"];
+export type CriarTabuaBiometria = ApiComponents["schemas"]["CriarTabuaBiometria"];
+export type DerivarVersaoBiometria = ApiComponents["schemas"]["DerivarVersaoBiometria"];
+export type ObservacaoAderencia = ApiComponents["schemas"]["ObservacaoAderencia"];
+export type CriarEstudoAderencia = ApiComponents["schemas"]["CriarEstudoAderencia"];
+export type ResumoEstudoAderencia = ApiComponents["schemas"]["ResumoEstudoAderencia"];
+export type ResultadoCandidatoAderencia = ApiComponents["schemas"]["ResultadoCandidatoAderencia"];
+export type DetalheEstudoAderencia = ApiComponents["schemas"]["DetalheEstudoAderencia"];
+export type PontoCandidatoAderencia = ApiComponents["schemas"]["PontoCandidatoAderencia"];
+export type PontosCandidatoAderencia = ApiComponents["schemas"]["PontosCandidatoAderencia"];
+export type ResumoParametrizacaoAtuarial = ApiComponents["schemas"]["ResumoParametrizacaoAtuarial"];
+export type ParametrizacaoAtuarial = ApiComponents["schemas"]["ParametrizacaoAtuarial"];
+export type CriarParametrizacaoAtuarial = ApiComponents["schemas"]["CriarParametrizacaoAtuarial"];
+export type AtualizarParametrizacaoAtuarial = ApiComponents["schemas"]["AtualizarParametrizacaoAtuarial"];
+export type DefinirValorParametroAtuarial = ApiComponents["schemas"]["DefinirValorParametroAtuarial"];
+export type MotorCalculo = ApiComponents["schemas"]["MotorCalculo"];
+export type ResumoExecucaoCalculo = ApiComponents["schemas"]["ResumoExecucaoCalculo"];
+export type ExecucaoCalculo = ApiComponents["schemas"]["ExecucaoCalculo"];
+export type ResultadoParticipanteCalculo = ApiComponents["schemas"]["ResultadoParticipanteCalculo"];
+export type PaginaResultadosParticipantesCalculo = ApiComponents["schemas"]["PaginaResultadosParticipantesCalculo"];
+export type CriarExecucaoCalculo = ApiComponents["schemas"]["CriarExecucaoCalculo"];
+export type ProvedorLlm = ApiComponents["schemas"]["ProvedorLlm"];
+export type UsuarioAutenticado = ApiComponents["schemas"]["UsuarioAutenticado"];
+export type RespostaLogin = ApiComponents["schemas"]["RespostaLogin"];
+export type CriarUsuario = ApiComponents["schemas"]["CriarUsuario"];
+export type AtualizarUsuario = ApiComponents["schemas"]["AtualizarUsuario"];
+export type Plano = ApiComponents["schemas"]["Plano"];
+export type CriarPlano = ApiComponents["schemas"]["CriarPlano"];
+export type AtualizarPlano = ApiComponents["schemas"]["AtualizarPlano"];
+export type ResumoVersaoRegrasPlano = ApiComponents["schemas"]["ResumoVersaoRegrasPlano"];
+export type VersaoRegrasPlano = ApiComponents["schemas"]["VersaoRegrasPlano"];
+export type CriarVersaoRegrasPlano = ApiComponents["schemas"]["CriarVersaoRegrasPlano"];
+export type AtualizarVersaoRegrasPlano = ApiComponents["schemas"]["AtualizarVersaoRegrasPlano"];
+export type DefinirValorRegraPlano = ApiComponents["schemas"]["DefinirValorRegraPlano"];
+export type ConfiguracaoAplicacao = ApiComponents["schemas"]["ConfiguracaoAplicacao"];
+export type CriarVersaoRegrasPlanoInput = CriarVersaoRegrasPlano;
+export type AtualizarVersaoRegrasPlanoInput = AtualizarVersaoRegrasPlano;
+export type DefinirValorRegraPlanoInput = DefinirValorRegraPlano;
+export type CriarParametrizacaoAtuarialInput = CriarParametrizacaoAtuarial;
+export type AtualizarParametrizacaoAtuarialInput = AtualizarParametrizacaoAtuarial;
+export type DefinirValorParametroAtuarialInput = DefinirValorParametroAtuarial;
+export type CriarExecucaoCalculoInput = CriarExecucaoCalculo;
+export type CriarTabuaBiometriaInput = CriarTabuaBiometria;
+export type DerivarVersaoBiometriaInput = DerivarVersaoBiometria;
+export type CriarEstudoAderenciaInput = CriarEstudoAderencia;
+export type FechamentoAtuarial = { id: string; avaliacaoId: number; execucaoCalculoId: string; situacao: "RASCUNHO" | "FINALIZADO"; observacoes: string | null; criadoEm: string; atualizadoEm: string; finalizadoEm: string | null; linhas: Array<{ id: string; codigo: string; categoria: string; rotulo: string; jsonValor: string; unidade: string | null; origem: string; ordem: number }> };
 
-export const defaultApplicationConfig: ApplicationConfig = {
-  name: "Atuária Previdenciária",
+export const defaultApplicationConfig: ConfiguracaoAplicacao = {
+  nome: "Atuária Previdenciária",
   shortName: "Atuária Previdenciária",
   organizationName: null
 };
@@ -58,19 +68,19 @@ export const defaultApplicationConfig: ApplicationConfig = {
 export type ImportMappingRule = {
   sources: string[];
   targets: string[];
-  transform: string;
+  transformacao: string;
 };
 
 export type ImportWorkbookOptions = {
-  population: string;
+  populacao: string;
   submassaId: string;
-  evaluationId?: number;
-  profileId?: number;
-  profileName?: string;
-  saveProfile?: boolean;
-  sheetName?: string;
-  headerRow: number;
-  rules: ImportMappingRule[];
+  avaliacaoId?: number;
+  perfilMapeamentoId?: number;
+  nomePerfil?: string;
+  salvarPerfil?: boolean;
+  nomeAba?: string;
+  linhaCabecalho: number;
+  regras: ImportMappingRule[];
 };
 
 const tokenKey = "atuaria-previdenciaria.session.token";
@@ -128,97 +138,97 @@ function patchJson<T>(url: string, body: unknown) {
   });
 }
 
-async function importWorkbook(file: File, options: ImportWorkbookOptions): Promise<ImportResult> {
+async function importWorkbook(file: File, options: ImportWorkbookOptions): Promise<ResultadoImportacao> {
   const form = new FormData();
   form.append("file", file);
-  form.append("population", options.population);
+  form.append("populacao", options.populacao);
   form.append("submassaId", options.submassaId);
-  form.append("headerRow", String(options.headerRow));
-  form.append("rulesJson", JSON.stringify(options.rules));
-  form.append("saveProfile", String(options.saveProfile ?? true));
-  if (options.evaluationId !== undefined) form.append("evaluationId", String(options.evaluationId));
-  if (options.profileId !== undefined) form.append("profileId", String(options.profileId));
-  if (options.profileName) form.append("profileName", options.profileName);
-  if (options.sheetName) form.append("sheetName", options.sheetName);
+  form.append("linhaCabecalho", String(options.linhaCabecalho));
+  form.append("regrasJson", JSON.stringify(options.regras));
+  form.append("salvarPerfil", String(options.salvarPerfil ?? true));
+  if (options.avaliacaoId !== undefined) form.append("avaliacaoId", String(options.avaliacaoId));
+  if (options.perfilMapeamentoId !== undefined) form.append("perfilMapeamentoId", String(options.perfilMapeamentoId));
+  if (options.nomePerfil) form.append("nomePerfil", options.nomePerfil);
+  if (options.nomeAba) form.append("nomeAba", options.nomeAba);
 
-  return requestJson<ImportResult>("/api/imports/", { method: "POST", body: form });
+  return requestJson<ResultadoImportacao>("/api/importacoes/", { method: "POST", body: form });
 }
 
 export const api = {
-  publicConfig: () => getJson<ApplicationConfig>("/api/config"),
-  login: (email: string, password: string) => postJson<LoginResponse>("/api/auth/login", { email, password }),
-  me: () => getJson<AuthUser>("/api/auth/me"),
+  publicConfig: () => getJson<ConfiguracaoAplicacao>("/api/config"),
+  login: (email: string, password: string) => postJson<RespostaLogin>("/api/auth/login", { email, password }),
+  me: () => getJson<UsuarioAutenticado>("/api/auth/me"),
   logout: () => requestJson<{ ok: boolean }>("/api/auth/logout", { method: "POST" }),
-  users: () => getJson<AuthUser[]>("/api/users/"),
-  createUser: (input: CreateUserInput) => postJson<AuthUser>("/api/users/", input),
-  updateUser: (id: string, input: UpdateUserInput) => patchJson<AuthUser>(`/api/users/${id}`, input),
-  plans: () => getJson<Plan[]>("/api/plans/"),
-  plan: (id: string) => getJson<Plan>(`/api/plans/${id}`),
-  createPlan: (input: CreatePlanInput) => postJson<Plan>("/api/plans/", input),
-  updatePlan: (id: string, input: UpdatePlanInput) => patchJson<Plan>(`/api/plans/${id}`, input),
-  planRulesVersions: (planId: string) =>
-    getJson<PlanRulesVersionSummary[]>(`/api/plans/${planId}/rules`),
-  planRulesVersion: (id: string) => getJson<PlanRulesVersion>(`/api/plan-rules/${id}`),
-  createPlanRulesVersion: (planId: string, input: CreatePlanRulesVersionInput = {}) =>
-    postJson<PlanRulesVersion>(`/api/plans/${planId}/rules`, input),
-  updatePlanRulesVersion: (id: string, input: UpdatePlanRulesVersionInput) =>
-    patchJson<PlanRulesVersion>(`/api/plan-rules/${id}`, input),
-  setPlanRuleValues: (id: string, rules: SetPlanRuleValueInput[]) =>
-    patchJson<PlanRulesVersion>(`/api/plan-rules/${id}/values`, { rules }),
-  approvePlanRulesVersion: (id: string) =>
-    postJson<PlanRulesVersion>(`/api/plan-rules/${id}/approve`, {}),
-  dashboard: () => getJson<DashboardTotals>("/api/dashboard"),
-  evaluations: () => getJson<Evaluation[]>("/api/evaluations/"),
-  parameterizations: (evaluationId: number) =>
-    getJson<ActuarialParameterizationSummary[]>(`/api/evaluations/${evaluationId}/parameterizations`),
-  parameterization: (id: string) => getJson<ActuarialParameterization>(`/api/parameterizations/${id}`),
-  createParameterization: (evaluationId: number, input: CreateActuarialParameterizationInput = {}) =>
-    postJson<ActuarialParameterization>(`/api/evaluations/${evaluationId}/parameterizations`, input),
-  updateParameterization: (id: string, input: UpdateActuarialParameterizationInput) =>
-    patchJson<ActuarialParameterization>(`/api/parameterizations/${id}`, input),
-  setActuarialParameters: (id: string, parameters: SetActuarialParameterValueInput[]) =>
-    patchJson<ActuarialParameterization>(`/api/parameterizations/${id}/parameters`, { parameters }),
-  promoteAdherenceCandidate: (id: string, candidateResultId: string) =>
-    postJson<ActuarialParameterization>(`/api/parameterizations/${id}/adherence-candidate`, { candidateResultId }),
-  removeActuarialHypothesis: (id: string, selectionId: string) =>
-    postJson<ActuarialParameterization>(`/api/parameterizations/${id}/hypothesis/remove`, { selectionId }),
-  approveParameterization: (id: string) =>
-    postJson<ActuarialParameterization>(`/api/parameterizations/${id}/approve`, {}),
-  calculationEngines: () => getJson<CalculationEngine[]>("/api/calculation-engines"),
-  calculationRuns: (evaluationId: number) =>
-    getJson<CalculationRunSummary[]>(`/api/evaluations/${evaluationId}/calculations`),
-  calculationRun: (id: string) => getJson<CalculationRun>(`/api/calculations/${id}`),
-  calculationParticipantResults: (id: string, page = 1, pageSize = 50) =>
-    getJson<CalculationParticipantResultPage>(`/api/calculations/${id}/participants?page=${page}&pageSize=${pageSize}`),
-  createCalculationRun: (evaluationId: number, input: CreateCalculationRunInput) =>
-    postJson<CalculationRun>(`/api/evaluations/${evaluationId}/calculations`, input),
-  closings: (evaluationId: number) => getJson<ActuarialClosing[]>(`/api/evaluations/${evaluationId}/closings`),
-  createClosing: (evaluationId: number, calculationRunId: string, notes?: string) => postJson<ActuarialClosing>(`/api/evaluations/${evaluationId}/closings`, { calculationRunId, notes }),
-  finalizeClosing: (id: string) => postJson<ActuarialClosing>(`/api/closings/${id}/finalize`, {}),
-  mappingProfiles: () => getJson<MappingProfile[]>("/api/mapping-profiles/"),
-  matchMappingProfile: (headers: string[], population: string) =>
-    postJson<MappingProfileMatch>("/api/mapping-profiles/match", { headers, population }),
+  usuarios: () => getJson<UsuarioAutenticado[]>("/api/usuarios/"),
+  criarUsuario: (input: CriarUsuario) => postJson<UsuarioAutenticado>("/api/usuarios/", input),
+  atualizarUsuario: (id: string, input: AtualizarUsuario) => patchJson<UsuarioAutenticado>(`/api/usuarios/${id}`, input),
+  plans: () => getJson<Plano[]>("/api/planos/"),
+  plan: (id: string) => getJson<Plano>(`/api/planos/${id}`),
+  criarPlano: (input: CriarPlano) => postJson<Plano>("/api/planos/", input),
+  atualizarPlano: (id: string, input: AtualizarPlano) => patchJson<Plano>(`/api/planos/${id}`, input),
+  versoesRegrasPlano: (planoId: string) =>
+    getJson<ResumoVersaoRegrasPlano[]>(`/api/planos/${planoId}/regras`),
+  versaoRegrasPlano: (id: string) => getJson<VersaoRegrasPlano>(`/api/regras-plano/${id}`),
+  criarVersaoRegrasPlano: (planoId: string, input: CriarVersaoRegrasPlanoInput = {}) =>
+    postJson<VersaoRegrasPlano>(`/api/planos/${planoId}/regras`, input),
+  atualizarVersaoRegrasPlano: (id: string, input: AtualizarVersaoRegrasPlanoInput) =>
+    patchJson<VersaoRegrasPlano>(`/api/regras-plano/${id}`, input),
+  definirValoresRegrasPlano: (id: string, regras: DefinirValorRegraPlanoInput[]) =>
+    patchJson<VersaoRegrasPlano>(`/api/regras-plano/${id}/valores`, { regras }),
+  aprovarVersaoRegrasPlano: (id: string) =>
+    postJson<VersaoRegrasPlano>(`/api/regras-plano/${id}/aprovar`, {}),
+  dashboard: () => getJson<Painel>("/api/dashboard"),
+  avaliacoes: () => getJson<Avaliacao[]>("/api/avaliacoes/"),
+  parametrizacoes: (avaliacaoId: number) =>
+    getJson<ResumoParametrizacaoAtuarial[]>(`/api/avaliacoes/${avaliacaoId}/parametrizacoes`),
+  parametrizacao: (id: string) => getJson<ParametrizacaoAtuarial>(`/api/parametrizacoes/${id}`),
+  criarParametrizacao: (avaliacaoId: number, input: CriarParametrizacaoAtuarialInput = {}) =>
+    postJson<ParametrizacaoAtuarial>(`/api/avaliacoes/${avaliacaoId}/parametrizacoes`, input),
+  atualizarParametrizacao: (id: string, input: AtualizarParametrizacaoAtuarialInput) =>
+    patchJson<ParametrizacaoAtuarial>(`/api/parametrizacoes/${id}`, input),
+  definirParametrosAtuariais: (id: string, parametros: DefinirValorParametroAtuarialInput[]) =>
+    patchJson<ParametrizacaoAtuarial>(`/api/parametrizacoes/${id}/parametros`, { parametros }),
+  promoverCandidatoAderencia: (id: string, resultadoCandidatoId: string) =>
+    postJson<ParametrizacaoAtuarial>(`/api/parametrizacoes/${id}/candidato-aderencia`, { resultadoCandidatoId: resultadoCandidatoId }),
+  removerHipoteseAtuarial: (id: string, selecaoId: string) =>
+    postJson<ParametrizacaoAtuarial>(`/api/parametrizacoes/${id}/hipotese/remover`, { selecaoId: selecaoId }),
+  aprovarParametrizacao: (id: string) =>
+    postJson<ParametrizacaoAtuarial>(`/api/parametrizacoes/${id}/aprovar`, {}),
+  motoresCalculo: () => getJson<MotorCalculo[]>("/api/motores-calculo"),
+  execucoesCalculo: (avaliacaoId: number) =>
+    getJson<ResumoExecucaoCalculo[]>(`/api/avaliacoes/${avaliacaoId}/calculos`),
+  execucaoCalculo: (id: string) => getJson<ExecucaoCalculo>(`/api/calculos/${id}`),
+  resultadosParticipantesCalculo: (id: string, page = 1, pageSize = 50) =>
+    getJson<PaginaResultadosParticipantesCalculo>(`/api/calculos/${id}/participantes?page=${page}&tamanhoPagina=${pageSize}`),
+  criarExecucaoCalculo: (avaliacaoId: number, input: CriarExecucaoCalculoInput) =>
+    postJson<ExecucaoCalculo>(`/api/avaliacoes/${avaliacaoId}/calculos`, input),
+  fechamentos: (avaliacaoId: number) => getJson<FechamentoAtuarial[]>(`/api/avaliacoes/${avaliacaoId}/fechamentos`),
+  criarFechamento: (avaliacaoId: number, execucaoCalculoId: string, observacoes?: string) => postJson<FechamentoAtuarial>(`/api/avaliacoes/${avaliacaoId}/fechamentos`, { execucaoCalculoId, observacoes }),
+  finalizarFechamento: (id: string) => postJson<FechamentoAtuarial>(`/api/fechamentos/${id}/finalizar`, {}),
+  perfisMapeamento: () => getJson<PerfilMapeamento[]>("/api/perfis-mapeamento/"),
+  corresponderPerfilMapeamento: (headers: string[], populacao: string) =>
+    postJson<CorrespondenciaPerfilMapeamento>("/api/perfis-mapeamento/correspondencia", { headers, populacao }),
   importWorkbook,
-  createCritiqueRun: (importJobId: string, previousImportJobId?: string) =>
-    postJson<CritiqueRun>("/api/critique/runs", { importJobId, previousImportJobId }),
-  critiqueRun: (id: string) => getJson<CritiqueRun>(`/api/critique/runs/${id}`),
-  critiqueIssues: (runId: string) => getJson<CritiqueIssue[]>(`/api/critique/runs/${runId}/issues`),
-  critiqueIssue: (id: string) => getJson<CritiqueIssueDetail>(`/api/critique/issues/${id}`),
-  resolveCritiqueIssue: (id: string, status: "JUSTIFIED" | "RESOLVED" | "IGNORED", note: string) =>
-    patchJson<CritiqueIssueDetail>(`/api/critique/issues/${id}`, { status, note }),
-  biometricTables: () => getJson<BiometricTableSummary[]>("/api/biometric-tables/"),
-  biometricTable: (id: string) => getJson<BiometricTableDetail>(`/api/biometric-tables/${id}`),
-  createBiometricTable: (input: CreateBiometricTableInput) =>
-    postJson<BiometricTableDetail>("/api/biometric-tables/", input),
-  biometricVersionPoints: (id: string) =>
-    getJson<BiometricVersionPoints>(`/api/biometric-versions/${id}/points`),
-  deriveBiometricVersion: (tableId: string, input: DeriveBiometricVersionInput) =>
-    postJson<BiometricVersionPoints>(`/api/biometric-tables/${tableId}/derive`, input),
-  adherenceStudies: () => getJson<AdherenceStudySummary[]>("/api/adherence-studies/"),
-  adherenceStudy: (id: string) => getJson<AdherenceStudyDetail>(`/api/adherence-studies/${id}`),
-  createAdherenceStudy: (input: CreateAdherenceStudyInput) =>
-    postJson<AdherenceStudyDetail>("/api/adherence-studies/", input),
-  adherenceCandidatePoints: (id: string) =>
-    getJson<AdherenceCandidatePoints>(`/api/adherence-candidates/${id}/points`),
-  llmProviders: () => getJson<LlmProvider[]>("/api/llm/providers/")
+  criarExecucaoCritica: (importacaoId: string, importacaoAnteriorId?: string) =>
+    postJson<ExecucaoCritica>("/api/critica/execucoes", { importacaoId, importacaoAnteriorId }),
+  execucaoCritica: (id: string) => getJson<ExecucaoCritica>(`/api/critica/execucoes/${id}`),
+  inconsistenciasCritica: (runId: string) => getJson<InconsistenciaCritica[]>(`/api/critica/execucoes/${runId}/inconsistencias`),
+  inconsistenciaCritica: (id: string) => getJson<DetalheInconsistenciaCritica>(`/api/critica/inconsistencias/${id}`),
+  resolverInconsistenciaCritica: (id: string, status: "JUSTIFICADO" | "RESOLVIDO" | "IGNORADO", note: string) =>
+    patchJson<DetalheInconsistenciaCritica>(`/api/critica/inconsistencias/${id}`, { situacao: status, nota: note }),
+  tabuasBiometricas: () => getJson<ResumoTabuaBiometria[]>("/api/tabuas-biometricas/"),
+  tabuaBiometrica: (id: string) => getJson<DetalheTabuaBiometria>(`/api/tabuas-biometricas/${id}`),
+  criarTabuaBiometrica: (input: CriarTabuaBiometriaInput) =>
+    postJson<DetalheTabuaBiometria>("/api/tabuas-biometricas/", input),
+  pontosVersaoBiometria: (id: string) =>
+    getJson<PontosVersaoBiometria>(`/api/versoes-tabuas-biometricas/${id}/pontos`),
+  derivarVersaoBiometria: (tabuaId: string, input: DerivarVersaoBiometriaInput) =>
+    postJson<PontosVersaoBiometria>(`/api/tabuas-biometricas/${tabuaId}/derivar`, input),
+  estudosAderencia: () => getJson<ResumoEstudoAderencia[]>("/api/estudos-aderencia/"),
+  estudoAderencia: (id: string) => getJson<DetalheEstudoAderencia>(`/api/estudos-aderencia/${id}`),
+  criarEstudoAderencia: (input: CriarEstudoAderenciaInput) =>
+    postJson<DetalheEstudoAderencia>("/api/estudos-aderencia/", input),
+  pontosCandidatoAderencia: (id: string) =>
+    getJson<PontosCandidatoAderencia>(`/api/candidatos-aderencia/${id}/pontos`),
+  provedoresLlm: () => getJson<ProvedorLlm[]>("/api/llm/providers/")
 };

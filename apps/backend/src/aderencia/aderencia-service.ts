@@ -2,41 +2,41 @@ import { randomUUID } from "node:crypto";
 import { getTableDefFromEntity, selectFromEntity } from "metal-orm";
 import { createSession } from "../db.js";
 import {
-  AdherenceCandidatePoint,
-  AdherenceCandidateResult,
-  AdherenceObservation,
-  AdherenceStudy
-} from "../domain/adherence-entities.js";
+  PontoCandidatoAderencia,
+  ResultadoCandidatoAderencia,
+  ObservacaoAderencia,
+  EstudoAderencia
+} from "../domain/aderencia-entities.js";
 import {
-  BiometricTable,
-  BiometricTablePoint,
-  BiometricTableVersion
-} from "../domain/biometric-entities.js";
-import { evaluateCandidate, type AdherenceCell } from "./statistics.js";
+  TabuaBiometria,
+  PontoTabuaBiometria,
+  VersaoTabuaBiometria
+} from "../domain/biometria-entities.js";
+import { evaluateCandidato, type AderenciaCell } from "./estatisticas.js";
 
 export const ADHERENCE_ENGINE_VERSION = "adherence-engine-v1";
 
-type Sex = "MALE" | "FEMALE" | "UNISEX";
+type Sex = "MASCULINO" | "FEMININO" | "UNISSEX";
 
-export type ObservationInput = {
-  year: number;
-  age: number;
-  sex: Sex;
-  exposure: number;
-  observedEvents: number;
+export type ObservacaoInput = {
+  ano: number;
+  idade: number;
+  sexo: Sex;
+  exposicao: number;
+  eventosObservados: number;
 };
 
 export type CreateStudyInput = {
-  evaluationId?: number;
-  name: string;
-  hypothesisType: string;
-  periodStart: number;
-  periodEnd: number;
-  sexScope: "BOTH" | Sex;
+  avaliacaoId?: number;
+  nome: string;
+  tipoHipotese: string;
+  periodoInicial: number;
+  periodoFinal: number;
+  escopoSexo: "AMBOS" | Sex;
   alpha: number;
-  fisherSplitAge: number;
-  candidateVersionIds: string[];
-  observations: ObservationInput[];
+  idadeDivisaoFisher: number;
+  idsVersoesCandidatas: string[];
+  observacoes: ObservacaoInput[];
 };
 
 async function withSession<T>(handler: (session: ReturnType<typeof createSession>) => Promise<T>) {
@@ -48,300 +48,300 @@ async function withSession<T>(handler: (session: ReturnType<typeof createSession
   }
 }
 
-function tableOf(entity: typeof AdherenceStudy | typeof AdherenceObservation | typeof AdherenceCandidateResult | typeof AdherenceCandidatePoint) {
+function tableOf(entity: typeof EstudoAderencia | typeof ObservacaoAderencia | typeof ResultadoCandidatoAderencia | typeof PontoCandidatoAderencia) {
   const table = getTableDefFromEntity(entity);
   if (!table) throw new Error(`Metal ORM metadata not bootstrapped for ${entity.name}`);
   return table;
 }
 
 function validateInput(input: CreateStudyInput) {
-  if (!input.name.trim()) throw new Error("Nome do estudo é obrigatório.");
-  if (!input.hypothesisType.trim()) throw new Error("Hipótese é obrigatória.");
-  if (!Number.isInteger(input.periodStart) || !Number.isInteger(input.periodEnd) || input.periodStart > input.periodEnd) {
+  if (!input.nome.trim()) throw new Error("Nome do estudo é obrigatório.");
+  if (!input.tipoHipotese.trim()) throw new Error("Hipótese é obrigatória.");
+  if (!Number.isInteger(input.periodoInicial) || !Number.isInteger(input.periodoFinal) || input.periodoInicial > input.periodoFinal) {
     throw new Error("Período do estudo é inválido.");
   }
   if (!Number.isFinite(input.alpha) || input.alpha <= 0 || input.alpha >= 1) {
     throw new Error("Nível de significância deve estar entre 0 e 1.");
   }
-  if (!Number.isInteger(input.fisherSplitAge) || input.fisherSplitAge < 0 || input.fisherSplitAge > 130) {
+  if (!Number.isInteger(input.idadeDivisaoFisher) || input.idadeDivisaoFisher < 0 || input.idadeDivisaoFisher > 130) {
     throw new Error("Idade de corte do Fisher deve estar entre 0 e 130.");
   }
-  const candidates = new Set(input.candidateVersionIds);
-  if (!candidates.size) throw new Error("Selecione ao menos uma versão biométrica candidata.");
-  if (candidates.size !== input.candidateVersionIds.length) throw new Error("Existem versões candidatas duplicadas.");
-  if (!input.observations.length) throw new Error("O estudo precisa possuir observações de exposição e eventos.");
-  for (const observation of input.observations) {
-    if (!Number.isInteger(observation.year) || observation.year < input.periodStart || observation.year > input.periodEnd) {
-      throw new Error(`Ano ${observation.year} está fora do período do estudo.`);
+  const candidatos = new Set(input.idsVersoesCandidatas);
+  if (!candidatos.size) throw new Error("Selecione ao menos uma versão biométrica candidata.");
+  if (candidatos.size !== input.idsVersoesCandidatas.length) throw new Error("Existem versões candidatas duplicadas.");
+  if (!input.observacoes.length) throw new Error("O estudo precisa possuir observações de exposição e eventos.");
+  for (const observation of input.observacoes) {
+    if (!Number.isInteger(observation.ano) || observation.ano < input.periodoInicial || observation.ano > input.periodoFinal) {
+      throw new Error(`Ano ${observation.ano} está fora do período do estudo.`);
     }
-    if (!Number.isInteger(observation.age) || observation.age < 0 || observation.age > 130) {
-      throw new Error(`Idade inválida: ${observation.age}.`);
+    if (!Number.isInteger(observation.idade) || observation.idade < 0 || observation.idade > 130) {
+      throw new Error(`Idade inválida: ${observation.idade}.`);
     }
-    if (!["MALE", "FEMALE", "UNISEX"].includes(observation.sex)) {
-      throw new Error(`Sexo inválido: ${observation.sex}.`);
+    if (!["MASCULINO", "FEMININO", "UNISSEX"].includes(observation.sexo)) {
+      throw new Error(`Sexo inválido: ${observation.sexo}.`);
     }
-    if (input.sexScope !== "BOTH" && observation.sex !== input.sexScope) {
-      throw new Error(`A observação ${observation.year}/${observation.age}/${observation.sex} não pertence ao escopo ${input.sexScope}.`);
+    if (input.escopoSexo !== "AMBOS" && observation.sexo !== input.escopoSexo) {
+      throw new Error(`A observação ${observation.ano}/${observation.idade}/${observation.sexo} não pertence ao escopo ${input.escopoSexo}.`);
     }
-    if (!Number.isFinite(observation.exposure) || observation.exposure <= 0) {
-      throw new Error(`Exposição inválida em ${observation.year}/${observation.age}/${observation.sex}.`);
+    if (!Number.isFinite(observation.exposicao) || observation.exposicao <= 0) {
+      throw new Error(`Exposição inválida em ${observation.ano}/${observation.idade}/${observation.sexo}.`);
     }
-    if (!Number.isInteger(observation.observedEvents) || observation.observedEvents < 0) {
-      throw new Error(`Eventos observados inválidos em ${observation.year}/${observation.age}/${observation.sex}.`);
+    if (!Number.isInteger(observation.eventosObservados) || observation.eventosObservados < 0) {
+      throw new Error(`Eventos observados inválidos em ${observation.ano}/${observation.idade}/${observation.sexo}.`);
     }
   }
 }
 
-function aggregateObservations(observations: ObservationInput[]) {
-  const aggregated = new Map<string, { age: number; sex: Sex; exposure: number; observed: number }>();
-  for (const observation of observations) {
-    const key = `${observation.sex}:${observation.age}`;
-    const current = aggregated.get(key) ?? { age: observation.age, sex: observation.sex, exposure: 0, observed: 0 };
-    current.exposure += observation.exposure;
-    current.observed += observation.observedEvents;
+function aggregateObservacaos(observacoes: ObservacaoInput[]) {
+  const aggregated = new Map<string, { idade: number; sexo: Sex; exposicao: number; observado: number }>();
+  for (const observation of observacoes) {
+    const key = `${observation.sexo}:${observation.idade}`;
+    const current = aggregated.get(key) ?? { idade: observation.idade, sexo: observation.sexo, exposicao: 0, observado: 0 };
+    current.exposicao += observation.exposicao;
+    current.observado += observation.eventosObservados;
     aggregated.set(key, current);
   }
-  return [...aggregated.values()].sort((a, b) => a.age - b.age || a.sex.localeCompare(b.sex));
+  return [...aggregated.values()].sort((a, b) => a.idade - b.idade || a.sexo.localeCompare(b.sexo));
 }
 
-async function loadBiometricCatalog() {
+async function loadBiometriaCatalog() {
   return withSession(async (session) => {
-    const [tables, versions, points] = await Promise.all([
-      selectFromEntity(BiometricTable).execute(session),
-      selectFromEntity(BiometricTableVersion).execute(session),
-      selectFromEntity(BiometricTablePoint).execute(session)
+    const [tables, versions, pontos] = await Promise.all([
+      selectFromEntity(TabuaBiometria).execute(session),
+      selectFromEntity(VersaoTabuaBiometria).execute(session),
+      selectFromEntity(PontoTabuaBiometria).execute(session)
     ]);
-    return { tables, versions, points };
+    return { tables, versions, pontos };
   });
 }
 
-function buildCandidateCells(
-  aggregated: ReturnType<typeof aggregateObservations>,
-  points: BiometricTablePoint[],
-  versionId: string
-): AdherenceCell[] {
-  const ownPoints = points.filter((point) => point.versionId === versionId);
-  const qxByKey = new Map(ownPoints.map((point) => [`${point.sex}:${point.age}`, Number(point.qx)]));
+function buildCandidatoCells(
+  aggregated: ReturnType<typeof aggregateObservacaos>,
+  pontos: PontoTabuaBiometria[],
+  versaoId: string
+): AderenciaCell[] {
+  const ownPoints = pontos.filter((ponto) => ponto.versaoId === versaoId);
+  const qxByKey = new Map(ownPoints.map((ponto) => [`${ponto.sexo}:${ponto.idade}`, Number(ponto.qx)]));
   return aggregated.map((observation) => {
-    const exact = qxByKey.get(`${observation.sex}:${observation.age}`);
-    const unisex = qxByKey.get(`UNISEX:${observation.age}`);
+    const exact = qxByKey.get(`${observation.sexo}:${observation.idade}`);
+    const unisex = qxByKey.get(`UNISSEX:${observation.idade}`);
     const qx = exact ?? unisex;
     if (qx === undefined) {
-      throw new Error(`A versão biométrica ${versionId} não possui qx para ${observation.sex}, idade ${observation.age}.`);
+      throw new Error(`A versão biométrica ${versaoId} não possui qx para ${observation.sexo}, idade ${observation.idade}.`);
     }
     return {
-      age: observation.age,
-      sex: observation.sex,
-      exposure: observation.exposure,
-      observed: observation.observed,
+      idade: observation.idade,
+      sexo: observation.sexo,
+      exposicao: observation.exposicao,
+      observado: observation.observado,
       qx,
-      expected: observation.exposure * qx
+      esperado: observation.exposicao * qx
     };
   });
 }
 
-export async function createAdherenceStudy(input: CreateStudyInput) {
+export async function createEstudoAderencia(input: CreateStudyInput) {
   validateInput(input);
-  const catalog = await loadBiometricCatalog();
-  const versionsById = new Map(catalog.versions.map((version) => [version.id, version]));
+  const catalog = await loadBiometriaCatalog();
+  const versionsById = new Map(catalog.versions.map((versao) => [versao.id, versao]));
   const tablesById = new Map(catalog.tables.map((table) => [table.id, table]));
-  const aggregated = aggregateObservations(input.observations);
+  const aggregated = aggregateObservacaos(input.observacoes);
 
-  const computed = input.candidateVersionIds.map((versionId) => {
-    const version = versionsById.get(versionId);
-    if (!version) throw new Error(`Versão biométrica ${versionId} não encontrada.`);
-    const table = tablesById.get(version.tableId);
-    if (!table) throw new Error(`Tábua da versão ${versionId} não encontrada.`);
-    const cells = buildCandidateCells(aggregated, catalog.points, versionId);
-    const metrics = evaluateCandidate(cells, input.alpha, input.fisherSplitAge);
-    return { version, table, cells, metrics };
+  const computed = input.idsVersoesCandidatas.map((versaoId) => {
+    const versao = versionsById.get(versaoId);
+    if (!versao) throw new Error(`Versão biométrica ${versaoId} não encontrada.`);
+    const table = tablesById.get(versao.tabuaId);
+    if (!table) throw new Error(`Tábua da versão ${versaoId} não encontrada.`);
+    const cells = buildCandidatoCells(aggregated, catalog.pontos, versaoId);
+    const metrics = evaluateCandidato(cells, input.alpha, input.idadeDivisaoFisher);
+    return { versao, table, cells, metrics };
   });
 
   computed.sort((a, b) =>
-    a.metrics.rejectedTests - b.metrics.rejectedTests ||
+    a.metrics.testesRejeitados - b.metrics.testesRejeitados ||
     a.metrics.dqm - b.metrics.dqm ||
-    b.metrics.chiSquareP - a.metrics.chiSquareP
+    b.metrics.quiQuadradoP - a.metrics.quiQuadradoP
   );
 
   const now = new Date().toISOString();
-  const study = new AdherenceStudy();
+  const study = new EstudoAderencia();
   study.id = randomUUID();
-  study.evaluationId = input.evaluationId ?? null;
-  study.name = input.name.trim();
-  study.hypothesisType = input.hypothesisType.trim();
-  study.periodStart = input.periodStart;
-  study.periodEnd = input.periodEnd;
-  study.sexScope = input.sexScope;
+  study.avaliacaoId = input.avaliacaoId ?? null;
+  study.nome = input.nome.trim();
+  study.tipoHipotese = input.tipoHipotese.trim();
+  study.periodoInicial = input.periodoInicial;
+  study.periodoFinal = input.periodoFinal;
+  study.escopoSexo = input.escopoSexo;
   study.alpha = input.alpha;
-  study.fisherSplitAge = input.fisherSplitAge;
-  study.status = "COMPLETED";
-  study.engineVersion = ADHERENCE_ENGINE_VERSION;
-  study.observationCount = input.observations.length;
-  study.candidateCount = computed.length;
-  study.createdAt = now;
-  study.completedAt = now;
+  study.idadeDivisaoFisher = input.idadeDivisaoFisher;
+  study.situacao = "CONCLUIDO";
+  study.versaoMotor = ADHERENCE_ENGINE_VERSION;
+  study.quantidadeObservacoes = input.observacoes.length;
+  study.quantidadeCandidatos = computed.length;
+  study.criadoEm = now;
+  study.concluidoEm = now;
 
   await withSession(async (session) => {
-    session.trackNew(tableOf(AdherenceStudy), study, study.id);
-    for (const observation of input.observations) {
-      const entity = new AdherenceObservation();
+    session.trackNew(tableOf(EstudoAderencia), study, study.id);
+    for (const observation of input.observacoes) {
+      const entity = new ObservacaoAderencia();
       entity.id = randomUUID();
-      entity.studyId = study.id;
-      entity.year = observation.year;
-      entity.age = observation.age;
-      entity.sex = observation.sex;
-      entity.exposure = observation.exposure;
-      entity.observedEvents = observation.observedEvents;
-      session.trackNew(tableOf(AdherenceObservation), entity, entity.id);
+      entity.estudoId = study.id;
+      entity.ano = observation.ano;
+      entity.idade = observation.idade;
+      entity.sexo = observation.sexo;
+      entity.exposicao = observation.exposicao;
+      entity.eventosObservados = observation.eventosObservados;
+      session.trackNew(tableOf(ObservacaoAderencia), entity, entity.id);
     }
     for (let index = 0; index < computed.length; index += 1) {
-      const candidate = computed[index];
-      const result = new AdherenceCandidateResult();
+      const candidato = computed[index];
+      const result = new ResultadoCandidatoAderencia();
       result.id = randomUUID();
-      result.studyId = study.id;
-      result.biometricVersionId = candidate.version.id;
-      result.tableCode = candidate.table.code;
-      result.tableName = candidate.table.name;
-      result.versionLabel = candidate.version.version;
+      result.estudoId = study.id;
+      result.versaoBiometriaId = candidato.versao.id;
+      result.codigoTabua = candidato.table.codigo;
+      result.nomeTabua = candidato.table.nome;
+      result.rotuloVersao = candidato.versao.versao;
       result.rank = index + 1;
-      result.observedEvents = candidate.metrics.observedEvents;
-      result.expectedEvents = candidate.metrics.expectedEvents;
-      result.chiSquare = candidate.metrics.chiSquare;
-      result.chiSquareDf = candidate.metrics.chiSquareDf;
-      result.chiSquareCritical = candidate.metrics.chiSquareCritical;
-      result.chiSquareP = candidate.metrics.chiSquareP;
-      result.chiSquarePass = candidate.metrics.chiSquarePass ? 1 : 0;
-      result.ksD = candidate.metrics.ksD;
-      result.ksCritical = candidate.metrics.ksCritical;
-      result.ksP = candidate.metrics.ksP;
-      result.ksPass = candidate.metrics.ksPass ? 1 : 0;
-      result.zStatistic = candidate.metrics.zStatistic;
-      result.zCritical = candidate.metrics.zCritical;
-      result.zP = candidate.metrics.zP;
-      result.zPass = candidate.metrics.zPass ? 1 : 0;
-      result.fisherP = candidate.metrics.fisherP;
-      result.fisherPass = candidate.metrics.fisherPass ? 1 : 0;
-      result.dqm = candidate.metrics.dqm;
-      result.rejectedTests = candidate.metrics.rejectedTests;
-      result.createdAt = now;
-      session.trackNew(tableOf(AdherenceCandidateResult), result, result.id);
+      result.eventosObservados = candidato.metrics.eventosObservados;
+      result.eventosEsperados = candidato.metrics.eventosEsperados;
+      result.quiQuadrado = candidato.metrics.quiQuadrado;
+      result.quiQuadradoDf = candidato.metrics.quiQuadradoDf;
+      result.quiQuadradoCritical = candidato.metrics.quiQuadradoCritical;
+      result.quiQuadradoP = candidato.metrics.quiQuadradoP;
+      result.quiQuadradoPass = candidato.metrics.quiQuadradoPass ? 1 : 0;
+      result.ksD = candidato.metrics.ksD;
+      result.ksCritico = candidato.metrics.ksCritico;
+      result.pKs = candidato.metrics.pKs;
+      result.pKsass = candidato.metrics.pKsass ? 1 : 0;
+      result.estatisticaZ = candidato.metrics.estatisticaZ;
+      result.zCritico = candidato.metrics.zCritico;
+      result.pZ = candidato.metrics.pZ;
+      result.pZass = candidato.metrics.pZass ? 1 : 0;
+      result.pFisher = candidato.metrics.pFisher;
+      result.pFisherass = candidato.metrics.pFisherass ? 1 : 0;
+      result.dqm = candidato.metrics.dqm;
+      result.testesRejeitados = candidato.metrics.testesRejeitados;
+      result.criadoEm = now;
+      session.trackNew(tableOf(ResultadoCandidatoAderencia), result, result.id);
 
-      for (const cell of candidate.cells) {
-        const point = new AdherenceCandidatePoint();
-        point.id = randomUUID();
-        point.candidateResultId = result.id;
-        point.age = cell.age;
-        point.sex = cell.sex;
-        point.exposure = cell.exposure;
-        point.observedEvents = cell.observed;
-        point.qx = cell.qx;
-        point.expectedEvents = cell.expected;
-        point.residual = cell.observed - cell.expected;
-        session.trackNew(tableOf(AdherenceCandidatePoint), point, point.id);
+      for (const cell of candidato.cells) {
+        const ponto = new PontoCandidatoAderencia();
+        ponto.id = randomUUID();
+        ponto.resultadoCandidatoId = result.id;
+        ponto.idade = cell.idade;
+        ponto.sexo = cell.sexo;
+        ponto.exposicao = cell.exposicao;
+        ponto.eventosObservados = cell.observado;
+        ponto.qx = cell.qx;
+        ponto.eventosEsperados = cell.esperado;
+        ponto.residuo = cell.observado - cell.esperado;
+        session.trackNew(tableOf(PontoCandidatoAderencia), ponto, ponto.id);
       }
     }
     await session.commit();
   });
 
-  return getAdherenceStudy(study.id);
+  return getEstudoAderencia(study.id);
 }
 
-function summarizeCandidate(result: AdherenceCandidateResult) {
+function summarizeCandidato(result: ResultadoCandidatoAderencia) {
   return {
     id: result.id,
-    biometricVersionId: result.biometricVersionId,
-    tableCode: result.tableCode,
-    tableName: result.tableName,
-    versionLabel: result.versionLabel,
+    versaoBiometriaId: result.versaoBiometriaId,
+    codigoTabua: result.codigoTabua,
+    nomeTabua: result.nomeTabua,
+    rotuloVersao: result.rotuloVersao,
     rank: result.rank,
-    observedEvents: Number(result.observedEvents),
-    expectedEvents: Number(result.expectedEvents),
-    chiSquare: Number(result.chiSquare),
-    chiSquareDf: result.chiSquareDf,
-    chiSquareCritical: Number(result.chiSquareCritical),
-    chiSquareP: Number(result.chiSquareP),
-    chiSquarePass: result.chiSquarePass === 1,
+    eventosObservados: Number(result.eventosObservados),
+    eventosEsperados: Number(result.eventosEsperados),
+    quiQuadrado: Number(result.quiQuadrado),
+    quiQuadradoDf: result.quiQuadradoDf,
+    quiQuadradoCritical: Number(result.quiQuadradoCritical),
+    quiQuadradoP: Number(result.quiQuadradoP),
+    quiQuadradoPass: result.quiQuadradoPass === 1,
     ksD: Number(result.ksD),
-    ksCritical: Number(result.ksCritical),
-    ksP: Number(result.ksP),
-    ksPass: result.ksPass === 1,
-    zStatistic: Number(result.zStatistic),
-    zCritical: Number(result.zCritical),
-    zP: Number(result.zP),
-    zPass: result.zPass === 1,
-    fisherP: Number(result.fisherP),
-    fisherPass: result.fisherPass === 1,
+    ksCritico: Number(result.ksCritico),
+    pKs: Number(result.pKs),
+    pKsass: result.pKsass === 1,
+    estatisticaZ: Number(result.estatisticaZ),
+    zCritico: Number(result.zCritico),
+    pZ: Number(result.pZ),
+    pZass: result.pZass === 1,
+    pFisher: Number(result.pFisher),
+    pFisherass: result.pFisherass === 1,
     dqm: Number(result.dqm),
-    rejectedTests: result.rejectedTests
+    testesRejeitados: result.testesRejeitados
   };
 }
 
-export async function listAdherenceStudies() {
+export async function listAderenciaStudies() {
   return withSession(async (session) => {
-    const studies = await selectFromEntity(AdherenceStudy).execute(session);
-    return studies.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((study) => ({
+    const studies = await selectFromEntity(EstudoAderencia).execute(session);
+    return studies.sort((a, b) => b.criadoEm.localeCompare(a.criadoEm)).map((study) => ({
       id: study.id,
-      evaluationId: study.evaluationId ?? null,
-      name: study.name,
-      hypothesisType: study.hypothesisType,
-      periodStart: study.periodStart,
-      periodEnd: study.periodEnd,
-      sexScope: study.sexScope,
+      avaliacaoId: study.avaliacaoId ?? null,
+      nome: study.nome,
+      tipoHipotese: study.tipoHipotese,
+      periodoInicial: study.periodoInicial,
+      periodoFinal: study.periodoFinal,
+      escopoSexo: study.escopoSexo,
       alpha: Number(study.alpha),
-      status: study.status,
-      engineVersion: study.engineVersion,
-      observationCount: study.observationCount,
-      candidateCount: study.candidateCount,
-      createdAt: study.createdAt,
-      completedAt: study.completedAt ?? null
+      situacao: study.situacao,
+      versaoMotor: study.versaoMotor,
+      quantidadeObservacoes: study.quantidadeObservacoes,
+      quantidadeCandidatos: study.quantidadeCandidatos,
+      criadoEm: study.criadoEm,
+      concluidoEm: study.concluidoEm ?? null
     }));
   });
 }
 
-export async function getAdherenceStudy(studyId: string) {
+export async function getEstudoAderencia(estudoId: string) {
   return withSession(async (session) => {
-    const study = await session.find(AdherenceStudy, studyId);
+    const study = await session.find(EstudoAderencia, estudoId);
     if (!study) return null;
-    const candidates = (await selectFromEntity(AdherenceCandidateResult).execute(session))
-      .filter((result) => result.studyId === study.id)
+    const candidatos = (await selectFromEntity(ResultadoCandidatoAderencia).execute(session))
+      .filter((result) => result.estudoId === study.id)
       .sort((a, b) => a.rank - b.rank);
     return {
       id: study.id,
-      evaluationId: study.evaluationId ?? null,
-      name: study.name,
-      hypothesisType: study.hypothesisType,
-      periodStart: study.periodStart,
-      periodEnd: study.periodEnd,
-      sexScope: study.sexScope,
+      avaliacaoId: study.avaliacaoId ?? null,
+      nome: study.nome,
+      tipoHipotese: study.tipoHipotese,
+      periodoInicial: study.periodoInicial,
+      periodoFinal: study.periodoFinal,
+      escopoSexo: study.escopoSexo,
       alpha: Number(study.alpha),
-      fisherSplitAge: study.fisherSplitAge,
-      status: study.status,
-      engineVersion: study.engineVersion,
-      observationCount: study.observationCount,
-      candidateCount: study.candidateCount,
-      createdAt: study.createdAt,
-      completedAt: study.completedAt ?? null,
-      candidates: candidates.map(summarizeCandidate)
+      idadeDivisaoFisher: study.idadeDivisaoFisher,
+      situacao: study.situacao,
+      versaoMotor: study.versaoMotor,
+      quantidadeObservacoes: study.quantidadeObservacoes,
+      quantidadeCandidatos: study.quantidadeCandidatos,
+      criadoEm: study.criadoEm,
+      concluidoEm: study.concluidoEm ?? null,
+      candidatos: candidatos.map(summarizeCandidato)
     };
   });
 }
 
-export async function getAdherenceCandidatePoints(candidateResultId: string) {
+export async function getPontosCandidatoAderencia(resultadoCandidatoId: string) {
   return withSession(async (session) => {
-    const result = await session.find(AdherenceCandidateResult, candidateResultId);
+    const result = await session.find(ResultadoCandidatoAderencia, resultadoCandidatoId);
     if (!result) return null;
-    const points = (await selectFromEntity(AdherenceCandidatePoint).execute(session))
-      .filter((point) => point.candidateResultId === result.id)
-      .sort((a, b) => a.age - b.age || a.sex.localeCompare(b.sex))
-      .map((point) => ({
-        age: point.age,
-        sex: point.sex,
-        exposure: Number(point.exposure),
-        observedEvents: point.observedEvents,
-        qx: Number(point.qx),
-        expectedEvents: Number(point.expectedEvents),
-        residual: Number(point.residual)
+    const pontos = (await selectFromEntity(PontoCandidatoAderencia).execute(session))
+      .filter((ponto) => ponto.resultadoCandidatoId === result.id)
+      .sort((a, b) => a.idade - b.idade || a.sexo.localeCompare(b.sexo))
+      .map((ponto) => ({
+        idade: ponto.idade,
+        sexo: ponto.sexo,
+        exposicao: Number(ponto.exposicao),
+        eventosObservados: ponto.eventosObservados,
+        qx: Number(ponto.qx),
+        eventosEsperados: Number(ponto.eventosEsperados),
+        residuo: Number(ponto.residuo)
       }));
-    return { candidate: summarizeCandidate(result), points };
+    return { candidato: summarizeCandidato(result), pontos };
   });
 }
